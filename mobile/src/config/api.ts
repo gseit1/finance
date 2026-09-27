@@ -5,7 +5,7 @@ import { Platform } from 'react-native';
  * Once you deploy your backend to Vercel, paste your live URL here:
  * e.g., 'https://your-finance-app.vercel.app'
  */
-export const VERCEL_BACKEND_URL: string = '';
+export const VERCEL_BACKEND_URL: string = 'https://finance-nine-bay.vercel.app';
 
 /**
  * Dynamically resolves the backend server URL:
