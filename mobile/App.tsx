@@ -1,0 +1,699 @@
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, View, ActivityIndicator } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { WelcomeScreen } from './src/screens/WelcomeScreen';
+import { AuthScreen } from './src/screens/AuthScreen';
+import { HomeScreen } from './src/screens/HomeScreen';
+import { ExpensesScreen } from './src/screens/ExpensesScreen';
+import { GoalsScreen } from './src/screens/GoalsScreen';
+import { ProfileScreen } from './src/screens/ProfileScreen';
+import { BottomIslandNav, NavTab } from './src/components/BottomIslandNav';
+import {
+  Transaction,
+  Account,
+  Category,
+  Budget,
+  Goal,
+  TransactionType,
+} from './src/types';
+import { colors } from './src/theme/colors';
+import { isSupabaseConfigured, supabase } from './src/services/supabase';
+import { authService } from './src/services/authService';
+
+// Default clean user data
+const defaultAccounts: Account[] = [
+  { id: 'acc-1', name: 'Main Checking', type: 'bank', balance: 0.00, currency: 'USD', color: '#3B82F6', icon: 'bank' },
+];
+
+const defaultCategories: Category[] = [
+  { id: 'cat-1', name: 'Groceries', type: 'expense', icon: 'shopping-cart', color: '#EF4444' },
+  { id: 'cat-2', name: 'Dining Out', type: 'expense', icon: 'coffee', color: '#F97316' },
+  { id: 'cat-3', name: 'Housing & Rent', type: 'expense', icon: 'home', color: '#8B5CF6' },
+  { id: 'cat-4', name: 'Transportation', type: 'expense', icon: 'car', color: '#06B6D4' },
+  { id: 'cat-5', name: 'Entertainment', type: 'expense', icon: 'film', color: '#EC4899' },
+  { id: 'cat-6', name: 'Utilities & Bills', type: 'expense', icon: 'zap', color: '#EAB308' },
+  { id: 'cat-7', name: 'Salary', type: 'income', icon: 'briefcase', color: '#10B981' },
+  { id: 'cat-8', name: 'Investments', type: 'income', icon: 'trending-up', color: '#3B82F6' },
+];
+
+const defaultBudgets: Budget[] = [];
+const defaultTransactions: Transaction[] = [];
+const defaultGoals: Goal[] = [];
+
+type AppFlow = 'welcome' | 'auth' | 'app';
+
+function App(): React.JSX.Element {
+  const [flow, setFlow] = useState<AppFlow>('welcome');
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
+  const [currentTab, setCurrentTab] = useState<NavTab>('home');
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isAuthChecking, setIsAuthChecking] = useState<boolean>(true);
+
+  const [accounts, setAccounts] = useState<Account[]>(defaultAccounts);
+  const [categories, setCategories] = useState<Category[]>(defaultCategories);
+  const [budgets, setBudgets] = useState<Budget[]>(defaultBudgets);
+  const [transactions, setTransactions] = useState<Transaction[]>(defaultTransactions);
+  const [goals, setGoals] = useState<Goal[]>(defaultGoals);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const supabaseActive = isSupabaseConfigured();
+
+  // Unified data synchronization with Supabase PostgreSQL
+  const syncUserData = async (userId: string) => {
+    if (!supabaseActive || !userId) return;
+
+    try {
+      // 1. Fetch Categories (Ensuring real Supabase UUIDs)
+      let liveCategories: Category[] = [];
+      const { data: dbCats } = await supabase
+        .from('categories')
+        .select('*')
+        .order('name');
+
+      if (dbCats && dbCats.length > 0) {
+        liveCategories = dbCats.map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          type: c.type,
+          icon: c.icon || 'tag',
+          color: c.color || (c.type === 'income' ? '#10B981' : '#EF4444'),
+        }));
+        setCategories(liveCategories);
+      } else {
+        // Fallback: seed default categories directly into Supabase with user_id
+        const seedCategories = [
+          { user_id: userId, name: 'Groceries & Food', type: 'expense', icon: 'shopping-cart', color: '#EF4444' },
+          { user_id: userId, name: 'Dining & Drinks', type: 'expense', icon: 'coffee', color: '#F97316' },
+          { user_id: userId, name: 'Housing & Rent', type: 'expense', icon: 'home', color: '#8B5CF6' },
+          { user_id: userId, name: 'Transportation', type: 'expense', icon: 'car', color: '#06B6D4' },
+          { user_id: userId, name: 'Utilities & Bills', type: 'expense', icon: 'zap', color: '#EAB308' },
+          { user_id: userId, name: 'Entertainment', type: 'expense', icon: 'film', color: '#EC4899' },
+          { user_id: userId, name: 'Shopping', type: 'expense', icon: 'shopping-bag', color: '#6366F1' },
+          { user_id: userId, name: 'Salary', type: 'income', icon: 'briefcase', color: '#10B981' },
+          { user_id: userId, name: 'Investments', type: 'income', icon: 'trending-up', color: '#3B82F6' },
+        ];
+        const { data: insertedCats } = await supabase.from('categories').insert(seedCategories).select();
+        if (insertedCats && insertedCats.length > 0) {
+          liveCategories = insertedCats.map((c: any) => ({
+            id: c.id,
+            name: c.name,
+            type: c.type,
+            icon: c.icon || 'tag',
+            color: c.color,
+          }));
+          setCategories(liveCategories);
+        }
+      }
+
+      // 2. Fetch Accounts (Ensuring real Supabase UUIDs)
+      let liveAccounts: Account[] = [];
+      const { data: dbAccs } = await supabase
+        .from('accounts')
+        .select('*')
+        .order('created_at');
+
+      if (dbAccs && dbAccs.length > 0) {
+        liveAccounts = dbAccs.map((a: any) => ({
+          id: a.id,
+          name: a.name,
+          type: a.type || 'bank',
+          balance: Number(a.balance) || 0,
+          currency: a.currency || 'USD',
+          color: a.color || '#3B82F6',
+          icon: a.icon || 'bank',
+        }));
+        setAccounts(liveAccounts);
+      } else {
+        // Fallback: seed default bank account directly into Supabase with user_id
+        const { data: insertedAccs } = await supabase
+          .from('accounts')
+          .insert([
+            { user_id: userId, name: 'Main Checking', type: 'bank', balance: 0.0, color: '#3B82F6', icon: 'bank' },
+          ])
+          .select();
+        if (insertedAccs && insertedAccs.length > 0) {
+          liveAccounts = insertedAccs.map((a: any) => ({
+            id: a.id,
+            name: a.name,
+            type: a.type,
+            balance: Number(a.balance) || 0,
+            currency: 'USD',
+            color: a.color,
+            icon: a.icon,
+          }));
+          setAccounts(liveAccounts);
+        }
+      }
+
+      // 3. Fetch Transactions
+      const { data: dbTxs } = await supabase
+        .from('transactions')
+        .select('*')
+        .order('date', { ascending: false });
+
+      const mappedTxs: Transaction[] = (dbTxs || []).map((t: any) => {
+        const cat = liveCategories.find((c) => c.id === t.category_id);
+        const acc = liveAccounts.find((a) => a.id === t.account_id);
+        return {
+          id: t.id,
+          account_id: t.account_id,
+          category_id: t.category_id,
+          type: t.type,
+          amount: Number(t.amount),
+          description: t.description || '',
+          notes: t.notes,
+          date: t.date,
+          account_name: acc?.name || 'Account',
+          category_name: cat?.name || 'General',
+          category_color: cat?.color || colors.primary,
+        };
+      });
+      setTransactions(mappedTxs);
+
+      // 4. Fetch Budgets
+      const { data: dbBudgets } = await supabase.from('budgets').select('*');
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+
+      const mappedBudgets: Budget[] = (dbBudgets || []).map((b: any) => {
+        const cat = liveCategories.find((c) => c.id === b.category_id);
+        const spent = mappedTxs
+          .filter((t) => {
+            if (t.type !== 'expense' || t.category_id !== b.category_id) return false;
+            const d = new Date(t.date);
+            return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+          })
+          .reduce((sum, t) => sum + t.amount, 0);
+
+        return {
+          id: b.id,
+          category_id: b.category_id,
+          category_name: cat?.name || 'General',
+          amount: Number(b.amount),
+          spent,
+          color: cat?.color || colors.primary,
+        };
+      });
+      setBudgets(mappedBudgets);
+
+      // 5. Fetch Goals (With safe offline/local storage fallback)
+      try {
+        const { data: dbGoals, error: goalsErr } = await supabase.from('goals').select('*');
+        if (!goalsErr && dbGoals) {
+          setGoals(
+            dbGoals.map((g: any) => ({
+              id: g.id,
+              name: g.name,
+              target_amount: Number(g.target_amount),
+              current_amount: Number(g.current_amount),
+              target_date: g.target_date,
+              color: g.color || '#6366F1',
+              icon: g.icon || '🎯',
+              is_completed: g.is_completed || false,
+            }))
+          );
+        } else {
+          const cachedGoals = await AsyncStorage.getItem(`@finance_goals_${userId}`);
+          if (cachedGoals) setGoals(JSON.parse(cachedGoals));
+        }
+      } catch {
+        const cachedGoals = await AsyncStorage.getItem(`@finance_goals_${userId}`);
+        if (cachedGoals) setGoals(JSON.parse(cachedGoals));
+      }
+    } catch (err) {
+      console.warn('Sync user data failed:', err);
+    }
+  };
+
+  // Restore authenticated session on cold app launch
+  useEffect(() => {
+    let isMounted = true;
+
+    const restoreSession = async () => {
+      try {
+        if (supabaseActive) {
+          const { data, error } = await supabase.auth.getSession();
+          if (!error && data?.session?.user) {
+            if (isMounted) {
+              setCurrentUser(data.session.user);
+              setFlow('app');
+              setIsAuthChecking(false);
+            }
+            await syncUserData(data.session.user.id);
+            return;
+          }
+        }
+
+        const cachedUser = await authService.getCurrentUser();
+        if (cachedUser && isMounted) {
+          setCurrentUser(cachedUser);
+          setFlow('app');
+          await syncUserData(cachedUser.id);
+        }
+      } catch (err) {
+        console.warn('Session restoration failed:', err);
+      } finally {
+        if (isMounted) {
+          setIsAuthChecking(false);
+        }
+      }
+    };
+
+    restoreSession();
+
+    if (supabaseActive) {
+      const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (session?.user) {
+          if (isMounted) {
+            setCurrentUser(session.user);
+            setFlow('app');
+          }
+          await syncUserData(session.user.id);
+        } else if (event === 'SIGNED_OUT') {
+          if (isMounted) {
+            setCurrentUser(null);
+            setFlow('welcome');
+          }
+        }
+      });
+
+      return () => {
+        isMounted = false;
+        authListener?.subscription?.unsubscribe();
+      };
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    if (currentUser?.id) {
+      await syncUserData(currentUser.id);
+    }
+    setTimeout(() => setRefreshing(false), 500);
+  };
+
+  const handleSaveTransaction = async (newTx: {
+    type: TransactionType;
+    amount: number;
+    description: string;
+    categoryId: string;
+    accountId: string;
+    date?: string;
+  }) => {
+    const category = categories.find((c) => c.id === newTx.categoryId);
+    const account = accounts.find((a) => a.id === newTx.accountId) || accounts[0];
+
+    const tempId = `tx-${Date.now()}`;
+    const txDate = newTx.date || new Date().toISOString();
+
+    const localTransaction: Transaction = {
+      id: tempId,
+      account_id: account?.id || '',
+      category_id: newTx.categoryId,
+      type: newTx.type,
+      amount: newTx.amount,
+      description: newTx.description,
+      date: txDate,
+      account_name: account?.name || 'Account',
+      category_name: category?.name || 'General',
+      category_color: category?.color || colors.primary,
+    };
+
+    setTransactions((prev) => [localTransaction, ...prev]);
+
+    // Update Account balance locally
+    setAccounts((prev) =>
+      prev.map((acc) => {
+        if (acc.id === account?.id) {
+          const delta = newTx.type === 'income' ? newTx.amount : -newTx.amount;
+          return { ...acc, balance: acc.balance + delta };
+        }
+        return acc;
+      })
+    );
+
+    // Update Budget spent amount if expense
+    if (newTx.type === 'expense' && newTx.categoryId) {
+      setBudgets((prev) =>
+        prev.map((b) => {
+          if (b.category_id === newTx.categoryId) {
+            return { ...b, spent: b.spent + newTx.amount };
+          }
+          return b;
+        })
+      );
+    }
+
+    // Persist directly to Supabase with real UUIDs
+    if (supabaseActive && currentUser?.id && account?.id) {
+      try {
+        const { data, error } = await supabase
+          .from('transactions')
+          .insert({
+            user_id: currentUser.id,
+            account_id: account.id,
+            category_id: newTx.categoryId || null,
+            type: newTx.type,
+            amount: newTx.amount,
+            description: newTx.description,
+            date: txDate,
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Supabase transaction insert error:', error.message);
+        } else if (data) {
+          // Replace tempId with server-assigned UUID
+          setTransactions((prev) =>
+            prev.map((t) => (t.id === tempId ? { ...t, id: data.id } : t))
+          );
+        }
+      } catch (e) {
+        console.error('Supabase transaction network notice:', e);
+      }
+    }
+  };
+
+  const handleSaveBudget = async (b: { categoryId: string; amount: number }) => {
+    const category = categories.find((c) => c.id === b.categoryId);
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    const spent = transactions
+      .filter((t) => {
+        if (t.type !== 'expense' || t.category_id !== b.categoryId) return false;
+        const d = new Date(t.date);
+        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+      })
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const tempId = `b-${Date.now()}`;
+    setBudgets((prev) => {
+      const idx = prev.findIndex((item) => item.category_id === b.categoryId);
+      const budgetItem: Budget = {
+        id: idx >= 0 ? prev[idx].id : tempId,
+        category_id: b.categoryId,
+        category_name: category?.name || 'General',
+        amount: b.amount,
+        spent: spent,
+        color: category?.color || colors.primary,
+      };
+
+      if (idx >= 0) {
+        const updated = [...prev];
+        updated[idx] = budgetItem;
+        return updated;
+      }
+      return [...prev, budgetItem];
+    });
+
+    if (supabaseActive && currentUser?.id) {
+      const firstOfMonth = new Date(currentYear, currentMonth, 1).toISOString().split('T')[0];
+      try {
+        const { data, error } = await supabase
+          .from('budgets')
+          .upsert(
+            {
+              user_id: currentUser.id,
+              category_id: b.categoryId,
+              month: firstOfMonth,
+              amount: b.amount,
+            },
+            { onConflict: 'user_id, category_id, month' }
+          )
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Supabase budget upsert error:', error.message);
+        } else if (data) {
+          setBudgets((prev) =>
+            prev.map((item) => (item.id === tempId ? { ...item, id: data.id } : item))
+          );
+        }
+      } catch (e) {
+        console.error('Supabase budget network notice:', e);
+      }
+    }
+  };
+
+  const handleDeleteBudget = async (categoryId: string) => {
+    setBudgets((prev) => prev.filter((b) => b.category_id !== categoryId));
+    if (supabaseActive && currentUser?.id) {
+      try {
+        await supabase
+          .from('budgets')
+          .delete()
+          .eq('user_id', currentUser.id)
+          .eq('category_id', categoryId);
+      } catch (e) {
+        console.error('Supabase budget delete notice:', e);
+      }
+    }
+  };
+
+  const handleAddGoal = async (newGoal: Omit<Goal, 'id'>) => {
+    const tempId = `goal-${Date.now()}`;
+    const localGoal: Goal = {
+      ...newGoal,
+      id: tempId,
+      is_completed: (newGoal.current_amount || 0) >= newGoal.target_amount,
+    };
+
+    setGoals((prev) => {
+      const updated = [localGoal, ...prev];
+      if (currentUser?.id) {
+        AsyncStorage.setItem(`@finance_goals_${currentUser.id}`, JSON.stringify(updated));
+      }
+      return updated;
+    });
+
+    if (supabaseActive && currentUser?.id) {
+      try {
+        const { data, error } = await supabase
+          .from('goals')
+          .insert({
+            user_id: currentUser.id,
+            name: newGoal.name,
+            target_amount: newGoal.target_amount,
+            current_amount: newGoal.current_amount || 0,
+            target_date: newGoal.target_date || null,
+            color: newGoal.color || '#6366F1',
+            icon: newGoal.icon || '🎯',
+            is_completed: (newGoal.current_amount || 0) >= newGoal.target_amount,
+          })
+          .select()
+          .single();
+
+        if (!error && data) {
+          setGoals((prev) =>
+            prev.map((g) => (g.id === tempId ? { ...g, id: data.id } : g))
+          );
+        }
+      } catch (e) {
+        console.warn('Goals Supabase insert notice:', e);
+      }
+    }
+  };
+
+  const handleAddFundsToGoal = async (goalId: string, amount: number) => {
+    let updatedGoal: Goal | undefined;
+    setGoals((prev) => {
+      const updated = prev.map((g) => {
+        if (g.id === goalId) {
+          const updatedAmount = g.current_amount + amount;
+          const completed = updatedAmount >= g.target_amount;
+          updatedGoal = { ...g, current_amount: updatedAmount, is_completed: completed };
+          return updatedGoal;
+        }
+        return g;
+      });
+      if (currentUser?.id) {
+        AsyncStorage.setItem(`@finance_goals_${currentUser.id}`, JSON.stringify(updated));
+      }
+      return updated;
+    });
+
+    // Record as an expense transaction for account outflow
+    const primaryAccount = accounts[0];
+    if (primaryAccount) {
+      handleSaveTransaction({
+        type: 'expense',
+        amount: amount,
+        description: `Savings goal: ${updatedGoal?.name || 'Vault'}`,
+        categoryId: categories[0]?.id || '',
+        accountId: primaryAccount.id,
+      });
+    }
+
+    if (supabaseActive && currentUser?.id && !goalId.startsWith('goal-')) {
+      try {
+        await supabase
+          .from('goals')
+          .update({
+            current_amount: updatedGoal?.current_amount || 0,
+            is_completed: updatedGoal?.is_completed || false,
+          })
+          .eq('id', goalId)
+          .eq('user_id', currentUser.id);
+      } catch (e) {
+        console.warn('Goals Supabase update notice:', e);
+      }
+    }
+  };
+
+  const userDisplayName =
+    currentUser?.user_metadata?.full_name ||
+    currentUser?.user_metadata?.name ||
+    (currentUser?.email ? currentUser.email.split('@')[0] : 'Operator');
+
+  const userAvatarUrl = currentUser?.user_metadata?.avatar_url || null;
+
+  if (isAuthChecking) {
+    return (
+      <SafeAreaProvider>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#10B981" />
+        </View>
+      </SafeAreaProvider>
+    );
+  }
+
+  return (
+    <SafeAreaProvider>
+      <View style={styles.appContainer}>
+        {/* Flow 1: Welcome Onboarding Screen */}
+        {flow === 'welcome' && (
+          <WelcomeScreen
+            onGetStarted={() => {
+              setAuthMode('signup');
+              setFlow('auth');
+            }}
+            onSignIn={() => {
+              setAuthMode('signin');
+              setFlow('auth');
+            }}
+          />
+        )}
+
+        {/* Flow 2: Unified Auth (Sign In / Register) Screen */}
+        {flow === 'auth' && (
+          <AuthScreen
+            initialMode={authMode}
+            onAuthenticated={async () => {
+              const user = await authService.getCurrentUser();
+              if (user) {
+                setCurrentUser(user);
+                await syncUserData(user.id);
+              }
+              setFlow('app');
+            }}
+            onBackToWelcome={() => setFlow('welcome')}
+          />
+        )}
+
+        {/* Flow 3: Main Financial Ledger Application */}
+        {flow === 'app' && isProfileOpen && (
+          <ProfileScreen
+            onBack={() => setIsProfileOpen(false)}
+            onSignOut={async () => {
+              await authService.signOut();
+              setCurrentUser(null);
+              setTransactions([]);
+              setBudgets([]);
+              setGoals([]);
+              setAccounts([
+                { id: 'acc-1', name: 'Main Checking', type: 'bank', balance: 0.00, currency: 'USD', color: '#3B82F6', icon: 'bank' },
+              ]);
+              setIsProfileOpen(false);
+              setFlow('welcome');
+            }}
+            onProfileUpdated={(updatedUser) => {
+              setCurrentUser((prev: any) => ({
+                ...prev,
+                ...updatedUser,
+                user_metadata: {
+                  ...prev?.user_metadata,
+                  ...updatedUser?.user_metadata,
+                },
+              }));
+            }}
+          />
+        )}
+
+        {flow === 'app' && !isProfileOpen && (
+          <View style={styles.screenWrapper}>
+            {currentTab === 'home' && (
+              <HomeScreen
+                accounts={accounts}
+                categories={categories}
+                budgets={budgets}
+                transactions={transactions}
+                onAddTransaction={handleSaveTransaction}
+                onSaveBudget={handleSaveBudget}
+                onDeleteBudget={handleDeleteBudget}
+                onRefresh={handleRefresh}
+                refreshing={refreshing}
+                onOpenProfile={() => setIsProfileOpen(true)}
+                userName={userDisplayName}
+                avatarUrl={userAvatarUrl}
+              />
+            )}
+
+            {currentTab === 'expenses' && (
+              <ExpensesScreen
+                transactions={transactions}
+                categories={categories}
+                accounts={accounts}
+                onAddTransaction={handleSaveTransaction}
+                onOpenProfile={() => setIsProfileOpen(true)}
+                avatarUrl={userAvatarUrl}
+              />
+            )}
+
+            {currentTab === 'goals' && (
+              <GoalsScreen
+                goals={goals}
+                onAddGoal={handleAddGoal}
+                onAddFundsToGoal={handleAddFundsToGoal}
+                onOpenProfile={() => setIsProfileOpen(true)}
+                avatarUrl={userAvatarUrl}
+              />
+            )}
+
+            {/* Floating Frosted Bottom Island Navbar */}
+            <BottomIslandNav currentTab={currentTab} onTabChange={setCurrentTab} />
+          </View>
+        )}
+      </View>
+    </SafeAreaProvider>
+  );
+}
+
+const styles = StyleSheet.create({
+  appContainer: {
+    flex: 1,
+    backgroundColor: '#08080A',
+    position: 'relative',
+  },
+  screenWrapper: {
+    flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: '#08080A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
+
+export default App;
