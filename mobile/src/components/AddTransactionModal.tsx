@@ -59,7 +59,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   const handleSave = () => {
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
-      setErrorMessage('Enter a valid amount greater than $0');
+      setErrorMessage('Enter a valid amount greater than €0');
       return;
     }
     if (!description.trim()) {
@@ -143,10 +143,10 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
             </View>
 
             {/* Amount Input */}
-            <Text style={styles.inputLabel}>AMOUNT ($)</Text>
+            <Text style={styles.inputLabel}>AMOUNT (€)</Text>
             <View style={styles.amountContainer}>
               <Text style={[styles.currencyPrefix, { color: type === 'income' ? colors.inflow : colors.outflow }]}>
-                {type === 'income' ? '+' : '-'}$
+                {type === 'income' ? '+' : '-'}€
               </Text>
               <TextInput
                 style={styles.amountInput}

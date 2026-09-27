@@ -84,7 +84,7 @@ export const SetBudgetModal: React.FC<SetBudgetModalProps> = ({
   const handleSave = () => {
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
-      setErrorMessage('Please enter a valid monthly limit greater than $0.');
+      setErrorMessage('Please enter a valid monthly limit greater than €0.');
       return;
     }
     if (!selectedCategoryId) {
@@ -184,7 +184,7 @@ export const SetBudgetModal: React.FC<SetBudgetModalProps> = ({
                 <Text style={styles.statusName}>{selectedCategoryObj?.name || 'Category'}</Text>
                 {existingBudget ? (
                   <Text style={styles.statusActive}>
-                    Limit: ${existingBudget.amount.toLocaleString()} (Spent: ${existingBudget.spent.toLocaleString()})
+                    Limit: €{existingBudget.amount.toLocaleString()} (Spent: €{existingBudget.spent.toLocaleString()})
                   </Text>
                 ) : (
                   <Text style={styles.statusNone}>No limit established</Text>
@@ -193,9 +193,9 @@ export const SetBudgetModal: React.FC<SetBudgetModalProps> = ({
             </View>
 
             {/* Monthly Limit Input */}
-            <Text style={styles.fieldLabel}>MONTHLY LIMIT AMOUNT ($)</Text>
+            <Text style={styles.fieldLabel}>MONTHLY LIMIT AMOUNT (€)</Text>
             <View style={styles.amountInputRow}>
-              <Text style={styles.currencyPrefix}>$</Text>
+              <Text style={styles.currencyPrefix}>€</Text>
               <TextInput
                 style={styles.amountInput}
                 placeholder="0.00"
@@ -218,7 +218,7 @@ export const SetBudgetModal: React.FC<SetBudgetModalProps> = ({
                   onPress={() => handleApplyPreset(val)}
                   activeOpacity={0.75}
                 >
-                  <Text style={styles.presetChipText}>${val}</Text>
+                  <Text style={styles.presetChipText}>€{val}</Text>
                 </TouchableOpacity>
               ))}
               {[50, 100].map((delta) => (

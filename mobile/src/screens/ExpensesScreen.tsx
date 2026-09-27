@@ -170,7 +170,7 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({
           <View style={styles.dataCol}>
             <Text style={styles.dataLabel}>TOTAL SPENT</Text>
             <Text style={[styles.dataValue, { color: colors.outflow }]}>
-              ${categoryBreakdown.totalMonthlyAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              €{categoryBreakdown.totalMonthlyAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </Text>
           </View>
 
@@ -178,7 +178,7 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({
 
           <View style={styles.dataCol}>
             <Text style={styles.dataLabel}>DAILY AVG</Text>
-            <Text style={styles.dataValue}>${dailyAverage}</Text>
+            <Text style={styles.dataValue}>€{dailyAverage}</Text>
           </View>
 
           <View style={styles.dataDivider} />
@@ -212,7 +212,7 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({
                   <View style={styles.categoryTop}>
                     <Text style={styles.categoryName}>{item.category.name}</Text>
                     <Text style={styles.categoryFigures}>
-                      ${item.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}{' '}
+                      €{item.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}{' '}
                       <Text style={styles.categoryPercentage}>({item.percentage.toFixed(0)}%)</Text>
                     </Text>
                   </View>
@@ -316,7 +316,7 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({
                     </Text>
                   </View>
 
-                  <Text style={styles.txAmount}>-${tx.amount.toFixed(2)}</Text>
+                  <Text style={styles.txAmount}>-€{tx.amount.toFixed(2)}</Text>
                 </View>
               );
             })
@@ -349,7 +349,7 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#09090B',
+    backgroundColor: '#080808',
   },
   scrollContent: {
     paddingBottom: 100,

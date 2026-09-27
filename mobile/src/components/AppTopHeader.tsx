@@ -9,20 +9,22 @@ import {
   Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { PulseDot, UserIcon } from './VectorIcons';
+import { UserIcon } from './VectorIcons';
 
 export interface AppTopHeaderProps {
-  title: string;
+  title?: string;
   showPulse?: boolean;
   avatarUrl?: string | null;
+  userName?: string;
   onProfilePress?: () => void;
   onBackPress?: () => void;
   rightAction?: React.ReactNode;
 }
 
+const MONO_FONT = Platform.OS === 'ios' ? 'Menlo' : 'monospace';
+
 export const AppTopHeader: React.FC<AppTopHeaderProps> = ({
   title,
-  showPulse = false,
   avatarUrl,
   onProfilePress,
   onBackPress,
@@ -30,9 +32,9 @@ export const AppTopHeader: React.FC<AppTopHeaderProps> = ({
 }) => {
   const insets = useSafeAreaInsets();
 
-  // Enforce strict Android status bar + notch safe offset
-  const androidBarHeight = Platform.OS === 'android' ? (StatusBar.currentHeight || 28) : 0;
-  const safeTopPadding = Math.max(insets.top, androidBarHeight, 36) + 6;
+  // Rigid status bar height with notch safe offset
+  const androidBarHeight = Platform.OS === 'android' ? (StatusBar.currentHeight || 24) : 0;
+  const safeTopPadding = Math.max(insets.top, androidBarHeight, 20);
 
   const isImageUri =
     avatarUrl &&
@@ -60,54 +62,43 @@ export const AppTopHeader: React.FC<AppTopHeaderProps> = ({
     <View style={[styles.container, { paddingTop: safeTopPadding }]}>
       <StatusBar barStyle="light-content" />
 
-      <View style={styles.innerRow}>
-        {/* Left Side: Back Button OR Title */}
+      <View style={styles.statusBarRow}>
+        {/* Left: LEDGER.SYS or [ ← BACK ] */}
         {onBackPress ? (
-          <View style={styles.backTitleGroup}>
-            <TouchableOpacity
-              onPress={onBackPress}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              style={styles.backButton}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.backArrow}>←</Text>
-            </TouchableOpacity>
-
-            <View style={styles.titleWithPulse}>
-              <Text style={styles.headerTitle}>{title}</Text>
-              {showPulse && <PulseDot />}
-            </View>
-          </View>
+          <TouchableOpacity
+            onPress={onBackPress}
+            style={styles.backTouch}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={styles.backText}>← {title ? title.toUpperCase() : 'SYS.NAV'}</Text>
+          </TouchableOpacity>
         ) : (
-          <View style={styles.titleWithPulse}>
-            <Text style={styles.headerTitle}>{title}</Text>
-            {showPulse && <PulseDot />}
+          <View style={styles.brandGroup}>
+            <Text style={styles.brandTitle}>LEDGER.SYS</Text>
           </View>
         )}
 
-        {/* Right Side: Profile Link Button with User Avatar OR Custom Action */}
+        {/* Right: Tactile Profile Link Button */}
         {rightAction ? (
           rightAction
         ) : onProfilePress ? (
           <TouchableOpacity
-            style={[
-              styles.profileLinkButton,
-              isImageUri && styles.profileLinkButtonWithImage,
-            ]}
+            style={styles.profileLinkButton}
             onPress={onProfilePress}
             activeOpacity={0.75}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             {isImageUri ? (
-              <Image source={{ uri: avatarUrl! }} style={styles.profileAvatarImage} />
+              <Image source={{ uri: avatarUrl! }} style={styles.avatarImage} />
             ) : avatarUrl && avatarUrl.startsWith('preset:') ? (
-              <Text style={styles.profilePresetGlyph}>{getPresetGlyph(avatarUrl)}</Text>
+              <Text style={styles.presetGlyph}>{getPresetGlyph(avatarUrl)}</Text>
             ) : (
-              <UserIcon size={18} color="#FAFAFA" />
+              <UserIcon size={16} color="#FFFFFF" />
             )}
           </TouchableOpacity>
         ) : (
-          <View style={{ width: 38 }} />
+          <View style={{ width: 34 }} />
         )}
       </View>
     </View>
@@ -116,70 +107,57 @@ export const AppTopHeader: React.FC<AppTopHeaderProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#09090B',
-    paddingHorizontal: 20,
-    paddingBottom: 10,
+    backgroundColor: '#080808',
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.04)',
+    borderBottomColor: 'rgba(39, 39, 42, 0.6)',
   },
-  innerRow: {
-    height: 48,
+  statusBarRow: {
+    height: 56, // h-14
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: 20, // px-6
   },
-  backTitleGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  backButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backArrow: {
-    fontSize: 18,
-    color: '#FAFAFA',
-    fontWeight: '700',
-    marginTop: -2,
-  },
-  titleWithPulse: {
+  brandGroup: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  headerTitle: {
-    fontSize: 26,
+  brandTitle: {
+    fontFamily: MONO_FONT,
     fontWeight: '900',
-    color: '#FAFAFA',
-    letterSpacing: -0.8,
+    fontSize: 13,
+    letterSpacing: 2,
+    color: '#FFFFFF',
+    textTransform: 'uppercase',
+  },
+  backTouch: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backText: {
+    fontFamily: MONO_FONT,
+    fontWeight: '800',
+    fontSize: 12,
+    letterSpacing: 1.2,
+    color: '#FFFFFF',
   },
   profileLinkButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#141416',
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#18181B', // bg-zinc-900
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: '#3F3F46', // border-zinc-700
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  profileLinkButtonWithImage: {
-    borderColor: '#10B981',
-    borderWidth: 1.5,
+  avatarImage: {
+    width: 36,
+    height: 36,
+    borderRadius: 9,
   },
-  profileAvatarImage: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-  },
-  profilePresetGlyph: {
-    fontSize: 18,
+  presetGlyph: {
+    fontSize: 16,
   },
 });

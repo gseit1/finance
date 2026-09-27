@@ -1,20 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, ActivityIndicator, AppState, AppStateStatus } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { WelcomeScreen } from './src/screens/WelcomeScreen';
 import { AuthScreen } from './src/screens/AuthScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { ExpensesScreen } from './src/screens/ExpensesScreen';
+import { AccountsScreen } from './src/screens/AccountsScreen';
 import { GoalsScreen } from './src/screens/GoalsScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
 import { BottomIslandNav, NavTab } from './src/components/BottomIslandNav';
+import { AddAccountModal } from './src/components/AddAccountModal';
+import { AddTransactionModal } from './src/components/AddTransactionModal';
 import {
   Transaction,
   Account,
   Category,
   Budget,
   Goal,
+  RecurringRule,
   TransactionType,
 } from './src/types';
 import { colors } from './src/theme/colors';
@@ -23,7 +27,7 @@ import { authService } from './src/services/authService';
 
 // Default clean user data
 const defaultAccounts: Account[] = [
-  { id: 'acc-1', name: 'Main Checking', type: 'bank', balance: 0.00, currency: 'USD', color: '#3B82F6', icon: 'bank' },
+  { id: 'acc-1', name: 'Main Checking', type: 'bank', balance: 0.00, currency: 'EUR', color: '#3B82F6', icon: 'bank' },
 ];
 
 const defaultCategories: Category[] = [
@@ -56,6 +60,9 @@ function App(): React.JSX.Element {
   const [budgets, setBudgets] = useState<Budget[]>(defaultBudgets);
   const [transactions, setTransactions] = useState<Transaction[]>(defaultTransactions);
   const [goals, setGoals] = useState<Goal[]>(defaultGoals);
+  const [recurringRules, setRecurringRules] = useState<RecurringRule[]>([]);
+  const [addAccountModalVisible, setAddAccountModalVisible] = useState<boolean>(false);
+  const [isGlobalTxModalOpen, setIsGlobalTxModalOpen] = useState<boolean>(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const supabaseActive = isSupabaseConfigured();
@@ -126,7 +133,7 @@ function App(): React.JSX.Element {
           name: a.name,
           type: a.type || 'bank',
           balance: Number(a.balance) || 0,
-          currency: a.currency || 'USD',
+          currency: a.currency || 'EUR',
           color: a.color || '#3B82F6',
           icon: a.icon || 'bank',
         }));
@@ -136,8 +143,8 @@ function App(): React.JSX.Element {
         const { data: insertedAccs } = await supabase
           .from('accounts')
           .insert([
-            { user_id: userId, name: 'Cash', type: 'cash', balance: 0.0, color: '#10B981', icon: 'cash' },
-            { user_id: userId, name: 'Bank Account', type: 'bank', balance: 0.0, color: '#3B82F6', icon: 'bank' },
+            { user_id: userId, name: 'Cash', type: 'cash', balance: 0.0, color: '#10B981', icon: 'cash', currency: 'EUR' },
+            { user_id: userId, name: 'Bank Account', type: 'bank', balance: 0.0, color: '#3B82F6', icon: 'bank', currency: 'EUR' },
           ])
           .select();
         if (insertedAccs && insertedAccs.length > 0) {
@@ -146,7 +153,7 @@ function App(): React.JSX.Element {
             name: a.name,
             type: a.type,
             balance: Number(a.balance) || 0,
-            currency: 'USD',
+            currency: 'EUR',
             color: a.color,
             icon: a.icon,
           }));
@@ -246,6 +253,34 @@ function App(): React.JSX.Element {
         const cachedGoals = await AsyncStorage.getItem(`@finance_goals_${userId}`);
         if (cachedGoals) setGoals(JSON.parse(cachedGoals));
       }
+
+      // 6. Fetch Recurring Rules from Supabase
+      try {
+        const { data: dbRules, error: rulesErr } = await supabase
+          .from('recurring_rules')
+          .select('*')
+          .order('next_run_date', { ascending: true });
+
+        if (!rulesErr && dbRules && dbRules.length > 0) {
+          const mappedRules: RecurringRule[] = dbRules.map((r: any) => ({
+            id: r.id,
+            user_id: r.user_id,
+            account_id: r.account_id,
+            category_id: r.category_id,
+            description: r.description,
+            amount: Number(r.amount),
+            type: r.type,
+            frequency: r.frequency,
+            next_run_date: r.next_run_date,
+            is_active: r.is_active,
+          }));
+          setRecurringRules(mappedRules);
+        } else {
+          setRecurringRules([]);
+        }
+      } catch (rulesCatchErr) {
+        console.warn('Recurring rules fetch notice:', rulesCatchErr);
+      }
     } catch (err) {
       console.warn('Sync user data failed:', err);
     }
@@ -333,6 +368,68 @@ function App(): React.JSX.Element {
       isMounted = false;
     };
   }, []);
+
+  // Multi-device real-time sync: listens to Supabase PostgreSQL changes & app foreground events
+  useEffect(() => {
+    if (!currentUser?.id) return;
+
+    // 1. Sync immediately whenever the app is brought to the foreground / unlocked
+    const appStateSub = AppState.addEventListener('change', (nextState: AppStateStatus) => {
+      if (nextState === 'active' && currentUser?.id) {
+        syncUserData(currentUser.id);
+      }
+    });
+
+    // 2. Real-time WebSocket channel for instant cross-device updates
+    let realtimeChannel: any = null;
+    if (supabaseActive && currentUser?.id) {
+      realtimeChannel = supabase
+        .channel(`multi-device-sync-${currentUser.id}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'transactions' },
+          () => {
+            syncUserData(currentUser.id);
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'budgets' },
+          () => {
+            syncUserData(currentUser.id);
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'accounts' },
+          () => {
+            syncUserData(currentUser.id);
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'goals' },
+          () => {
+            syncUserData(currentUser.id);
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'recurring_rules' },
+          () => {
+            syncUserData(currentUser.id);
+          }
+        )
+        .subscribe();
+    }
+
+    return () => {
+      appStateSub.remove();
+      if (realtimeChannel) {
+        supabase.removeChannel(realtimeChannel);
+      }
+    };
+  }, [currentUser?.id, supabaseActive]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -734,6 +831,136 @@ function App(): React.JSX.Element {
     }
   };
 
+  const handleAddAccount = async (newAcc: Omit<Account, 'id'>) => {
+    await authService.ensureSupabaseSession();
+    const tempId = `acc-${Date.now()}`;
+    const localAcc: Account = {
+      ...newAcc,
+      id: tempId,
+    };
+    setAccounts((prev) => [...prev, localAcc]);
+
+    if (supabaseActive && currentUser?.id) {
+      try {
+        const { data, error } = await supabase
+          .from('accounts')
+          .insert({
+            user_id: currentUser.id,
+            name: newAcc.name,
+            type: newAcc.type,
+            balance: newAcc.balance || 0,
+            currency: newAcc.currency || 'EUR',
+            color: newAcc.color || '#3B82F6',
+            icon: newAcc.icon || 'bank',
+          })
+          .select()
+          .single();
+
+        if (!error && data) {
+          setAccounts((prev) =>
+            prev.map((a) => (a.id === tempId ? { ...a, id: data.id } : a))
+          );
+        } else if (error) {
+          console.error('Supabase account insert error:', error.message);
+        }
+      } catch (err) {
+        console.warn('Add account network error:', err);
+      }
+    }
+  };
+
+  const handleDeleteAccount = async (accountId: string) => {
+    setAccounts((prev) => prev.filter((a) => a.id !== accountId));
+    if (supabaseActive && currentUser?.id && isUUID(accountId)) {
+      try {
+        await supabase
+          .from('accounts')
+          .delete()
+          .eq('id', accountId)
+          .eq('user_id', currentUser.id);
+      } catch (err) {
+        console.warn('Delete account error:', err);
+      }
+    }
+  };
+
+  const handleAddRecurringRule = async (newRule: Omit<RecurringRule, 'id'>) => {
+    await authService.ensureSupabaseSession();
+    const tempId = `rec-${Date.now()}`;
+    const localRule: RecurringRule = {
+      ...newRule,
+      id: tempId,
+    };
+    setRecurringRules((prev) => [...prev, localRule]);
+
+    if (supabaseActive && currentUser?.id) {
+      try {
+        const accId = isUUID(newRule.account_id) ? newRule.account_id : null;
+        const catId = isUUID(newRule.category_id) ? newRule.category_id : null;
+
+        const { data, error } = await supabase
+          .from('recurring_rules')
+          .insert({
+            user_id: currentUser.id,
+            account_id: accId,
+            category_id: catId,
+            description: newRule.description,
+            amount: newRule.amount,
+            type: newRule.type,
+            frequency: newRule.frequency,
+            next_run_date: newRule.next_run_date,
+            is_active: newRule.is_active,
+          })
+          .select()
+          .single();
+
+        if (!error && data) {
+          setRecurringRules((prev) =>
+            prev.map((r) => (r.id === tempId ? { ...r, id: data.id } : r))
+          );
+        } else if (error) {
+          console.error('Supabase recurring rule insert error:', error.message);
+        }
+      } catch (err) {
+        console.warn('Add recurring rule network error:', err);
+      }
+    }
+  };
+
+  const handleToggleRecurringRule = async (ruleId: string, isActive: boolean) => {
+    setRecurringRules((prev) =>
+      prev.map((r) => (r.id === ruleId ? { ...r, is_active: isActive } : r))
+    );
+
+    if (supabaseActive && currentUser?.id && isUUID(ruleId)) {
+      try {
+        await supabase
+          .from('recurring_rules')
+          .update({ is_active: isActive })
+          .eq('id', ruleId)
+          .eq('user_id', currentUser.id);
+      } catch (err) {
+        console.warn('Toggle recurring rule error:', err);
+      }
+    }
+  };
+
+  const handleDeleteRecurringRule = async (ruleId: string) => {
+    setRecurringRules((prev) => prev.filter((r) => r.id !== ruleId));
+
+    if (supabaseActive && currentUser?.id && isUUID(ruleId)) {
+      try {
+        await supabase
+          .from('recurring_rules')
+          .delete()
+          .eq('id', ruleId)
+          .eq('user_id', currentUser.id);
+      } catch (err) {
+        console.warn('Delete recurring rule error:', err);
+      }
+    }
+  };
+
   const userDisplayName =
     currentUser?.user_metadata?.full_name ||
     currentUser?.user_metadata?.name ||
@@ -797,8 +1024,9 @@ function App(): React.JSX.Element {
               setTransactions([]);
               setBudgets([]);
               setGoals([]);
+              setRecurringRules([]);
               setAccounts([
-                { id: 'acc-1', name: 'Main Checking', type: 'bank', balance: 0.00, currency: 'USD', color: '#3B82F6', icon: 'bank' },
+                { id: 'acc-1', name: 'Main Checking', type: 'bank', balance: 0.00, currency: 'EUR', color: '#3B82F6', icon: 'bank' },
               ]);
               setIsProfileOpen(false);
               setFlow('welcome');
@@ -824,9 +1052,13 @@ function App(): React.JSX.Element {
                 categories={categories}
                 budgets={budgets}
                 transactions={transactions}
+                recurringRules={recurringRules}
                 onAddTransaction={handleSaveTransaction}
                 onSaveBudget={handleSaveBudget}
                 onDeleteBudget={handleDeleteBudget}
+                onOpenAccounts={() => setCurrentTab('accounts')}
+                onAddAccount={() => setAddAccountModalVisible(true)}
+                onAddRecurring={() => setCurrentTab('accounts')}
                 onRefresh={handleRefresh}
                 refreshing={refreshing}
                 onOpenProfile={() => setIsProfileOpen(true)}
@@ -846,6 +1078,21 @@ function App(): React.JSX.Element {
               />
             )}
 
+            {currentTab === 'accounts' && (
+              <AccountsScreen
+                accounts={accounts}
+                recurringRules={recurringRules}
+                categories={categories}
+                onAddAccount={handleAddAccount}
+                onDeleteAccount={handleDeleteAccount}
+                onAddRecurringRule={handleAddRecurringRule}
+                onToggleRecurringRule={handleToggleRecurringRule}
+                onDeleteRecurringRule={handleDeleteRecurringRule}
+                onOpenProfile={() => setIsProfileOpen(true)}
+                avatarUrl={userAvatarUrl}
+              />
+            )}
+
             {currentTab === 'goals' && (
               <GoalsScreen
                 goals={goals}
@@ -856,8 +1103,29 @@ function App(): React.JSX.Element {
               />
             )}
 
-            {/* Floating Frosted Bottom Island Navbar */}
-            <BottomIslandNav currentTab={currentTab} onTabChange={setCurrentTab} />
+            {/* Global Add Account Modal (accessible from HomeScreen quick action) */}
+            <AddAccountModal
+              visible={addAccountModalVisible}
+              onClose={() => setAddAccountModalVisible(false)}
+              onSave={handleAddAccount}
+            />
+
+            {/* Global Quick Dispatch Transaction Modal (accessible from Dock Center + trigger) */}
+            <AddTransactionModal
+              visible={isGlobalTxModalOpen}
+              onClose={() => setIsGlobalTxModalOpen(false)}
+              onSave={handleSaveTransaction}
+              initialType="expense"
+              categories={categories}
+              accounts={accounts}
+            />
+
+            {/* Floating Ultra-Frosted Awwwards-Grade Bottom Island Dock */}
+            <BottomIslandNav
+              currentTab={currentTab}
+              onTabChange={setCurrentTab}
+              onQuickLog={() => setIsGlobalTxModalOpen(true)}
+            />
           </View>
         )}
       </View>
@@ -868,15 +1136,16 @@ function App(): React.JSX.Element {
 const styles = StyleSheet.create({
   appContainer: {
     flex: 1,
-    backgroundColor: '#08080A',
+    backgroundColor: '#080808',
     position: 'relative',
   },
   screenWrapper: {
     flex: 1,
+    backgroundColor: '#080808',
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#08080A',
+    backgroundColor: '#080808',
     alignItems: 'center',
     justifyContent: 'center',
   },

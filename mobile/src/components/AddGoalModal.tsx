@@ -54,7 +54,7 @@ export const AddGoalModal: React.FC<AddGoalModalProps> = ({
       return;
     }
     if (isNaN(target) || target <= 0) {
-      setErrorMessage('Enter a target amount greater than $0');
+      setErrorMessage('Enter a target amount greater than €0');
       return;
     }
 
@@ -115,9 +115,9 @@ export const AddGoalModal: React.FC<AddGoalModalProps> = ({
             />
 
             {/* Target Amount */}
-            <Text style={styles.inputLabel}>TARGET AMOUNT ($)</Text>
+            <Text style={styles.inputLabel}>TARGET AMOUNT (€)</Text>
             <View style={styles.amountContainer}>
-              <Text style={styles.currencyPrefix}>$</Text>
+              <Text style={styles.currencyPrefix}>€</Text>
               <TextInput
                 style={styles.amountInput}
                 placeholder="5,000"
@@ -137,7 +137,7 @@ export const AddGoalModal: React.FC<AddGoalModalProps> = ({
             <Text style={styles.inputLabel}>ALREADY FUNDED (OPTIONAL)</Text>
             <TextInput
               style={styles.textInput}
-              placeholder="$0.00"
+              placeholder="€0.00"
               placeholderTextColor="#71717A"
               keyboardType="decimal-pad"
               value={currentAmount}

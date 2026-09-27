@@ -83,7 +83,7 @@ export const GoalsScreen: React.FC<GoalsScreenProps> = ({
           <View style={styles.dataCol}>
             <Text style={styles.dataLabel}>TOTAL SAVED</Text>
             <Text style={[styles.dataValue, { color: colors.inflow }]}>
-              ${summary.totalSaved.toLocaleString()}
+              €{summary.totalSaved.toLocaleString()}
             </Text>
           </View>
 
@@ -91,7 +91,7 @@ export const GoalsScreen: React.FC<GoalsScreenProps> = ({
 
           <View style={styles.dataCol}>
             <Text style={styles.dataLabel}>TARGET</Text>
-            <Text style={styles.dataValue}>${summary.totalTarget.toLocaleString()}</Text>
+            <Text style={styles.dataValue}>€{summary.totalTarget.toLocaleString()}</Text>
           </View>
 
           <View style={styles.dataDivider} />
@@ -157,8 +157,8 @@ export const GoalsScreen: React.FC<GoalsScreenProps> = ({
                   {/* Monospace Figures & Bold Percentage */}
                   <View style={styles.figuresRow}>
                     <Text style={styles.figuresRatio}>
-                      ${g.current_amount.toLocaleString()}{' '}
-                      <Text style={styles.figuresTarget}>/ ${g.target_amount.toLocaleString()}</Text>
+                      €{g.current_amount.toLocaleString()}{' '}
+                      <Text style={styles.figuresTarget}>/ €{g.target_amount.toLocaleString()}</Text>
                     </Text>
                     <Text style={[styles.percentageText, isFinished && { color: colors.inflow }]}>
                       {progress.toFixed(0)}%
@@ -222,9 +222,9 @@ export const GoalsScreen: React.FC<GoalsScreenProps> = ({
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.inputLabel}>AMOUNT ($)</Text>
+            <Text style={styles.inputLabel}>AMOUNT (€)</Text>
             <View style={styles.amountInputBox}>
-              <Text style={styles.currencyPrefix}>$</Text>
+              <Text style={styles.currencyPrefix}>€</Text>
               <TextInput
                 style={styles.largeInput}
                 placeholder="0.00"
@@ -249,7 +249,7 @@ export const GoalsScreen: React.FC<GoalsScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#09090B',
+    backgroundColor: '#080808',
   },
   scrollContent: {
     paddingBottom: 100,

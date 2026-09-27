@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { colors } from '../theme/colors';
 import { Transaction } from '../types';
 
@@ -8,153 +8,201 @@ interface TransactionListProps {
   onSelectTransaction?: (tx: Transaction) => void;
 }
 
+const MONO_FONT = Platform.OS === 'ios' ? 'Menlo' : 'monospace';
+
 export const TransactionList: React.FC<TransactionListProps> = ({
   transactions,
   onSelectTransaction,
 }) => {
   const formatAmount = (tx: Transaction) => {
-    const prefix = tx.type === 'income' ? '+' : '-';
-    return `${prefix}$${tx.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const isIncome = tx.type === 'income';
+    const prefix = isIncome ? '+' : '-';
+    return `${prefix}€${tx.amount.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
   };
 
   const formatDate = (dateString: string) => {
-    const d = new Date(dateString);
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    try {
+      const d = new Date(dateString);
+      return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+    } catch {
+      return dateString;
+    }
   };
 
-  if (transactions.length === 0) {
-    return (
-      <View style={styles.emptyContainer}>
-        <Text style={styles.emptyTitle}>NO ACTIVITY RECORDED</Text>
-        <Text style={styles.emptySubtitle}>Log your first transaction above.</Text>
-      </View>
-    );
-  }
-
   return (
-    <View style={styles.container}>
-      <Text style={styles.eyebrow}>RECENT ACTIVITY</Text>
+    <View style={styles.sectionContainer}>
+      {/* Header: // 03. RECENT ACTIVITY */}
+      <View style={styles.headerRow}>
+        <Text style={styles.eyebrow}>// 03. RECENT ACTIVITY</Text>
+      </View>
 
-      {transactions.map((tx, index) => {
-        const isIncome = tx.type === 'income';
-        const isLast = index === transactions.length - 1;
+      {transactions.length === 0 ? (
+        <View style={styles.emptyDashedBox}>
+          <Text style={styles.emptyTitle}>NO RECORDED TRANSACTIONS</Text>
+          <Text style={styles.emptySubtext}>Stream waiting for incoming ledger activity</Text>
+        </View>
+      ) : (
+        <View style={styles.streamList}>
+          {transactions.map((tx, index) => {
+            const isIncome = tx.type === 'income';
+            const isLast = index === transactions.length - 1;
+            const initialTag = (tx.category_name || tx.description || 'D')
+              .trim()
+              .slice(0, 1)
+              .toUpperCase();
 
-        return (
-          <TouchableOpacity
-            key={tx.id}
-            style={[styles.txRow, !isLast && styles.itemDivider]}
-            activeOpacity={0.7}
-            onPress={() => onSelectTransaction?.(tx)}
-          >
-            {/* Minimal Monochrome Container */}
-            <View style={styles.iconContainer}>
-              <Text style={styles.iconLetter}>
-                {(tx.category_name || 'TX').slice(0, 1).toUpperCase()}
-              </Text>
-            </View>
+            const subSpecParts = [
+              tx.category_name || 'General',
+              tx.account_name || 'Account',
+              formatDate(tx.date),
+            ].filter(Boolean);
 
-            {/* Details */}
-            <View style={styles.detailsContainer}>
-              <Text style={styles.description} numberOfLines={1}>
-                {tx.description}
-              </Text>
-              <Text style={styles.metaRow}>
-                {tx.category_name || 'General'} • {tx.account_name || 'Account'} • {formatDate(tx.date)}
-              </Text>
-            </View>
+            return (
+              <TouchableOpacity
+                key={tx.id}
+                style={[styles.streamRow, !isLast && styles.rowDivider]}
+                activeOpacity={0.7}
+                onPress={() => onSelectTransaction?.(tx)}
+              >
+                {/* Micro square category tag: [ D ] */}
+                <View style={styles.categoryMicroTag}>
+                  <Text style={styles.categoryMicroText}>[ {initialTag} ]</Text>
+                </View>
 
-            {/* Stark Tabular Figure */}
-            <Text
-              style={[
-                styles.amount,
-                { color: isIncome ? colors.inflow : '#FAFAFA' },
-              ]}
-            >
-              {formatAmount(tx)}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
+                {/* Center: Entity name + Sub-spec */}
+                <View style={styles.specCenter}>
+                  <Text style={styles.entityName} numberOfLines={1}>
+                    {tx.description || 'Transaction'}
+                  </Text>
+                  <Text style={styles.subSpecText} numberOfLines={1}>
+                    {subSpecParts.join(' · ')}
+                  </Text>
+                </View>
+
+                {/* Right: Crisp tabular monospace figure */}
+                <Text
+                  style={[
+                    styles.amountFigure,
+                    isIncome ? styles.inflowAmount : styles.whiteAmount,
+                  ]}
+                >
+                  {formatAmount(tx)}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    marginHorizontal: 20,
-    marginBottom: 40,
+  sectionContainer: {
+    backgroundColor: '#080808',
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingBottom: 40,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(39, 39, 42, 0.7)',
+  },
+  headerRow: {
+    marginBottom: 10,
+    paddingHorizontal: 2,
   },
   eyebrow: {
-    fontFamily: 'monospace',
+    fontFamily: MONO_FONT,
     fontSize: 10,
     letterSpacing: 1.5,
-    color: colors.textMuted,
+    color: '#71717A', // text-zinc-500
     fontWeight: '700',
-    marginBottom: 10,
+    textTransform: 'uppercase',
   },
-  txRow: {
+  emptyDashedBox: {
+    borderWidth: 1,
+    borderColor: '#27272A', // border-zinc-800
+    borderStyle: 'dashed',
+    borderRadius: 12,
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(24, 24, 27, 0.2)',
+  },
+  emptyTitle: {
+    fontFamily: MONO_FONT,
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#A1A1AA',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  emptySubtext: {
+    fontSize: 12,
+    color: '#52525B',
+    marginTop: 4,
+  },
+  streamList: {
+    backgroundColor: 'transparent',
+  },
+  streamRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 14, // py-3.5
+    paddingHorizontal: 4,
   },
-  itemDivider: {
+  rowDivider: {
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+    borderBottomColor: '#18181B', // border-zinc-900
   },
-  iconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: '#18181B',
+  categoryMicroTag: {
+    width: 32, // w-8
+    height: 32, // h-8
+    borderRadius: 8, // rounded-lg
+    backgroundColor: '#18181B', // bg-zinc-900
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
+    borderColor: '#27272A', // border-zinc-800
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
-  iconLetter: {
-    fontFamily: 'monospace',
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#FAFAFA',
+  categoryMicroText: {
+    fontFamily: MONO_FONT,
+    fontSize: 10, // text-[10px]
+    fontWeight: '900', // font-black
+    color: '#D4D4D8', // text-zinc-300
+    letterSpacing: -0.5,
   },
-  detailsContainer: {
+  specCenter: {
     flex: 1,
+    paddingRight: 10,
   },
-  description: {
+  entityName: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#FAFAFA',
-    marginBottom: 2,
+    fontWeight: '700', // font-bold
+    color: '#FFFFFF',
     letterSpacing: -0.2,
   },
-  metaRow: {
-    fontFamily: 'monospace',
-    fontSize: 11,
-    color: colors.textMuted,
+  subSpecText: {
+    fontFamily: MONO_FONT,
+    fontSize: 11, // text-xs
+    color: '#71717A', // text-zinc-500
+    marginTop: 2, // mt-0.5
   },
-  amount: {
-    fontFamily: 'monospace',
-    fontSize: 14,
-    fontWeight: '700',
+  amountFigure: {
+    fontFamily: MONO_FONT,
+    fontSize: 14, // text-sm
+    fontWeight: '900', // font-black
     fontVariant: ['tabular-nums'],
-    marginLeft: 8,
+    letterSpacing: -0.2,
   },
-  emptyContainer: {
-    marginHorizontal: 20,
-    paddingVertical: 32,
-    alignItems: 'center',
+  whiteAmount: {
+    color: '#FFFFFF',
   },
-  emptyTitle: {
-    fontFamily: 'monospace',
-    fontSize: 10,
-    letterSpacing: 1.5,
-    color: colors.textMuted,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  emptySubtitle: {
-    fontSize: 13,
-    color: colors.textSecondary,
+  inflowAmount: {
+    color: '#10B981',
   },
 });

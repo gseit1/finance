@@ -1,7 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { colors } from '../theme/colors';
-import { DotsIcon } from './VectorIcons';
 
 interface BalanceCardProps {
   totalBalance: number;
@@ -11,6 +10,8 @@ interface BalanceCardProps {
   onOptionsPress?: () => void;
 }
 
+const MONO_FONT = Platform.OS === 'ios' ? 'Menlo' : 'monospace';
+
 export const BalanceCard: React.FC<BalanceCardProps> = ({
   totalBalance,
   monthlyIncome,
@@ -18,53 +19,74 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
   onAddTransaction,
   onOptionsPress,
 }) => {
-  const formatCurrency = (val: number) => {
-    return '$' + val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  // Strict precision euro formatting
+  const formatBigBalance = (val: number) => {
+    const isNeg = val < 0;
+    const absVal = Math.abs(val);
+    const formatted = absVal.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    return `${isNeg ? '-' : ''}€${formatted}`;
+  };
+
+  const formatFlow = (val: number, isIncome: boolean) => {
+    const absVal = Math.abs(val);
+    const formatted = absVal.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    return `${isIncome ? '+' : '-'}€${formatted}`;
   };
 
   return (
-    <View style={styles.card}>
-      {/* Eyebrow */}
-      <Text style={styles.eyebrow}>NET BALANCE</Text>
+    <View style={styles.ledgerSection}>
+      {/* Monospace Eyebrow */}
+      <Text style={styles.eyebrow}>// 01. NET LIQUIDITY POSITION</Text>
 
-      {/* Giant Monospace Tabular Balance */}
-      <Text style={styles.balance}>{formatCurrency(totalBalance)}</Text>
+      {/* Massive Tabular Monospace Balance + Inline Currency Tag */}
+      <View style={styles.valueRow}>
+        <Text style={styles.balanceValue} numberOfLines={1} adjustsFontSizeToFit>
+          {formatBigBalance(totalBalance)}
+        </Text>
+        <Text style={styles.currencyTag}>EUR</Text>
+      </View>
 
-      {/* Cashflow Row: Side-by-side compact monospace split */}
-      <View style={styles.cashflowRow}>
-        <View style={styles.cashflowItem}>
-          <Text style={styles.cashflowLabel}>INFLOW</Text>
-          <Text style={[styles.cashflowValue, { color: colors.inflow }]}>
-            +{formatCurrency(monthlyIncome)}
+      {/* Cashflow Dual Matrix (2-column rule-divided strip) */}
+      <View style={styles.matrixStrip}>
+        <View style={styles.matrixCol}>
+          <Text style={styles.matrixLabel}>INFLOW (24H)</Text>
+          <Text style={[styles.matrixValue, { color: colors.inflow }]}>
+            {formatFlow(monthlyIncome, true)}
           </Text>
         </View>
 
-        <View style={styles.cashflowDivider} />
+        <View style={styles.matrixDivider} />
 
-        <View style={styles.cashflowItem}>
-          <Text style={styles.cashflowLabel}>OUTFLOW</Text>
-          <Text style={[styles.cashflowValue, { color: colors.outflow }]}>
-            -{formatCurrency(monthlyExpense)}
+        <View style={[styles.matrixCol, styles.matrixColRight]}>
+          <Text style={styles.matrixLabel}>OUTFLOW (24H)</Text>
+          <Text style={[styles.matrixValue, { color: colors.outflow }]}>
+            {formatFlow(monthlyExpense, false)}
           </Text>
         </View>
       </View>
 
-      {/* Action Row: [ + Log Transaction ] and [ ... ] */}
+      {/* Tactile Action Triggers */}
       <View style={styles.actionRow}>
         <TouchableOpacity
           style={styles.primaryActionButton}
           onPress={onAddTransaction}
-          activeOpacity={0.85}
+          activeOpacity={0.88}
         >
-          <Text style={styles.primaryActionText}>+ Log Transaction</Text>
+          <Text style={styles.primaryActionText}>[ + RECORD ENTRY ]</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.optionsButton}
+          style={styles.secondaryButton}
           onPress={onOptionsPress}
           activeOpacity={0.7}
         >
-          <DotsIcon color="#FAFAFA" size={18} />
+          <Text style={styles.secondaryButtonText}>···</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -72,94 +94,118 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
 };
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: 24,
-    padding: 20,
-    marginHorizontal: 20,
-    marginTop: 8,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: colors.surfaceBorder,
+  ledgerSection: {
+    backgroundColor: '#080808',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 22,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(39, 39, 42, 0.7)', // border-zinc-800/80
   },
   eyebrow: {
-    fontFamily: 'monospace',
+    fontFamily: MONO_FONT,
     fontSize: 10,
     letterSpacing: 1.5,
-    color: colors.textMuted,
+    color: '#71717A', // text-zinc-500
     fontWeight: '700',
-    marginBottom: 6,
+    textTransform: 'uppercase',
+    marginBottom: 4,
   },
-  balance: {
-    fontFamily: 'monospace',
-    fontSize: 34,
+  valueRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 8,
+    marginVertical: 4,
+  },
+  balanceValue: {
+    fontFamily: MONO_FONT,
+    fontSize: 44,
     fontWeight: '900',
-    color: colors.textPrimary,
-    letterSpacing: -1,
+    color: '#FFFFFF',
+    letterSpacing: -1.5,
     fontVariant: ['tabular-nums'],
-    marginBottom: 16,
   },
-  cashflowRow: {
+  currencyTag: {
+    fontFamily: MONO_FONT,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#71717A', // text-zinc-500
+    letterSpacing: 1,
+  },
+  matrixStrip: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#0F0F11',
-    borderRadius: 16,
     paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.04)',
-    marginBottom: 16,
+    marginVertical: 14,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(39, 39, 42, 0.5)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(39, 39, 42, 0.5)',
   },
-  cashflowItem: {
+  matrixCol: {
     flex: 1,
+    paddingRight: 12,
   },
-  cashflowLabel: {
-    fontFamily: 'monospace',
-    fontSize: 9,
+  matrixColRight: {
+    paddingRight: 0,
+    paddingLeft: 12,
+  },
+  matrixDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: '#27272A', // divide-zinc-800
+  },
+  matrixLabel: {
+    fontFamily: MONO_FONT,
+    fontSize: 10,
     letterSpacing: 1,
-    color: colors.textMuted,
-    marginBottom: 2,
+    color: '#71717A', // text-zinc-500
+    fontWeight: '700',
+    marginBottom: 3,
   },
-  cashflowValue: {
-    fontFamily: 'monospace',
+  matrixValue: {
+    fontFamily: MONO_FONT,
     fontSize: 14,
     fontWeight: '700',
     fontVariant: ['tabular-nums'],
-  },
-  cashflowDivider: {
-    width: 1,
-    height: 28,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    marginHorizontal: 14,
   },
   actionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+    marginTop: 2,
   },
   primaryActionButton: {
     flex: 1,
     height: 48,
-    backgroundColor: '#FAFAFA',
-    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12, // rounded-xl
     alignItems: 'center',
     justifyContent: 'center',
   },
   primaryActionText: {
-    color: '#09090B',
-    fontSize: 14,
-    fontWeight: '800',
-    letterSpacing: 0.2,
+    fontFamily: MONO_FONT,
+    color: '#080808',
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
   },
-  optionsButton: {
+  secondaryButton: {
     width: 48,
     height: 48,
-    borderRadius: 16,
-    backgroundColor: '#1E1E22',
+    borderRadius: 12, // rounded-xl
+    backgroundColor: '#18181B', // bg-zinc-900
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
+    borderColor: '#3F3F46', // border-zinc-700
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  secondaryButtonText: {
+    fontFamily: MONO_FONT,
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    lineHeight: 22,
   },
 });

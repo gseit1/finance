@@ -63,3 +63,22 @@ export interface Goal {
   icon: string;
   is_completed?: boolean;
 }
+
+export type RecurringFrequency = 'daily' | 'weekly' | 'bi-weekly' | 'monthly' | 'yearly';
+
+export interface RecurringRule {
+  id: string;
+  user_id?: string;
+  account_id: string;
+  category_id?: string;
+  description: string;
+  amount: number;
+  type: 'expense' | 'income';
+  frequency: RecurringFrequency;
+  next_run_date: string;
+  is_active: boolean;
+  account_name?: string;
+  category_name?: string;
+  category_color?: string;
+}
+

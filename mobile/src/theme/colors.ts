@@ -1,14 +1,15 @@
 export const colors = {
-  // Canvas & Surfaces (Obsidian & Deep Zinc)
-  background: '#09090B',
-  surface: '#141416',
-  surfaceBorder: 'rgba(255, 255, 255, 0.06)',
-  surfaceElevated: '#1A1A1E',
-  surfaceElevatedBorder: 'rgba(255, 255, 255, 0.1)',
-  hairline: 'rgba(255, 255, 255, 0.05)',
+  // Canvas & Surfaces (Obsidian & Architectural Zinc)
+  background: '#080808',
+  surface: '#0E0E10',
+  surfaceBorder: '#27272A',
+  surfaceElevated: '#18181B',
+  surfaceElevatedBorder: '#3F3F46',
+  hairline: 'rgba(39, 39, 42, 0.7)',
+  hairlineFaint: 'rgba(39, 39, 42, 0.4)',
   track: '#27272A',
 
-  // Strict Cashflow Colors (Only color in the app)
+  // Strict Cashflow Colors (Surgical accents)
   inflow: '#10B981',
   inflowBg: 'rgba(16, 185, 129, 0.12)',
   outflow: '#F43F5E',
@@ -19,18 +20,27 @@ export const colors = {
   expense: '#F43F5E',
   expenseBg: 'rgba(244, 63, 94, 0.12)',
   incomeBg: 'rgba(16, 185, 129, 0.12)',
-  primary: '#FAFAFA',
-  primaryLight: '#FAFAFA',
+  primary: '#FFFFFF',
+  primaryLight: '#FFFFFF',
 
-  // High-Density Monochrome Typography
-  textPrimary: '#FAFAFA',
+  // High-Density Swiss Monochrome Typography
+  textPrimary: '#FFFFFF',
   textSecondary: '#A1A1AA',
   textMuted: '#71717A',
   textSubtle: '#52525B',
 
+  // Zinc Palette
+  zinc900: '#18181B',
+  zinc800: '#27272A',
+  zinc700: '#3F3F46',
+  zinc600: '#52525B',
+  zinc500: '#71717A',
+  zinc400: '#A1A1AA',
+  zinc300: '#D4D4D8',
+
   // Controls
-  buttonPrimaryBg: '#FAFAFA',
-  buttonPrimaryText: '#09090B',
-  buttonSecondaryBg: '#1A1A1E',
-  buttonSecondaryBorder: 'rgba(255, 255, 255, 0.08)',
+  buttonPrimaryBg: '#FFFFFF',
+  buttonPrimaryText: '#080808',
+  buttonSecondaryBg: '#18181B',
+  buttonSecondaryBorder: '#3F3F46',
 };

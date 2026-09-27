@@ -180,6 +180,92 @@ export const UserIcon: React.FC<IconProps> = ({ color = '#FAFAFA', size = 20 }) 
   );
 };
 
+// 20px Minimal Stroke Accounts / Wallet Icon
+export const AccountsIcon: React.FC<IconProps> = ({ color = '#FAFAFA', size = 20 }) => {
+  const stroke = 1.75;
+  return (
+    <View style={[styles.center, { width: size, height: size }]}>
+      {/* Card body */}
+      <View
+        style={{
+          width: size * 0.85,
+          height: size * 0.65,
+          borderRadius: 4,
+          borderWidth: stroke,
+          borderColor: color,
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Card magnetic stripe / chip */}
+        <View
+          style={{
+            position: 'absolute',
+            top: 2,
+            left: 2,
+            width: size * 0.25,
+            height: size * 0.2,
+            borderRadius: 1.5,
+            backgroundColor: color,
+          }}
+        />
+        <View
+          style={{
+            position: 'absolute',
+            bottom: 2.5,
+            right: 2.5,
+            width: 4,
+            height: 4,
+            borderRadius: 2,
+            backgroundColor: color,
+          }}
+        />
+      </View>
+    </View>
+  );
+};
+
+// 20px Minimal Stroke Repeat / Recurring Clock Icon
+export const RepeatIcon: React.FC<IconProps> = ({ color = '#FAFAFA', size = 20 }) => {
+  const stroke = 1.75;
+  return (
+    <View style={[styles.center, { width: size, height: size }]}>
+      {/* Outer Circle */}
+      <View
+        style={{
+          width: size * 0.82,
+          height: size * 0.82,
+          borderRadius: (size * 0.82) / 2,
+          borderWidth: stroke,
+          borderColor: color,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {/* Clock Hands */}
+        <View
+          style={{
+            width: stroke,
+            height: size * 0.25,
+            backgroundColor: color,
+            position: 'absolute',
+            top: size * 0.14,
+          }}
+        />
+        <View
+          style={{
+            height: stroke,
+            width: size * 0.2,
+            backgroundColor: color,
+            position: 'absolute',
+            right: size * 0.18,
+          }}
+        />
+      </View>
+    </View>
+  );
+};
+
 const styles = StyleSheet.create({
   center: {
     alignItems: 'center',

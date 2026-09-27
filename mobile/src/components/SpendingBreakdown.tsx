@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { colors } from '../theme/colors';
 import { Budget } from '../types';
 
@@ -8,40 +8,39 @@ interface SpendingBreakdownProps {
   onOpenSetBudget?: (categoryId?: string) => void;
 }
 
+const MONO_FONT = Platform.OS === 'ios' ? 'Menlo' : 'monospace';
+
 export const SpendingBreakdown: React.FC<SpendingBreakdownProps> = ({
   budgets,
   onOpenSetBudget,
 }) => {
   return (
-    <View style={styles.container}>
-      {/* Header with Title & Action Button */}
-      <View style={styles.header}>
-        <Text style={styles.eyebrow}>MONTHLY BUDGETS</Text>
+    <View style={styles.sectionContainer}>
+      {/* Header: Row flex justify-between items-baseline px-1 mb-2 */}
+      <View style={styles.headerRow}>
+        <Text style={styles.eyebrow}>// 02. BUDGET ALLOCATIONS</Text>
         <TouchableOpacity
           onPress={() => onOpenSetBudget?.()}
-          style={styles.setLimitBtn}
           activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Text style={styles.setLimitBtnText}>+ SET LIMIT</Text>
+          <Text style={styles.actionLink}>[ + SET LIMIT ]</Text>
         </TouchableOpacity>
       </View>
 
       {budgets.length === 0 ? (
         <TouchableOpacity
-          style={styles.emptyContainer}
+          style={styles.emptyDashedBox}
           onPress={() => onOpenSetBudget?.()}
-          activeOpacity={0.8}
+          activeOpacity={0.75}
         >
-          <Text style={styles.emptyEyebrow}>NO ACTIVE BUDGET LIMITS</Text>
+          <Text style={styles.emptyTitle}>NO ACTIVE CONSTRAINTS</Text>
           <Text style={styles.emptySubtext}>
-            Define category spending caps to enforce fiscal discipline.
+            Tap to allocate category spending caps
           </Text>
-          <View style={styles.emptyAddBadge}>
-            <Text style={styles.emptyAddBadgeText}>+ CREATE BUDGET LIMIT</Text>
-          </View>
         </TouchableOpacity>
       ) : (
-        <View style={styles.listContainer}>
+        <View style={styles.budgetsList}>
           {budgets.map((b, index) => {
             const percentage = Math.min((b.spent / b.amount) * 100, 100);
             const isCritical = b.spent / b.amount >= 0.9;
@@ -55,29 +54,29 @@ export const SpendingBreakdown: React.FC<SpendingBreakdownProps> = ({
                 activeOpacity={0.7}
               >
                 {/* Category Name & Spent/Cap Monospace */}
-                <View style={styles.row}>
-                  <View style={styles.nameRow}>
+                <View style={styles.specRow}>
+                  <View style={styles.nameGroup}>
                     <View
-                      style={[styles.colorIndicator, { backgroundColor: b.color || '#FAFAFA' }]}
+                      style={[styles.colorSquare, { backgroundColor: b.color || '#FFFFFF' }]}
                     />
                     <Text style={styles.categoryName}>{b.category_name}</Text>
                   </View>
                   <Text style={styles.amountFigures}>
                     <Text style={isCritical ? styles.overAmount : styles.spentAmount}>
-                      ${b.spent.toLocaleString()}
+                      €{b.spent.toLocaleString()}
                     </Text>{' '}
-                    / ${b.amount.toLocaleString()}
+                    <Text style={styles.capDivider}>/</Text> €{b.amount.toLocaleString()}
                   </Text>
                 </View>
 
-                {/* Minimal 3px hairline progress track */}
+                {/* Minimal 2px hairline progress track */}
                 <View style={styles.track}>
                   <View
                     style={[
                       styles.fill,
                       {
                         width: `${percentage}%`,
-                        backgroundColor: isCritical ? colors.outflow : '#FAFAFA',
+                        backgroundColor: isCritical ? colors.outflow : '#FFFFFF',
                       },
                     ]}
                   />
@@ -92,117 +91,104 @@ export const SpendingBreakdown: React.FC<SpendingBreakdownProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: {
-    marginHorizontal: 20,
-    marginBottom: 24,
+  sectionContainer: {
+    backgroundColor: '#080808',
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(39, 39, 42, 0.7)',
   },
-  header: {
+  headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'baseline',
+    paddingHorizontal: 2,
     marginBottom: 12,
   },
   eyebrow: {
-    fontFamily: 'monospace',
+    fontFamily: MONO_FONT,
     fontSize: 10,
     letterSpacing: 1.5,
-    color: colors.textMuted,
+    color: '#71717A', // text-zinc-500
     fontWeight: '700',
+    textTransform: 'uppercase',
   },
-  setLimitBtn: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  actionLink: {
+    fontFamily: MONO_FONT,
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#A1A1AA', // text-zinc-400
+    letterSpacing: 0.5,
+  },
+  emptyDashedBox: {
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  setLimitBtnText: {
-    fontFamily: 'monospace',
-    fontSize: 9.5,
-    fontWeight: '700',
-    color: '#FAFAFA',
-    letterSpacing: 0.8,
-  },
-  listContainer: {
-    backgroundColor: 'transparent',
-  },
-  emptyContainer: {
-    backgroundColor: '#141416',
-    borderRadius: 16,
-    paddingVertical: 20,
+    borderColor: '#27272A', // border-zinc-800
+    borderStyle: 'dashed',
+    borderRadius: 12, // rounded-xl
+    paddingVertical: 16,
     paddingHorizontal: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    borderStyle: 'dashed',
+    backgroundColor: 'rgba(24, 24, 27, 0.2)',
   },
-  emptyEyebrow: {
-    fontFamily: 'monospace',
-    fontSize: 10,
-    color: '#A1A1AA',
-    letterSpacing: 1.5,
+  emptyTitle: {
+    fontFamily: MONO_FONT,
+    fontSize: 12,
     fontWeight: '700',
-    marginBottom: 4,
+    color: '#A1A1AA', // text-zinc-400
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   emptySubtext: {
     fontSize: 12,
-    color: '#71717A',
+    color: '#52525B', // text-zinc-600
+    marginTop: 4,
     textAlign: 'center',
-    marginBottom: 12,
-    paddingHorizontal: 12,
   },
-  emptyAddBadge: {
-    backgroundColor: '#FAFAFA',
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 8,
-  },
-  emptyAddBadgeText: {
-    color: '#09090B',
-    fontFamily: 'monospace',
-    fontSize: 10.5,
-    fontWeight: '800',
-    letterSpacing: 0.6,
+  budgetsList: {
+    backgroundColor: 'transparent',
   },
   budgetItem: {
-    paddingVertical: 12,
+    paddingVertical: 10,
   },
   itemDivider: {
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+    borderBottomColor: 'rgba(39, 39, 42, 0.4)',
   },
-  row: {
+  specRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
-  nameRow: {
+  nameGroup: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
   },
-  colorIndicator: {
+  colorSquare: {
     width: 6,
     height: 6,
-    borderRadius: 3,
-    marginRight: 8,
+    borderRadius: 1,
   },
   categoryName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FAFAFA',
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
     letterSpacing: -0.2,
   },
   amountFigures: {
-    fontFamily: 'monospace',
+    fontFamily: MONO_FONT,
     fontSize: 12,
-    color: colors.textSecondary,
+    color: '#71717A',
     fontVariant: ['tabular-nums'],
   },
+  capDivider: {
+    color: '#3F3F46',
+  },
   spentAmount: {
-    color: '#FAFAFA',
+    color: '#FFFFFF',
     fontWeight: '700',
   },
   overAmount: {
@@ -210,13 +196,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   track: {
-    height: 3,
-    backgroundColor: '#27272A',
-    borderRadius: 1.5,
+    height: 2,
+    backgroundColor: '#18181B', // bg-zinc-900
+    borderRadius: 1,
     overflow: 'hidden',
   },
   fill: {
     height: '100%',
-    borderRadius: 1.5,
+    borderRadius: 1,
   },
 });
