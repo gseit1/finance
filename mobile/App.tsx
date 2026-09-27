@@ -60,14 +60,20 @@ function App(): React.JSX.Element {
 
   const supabaseActive = isSupabaseConfigured();
 
+  const isUUID = (str?: string): boolean => {
+    return Boolean(str && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str));
+  };
+
   // Unified data synchronization with Supabase PostgreSQL
   const syncUserData = async (userId: string) => {
     if (!supabaseActive || !userId) return;
 
     try {
+      await authService.ensureSupabaseSession();
+
       // 1. Fetch Categories (Ensuring real Supabase UUIDs)
       let liveCategories: Category[] = [];
-      const { data: dbCats } = await supabase
+      const { data: dbCats, error: catErr } = await supabase
         .from('categories')
         .select('*')
         .order('name');
@@ -109,7 +115,7 @@ function App(): React.JSX.Element {
 
       // 2. Fetch Accounts (Ensuring real Supabase UUIDs)
       let liveAccounts: Account[] = [];
-      const { data: dbAccs } = await supabase
+      const { data: dbAccs, error: accErr } = await supabase
         .from('accounts')
         .select('*')
         .order('created_at');
@@ -130,7 +136,8 @@ function App(): React.JSX.Element {
         const { data: insertedAccs } = await supabase
           .from('accounts')
           .insert([
-            { user_id: userId, name: 'Main Checking', type: 'bank', balance: 0.0, color: '#3B82F6', icon: 'bank' },
+            { user_id: userId, name: 'Cash', type: 'cash', balance: 0.0, color: '#10B981', icon: 'cash' },
+            { user_id: userId, name: 'Bank Account', type: 'bank', balance: 0.0, color: '#3B82F6', icon: 'bank' },
           ])
           .select();
         if (insertedAccs && insertedAccs.length > 0) {
@@ -147,7 +154,7 @@ function App(): React.JSX.Element {
         }
       }
 
-      // 3. Fetch Transactions
+      // 3. Fetch Transactions from Supabase
       const { data: dbTxs } = await supabase
         .from('transactions')
         .select('*')
@@ -172,7 +179,7 @@ function App(): React.JSX.Element {
       });
       setTransactions(mappedTxs);
 
-      // 4. Fetch Budgets
+      // 4. Fetch Budgets from Supabase
       const { data: dbBudgets } = await supabase.from('budgets').select('*');
       const now = new Date();
       const currentMonth = now.getMonth();
@@ -199,27 +206,43 @@ function App(): React.JSX.Element {
       });
       setBudgets(mappedBudgets);
 
-      // 5. Fetch Goals (With safe offline/local storage fallback)
+      // 5. Fetch Goals (With multi-tier database & metadata persistence)
       try {
+        let loadedGoals: Goal[] | null = null;
         const { data: dbGoals, error: goalsErr } = await supabase.from('goals').select('*');
-        if (!goalsErr && dbGoals) {
-          setGoals(
-            dbGoals.map((g: any) => ({
-              id: g.id,
-              name: g.name,
-              target_amount: Number(g.target_amount),
-              current_amount: Number(g.current_amount),
-              target_date: g.target_date,
-              color: g.color || '#6366F1',
-              icon: g.icon || '🎯',
-              is_completed: g.is_completed || false,
-            }))
-          );
-        } else {
-          const cachedGoals = await AsyncStorage.getItem(`@finance_goals_${userId}`);
-          if (cachedGoals) setGoals(JSON.parse(cachedGoals));
+        if (!goalsErr && dbGoals && dbGoals.length > 0) {
+          loadedGoals = dbGoals.map((g: any) => ({
+            id: g.id,
+            name: g.name,
+            target_amount: Number(g.target_amount),
+            current_amount: Number(g.current_amount),
+            target_date: g.target_date,
+            color: g.color || '#6366F1',
+            icon: g.icon || '🎯',
+            is_completed: g.is_completed || false,
+          }));
         }
-      } catch {
+
+        // Tier 2: Check database user_metadata if table doesn't exist
+        if (!loadedGoals) {
+          const { data: userData } = await supabase.auth.getUser();
+          const metaGoals = userData?.user?.user_metadata?.user_goals;
+          if (Array.isArray(metaGoals) && metaGoals.length > 0) {
+            loadedGoals = metaGoals;
+          }
+        }
+
+        // Tier 3: Local cached goals
+        if (!loadedGoals) {
+          const cachedGoals = await AsyncStorage.getItem(`@finance_goals_${userId}`);
+          if (cachedGoals) loadedGoals = JSON.parse(cachedGoals);
+        }
+
+        if (loadedGoals) {
+          setGoals(loadedGoals);
+        }
+      } catch (goalsCatchErr) {
+        console.warn('Goals fetch notice:', goalsCatchErr);
         const cachedGoals = await AsyncStorage.getItem(`@finance_goals_${userId}`);
         if (cachedGoals) setGoals(JSON.parse(cachedGoals));
       }
@@ -235,6 +258,7 @@ function App(): React.JSX.Element {
     const restoreSession = async () => {
       try {
         if (supabaseActive) {
+          // 1. Check existing Supabase session
           const { data, error } = await supabase.auth.getSession();
           if (!error && data?.session?.user) {
             if (isMounted) {
@@ -245,12 +269,31 @@ function App(): React.JSX.Element {
             await syncUserData(data.session.user.id);
             return;
           }
+
+          // 2. Ensure session restored from stored auth tokens
+          const sessionRestored = await authService.ensureSupabaseSession();
+          if (sessionRestored) {
+            const { data: restoredData } = await supabase.auth.getSession();
+            if (restoredData?.session?.user) {
+              if (isMounted) {
+                setCurrentUser(restoredData.session.user);
+                setFlow('app');
+                setIsAuthChecking(false);
+              }
+              await syncUserData(restoredData.session.user.id);
+              return;
+            }
+          }
         }
 
+        // 3. Fallback to cached user object
         const cachedUser = await authService.getCurrentUser();
         if (cachedUser && isMounted) {
           setCurrentUser(cachedUser);
           setFlow('app');
+          if (supabaseActive) {
+            await authService.ensureSupabaseSession();
+          }
           await syncUserData(cachedUser.id);
         }
       } catch (err) {
@@ -307,8 +350,80 @@ function App(): React.JSX.Element {
     accountId: string;
     date?: string;
   }) => {
-    const category = categories.find((c) => c.id === newTx.categoryId);
-    const account = accounts.find((a) => a.id === newTx.accountId) || accounts[0];
+    await authService.ensureSupabaseSession();
+
+    // 1. Resolve Account with valid UUID
+    let account = accounts.find((a) => a.id === newTx.accountId);
+    if (!account || !isUUID(account.id)) {
+      account = accounts.find((a) => isUUID(a.id));
+    }
+
+    // If no valid UUID account in state, fetch or create one in Supabase
+    if (supabaseActive && currentUser?.id && (!account || !isUUID(account?.id))) {
+      try {
+        const { data: dbAccs } = await supabase
+          .from('accounts')
+          .select('*')
+          .eq('user_id', currentUser.id)
+          .limit(1);
+
+        if (dbAccs && dbAccs.length > 0) {
+          account = {
+            id: dbAccs[0].id,
+            name: dbAccs[0].name,
+            type: dbAccs[0].type || 'bank',
+            balance: Number(dbAccs[0].balance) || 0,
+            currency: dbAccs[0].currency || 'USD',
+            color: dbAccs[0].color || '#3B82F6',
+            icon: dbAccs[0].icon || 'bank',
+          };
+        } else {
+          const { data: newAcc } = await supabase
+            .from('accounts')
+            .insert({
+              user_id: currentUser.id,
+              name: 'Cash',
+              type: 'cash',
+              balance: 0.0,
+              currency: 'USD',
+              color: '#10B981',
+              icon: 'cash',
+            })
+            .select()
+            .single();
+
+          if (newAcc) {
+            account = {
+              id: newAcc.id,
+              name: newAcc.name,
+              type: newAcc.type,
+              balance: Number(newAcc.balance) || 0,
+              currency: 'USD',
+              color: newAcc.color,
+              icon: newAcc.icon,
+            };
+          }
+        }
+        if (account) {
+          setAccounts((prev) => [account!, ...prev.filter((a) => isUUID(a.id))]);
+        }
+      } catch (err) {
+        console.warn('Failed to resolve account in Supabase:', err);
+      }
+    }
+
+    // 2. Resolve Category with valid UUID
+    let category = categories.find((c) => c.id === newTx.categoryId);
+    let resolvedCategoryId: string | null = null;
+    if (category && isUUID(category.id)) {
+      resolvedCategoryId = category.id;
+    } else {
+      const matchCat = categories.find((c) => c.type === newTx.type && isUUID(c.id));
+      if (matchCat) {
+        category = matchCat;
+        resolvedCategoryId = matchCat.id;
+      }
+    }
 
     const tempId = `tx-${Date.now()}`;
     const txDate = newTx.date || new Date().toISOString();
@@ -316,7 +431,7 @@ function App(): React.JSX.Element {
     const localTransaction: Transaction = {
       id: tempId,
       account_id: account?.id || '',
-      category_id: newTx.categoryId,
+      category_id: resolvedCategoryId || '',
       type: newTx.type,
       amount: newTx.amount,
       description: newTx.description,
@@ -340,10 +455,10 @@ function App(): React.JSX.Element {
     );
 
     // Update Budget spent amount if expense
-    if (newTx.type === 'expense' && newTx.categoryId) {
+    if (newTx.type === 'expense' && resolvedCategoryId) {
       setBudgets((prev) =>
         prev.map((b) => {
-          if (b.category_id === newTx.categoryId) {
+          if (b.category_id === resolvedCategoryId) {
             return { ...b, spent: b.spent + newTx.amount };
           }
           return b;
@@ -352,14 +467,14 @@ function App(): React.JSX.Element {
     }
 
     // Persist directly to Supabase with real UUIDs
-    if (supabaseActive && currentUser?.id && account?.id) {
+    if (supabaseActive && currentUser?.id && account?.id && isUUID(account.id)) {
       try {
         const { data, error } = await supabase
           .from('transactions')
           .insert({
             user_id: currentUser.id,
             account_id: account.id,
-            category_id: newTx.categoryId || null,
+            category_id: resolvedCategoryId,
             type: newTx.type,
             amount: newTx.amount,
             description: newTx.description,
@@ -369,7 +484,7 @@ function App(): React.JSX.Element {
           .single();
 
         if (error) {
-          console.error('Supabase transaction insert error:', error.message);
+          console.error('Supabase transaction insert error:', error.message, error.details);
         } else if (data) {
           // Replace tempId with server-assigned UUID
           setTransactions((prev) =>
@@ -383,14 +498,53 @@ function App(): React.JSX.Element {
   };
 
   const handleSaveBudget = async (b: { categoryId: string; amount: number }) => {
-    const category = categories.find((c) => c.id === b.categoryId);
+    await authService.ensureSupabaseSession();
+
+    let resolvedCategoryId = b.categoryId;
+    let category = categories.find((c) => c.id === b.categoryId);
+
+    // If categoryId is not a UUID (e.g. 'cat-1'), resolve to real Supabase UUID
+    if (!isUUID(resolvedCategoryId)) {
+      const match =
+        categories.find((c) => isUUID(c.id) && c.name.toLowerCase() === category?.name.toLowerCase()) ||
+        categories.find((c) => isUUID(c.id) && c.type === 'expense');
+      if (match) {
+        resolvedCategoryId = match.id;
+        category = match;
+      }
+    }
+
+    if (supabaseActive && currentUser?.id && !isUUID(resolvedCategoryId)) {
+      try {
+        const { data: dbCats } = await supabase
+          .from('categories')
+          .select('*')
+          .eq('user_id', currentUser.id)
+          .eq('type', 'expense')
+          .limit(1);
+
+        if (dbCats && dbCats.length > 0) {
+          resolvedCategoryId = dbCats[0].id;
+          category = {
+            id: dbCats[0].id,
+            name: dbCats[0].name,
+            type: dbCats[0].type,
+            icon: dbCats[0].icon || 'tag',
+            color: dbCats[0].color || colors.primary,
+          };
+        }
+      } catch (err) {
+        console.warn('Failed to query categories for budget:', err);
+      }
+    }
+
     const now = new Date();
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
 
     const spent = transactions
       .filter((t) => {
-        if (t.type !== 'expense' || t.category_id !== b.categoryId) return false;
+        if (t.type !== 'expense' || t.category_id !== resolvedCategoryId) return false;
         const d = new Date(t.date);
         return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
       })
@@ -398,10 +552,10 @@ function App(): React.JSX.Element {
 
     const tempId = `b-${Date.now()}`;
     setBudgets((prev) => {
-      const idx = prev.findIndex((item) => item.category_id === b.categoryId);
+      const idx = prev.findIndex((item) => item.category_id === resolvedCategoryId);
       const budgetItem: Budget = {
         id: idx >= 0 ? prev[idx].id : tempId,
-        category_id: b.categoryId,
+        category_id: resolvedCategoryId,
         category_name: category?.name || 'General',
         amount: b.amount,
         spent: spent,
@@ -416,7 +570,7 @@ function App(): React.JSX.Element {
       return [...prev, budgetItem];
     });
 
-    if (supabaseActive && currentUser?.id) {
+    if (supabaseActive && currentUser?.id && isUUID(resolvedCategoryId)) {
       const firstOfMonth = new Date(currentYear, currentMonth, 1).toISOString().split('T')[0];
       try {
         const { data, error } = await supabase
@@ -424,7 +578,7 @@ function App(): React.JSX.Element {
           .upsert(
             {
               user_id: currentUser.id,
-              category_id: b.categoryId,
+              category_id: resolvedCategoryId,
               month: firstOfMonth,
               amount: b.amount,
             },
@@ -448,7 +602,7 @@ function App(): React.JSX.Element {
 
   const handleDeleteBudget = async (categoryId: string) => {
     setBudgets((prev) => prev.filter((b) => b.category_id !== categoryId));
-    if (supabaseActive && currentUser?.id) {
+    if (supabaseActive && currentUser?.id && isUUID(categoryId)) {
       try {
         await supabase
           .from('budgets')
@@ -462,6 +616,8 @@ function App(): React.JSX.Element {
   };
 
   const handleAddGoal = async (newGoal: Omit<Goal, 'id'>) => {
+    await authService.ensureSupabaseSession();
+
     const tempId = `goal-${Date.now()}`;
     const localGoal: Goal = {
       ...newGoal,
@@ -469,15 +625,15 @@ function App(): React.JSX.Element {
       is_completed: (newGoal.current_amount || 0) >= newGoal.target_amount,
     };
 
-    setGoals((prev) => {
-      const updated = [localGoal, ...prev];
-      if (currentUser?.id) {
-        AsyncStorage.setItem(`@finance_goals_${currentUser.id}`, JSON.stringify(updated));
-      }
-      return updated;
-    });
+    let updatedGoalsList = [localGoal, ...goals];
+    setGoals(updatedGoalsList);
+
+    if (currentUser?.id) {
+      AsyncStorage.setItem(`@finance_goals_${currentUser.id}`, JSON.stringify(updatedGoalsList));
+    }
 
     if (supabaseActive && currentUser?.id) {
+      // 1. Try PostgreSQL public.goals table
       try {
         const { data, error } = await supabase
           .from('goals')
@@ -495,58 +651,85 @@ function App(): React.JSX.Element {
           .single();
 
         if (!error && data) {
-          setGoals((prev) =>
-            prev.map((g) => (g.id === tempId ? { ...g, id: data.id } : g))
-          );
+          updatedGoalsList = updatedGoalsList.map((g) => (g.id === tempId ? { ...g, id: data.id } : g));
+          setGoals(updatedGoalsList);
+          AsyncStorage.setItem(`@finance_goals_${currentUser.id}`, JSON.stringify(updatedGoalsList));
         }
       } catch (e) {
-        console.warn('Goals Supabase insert notice:', e);
+        console.warn('Goals Supabase table notice:', e);
+      }
+
+      // 2. Also persist to database user_metadata as reliable fallback
+      try {
+        await supabase.auth.updateUser({
+          data: {
+            user_goals: updatedGoalsList,
+          },
+        });
+      } catch (metaErr) {
+        console.warn('Goals metadata update notice:', metaErr);
       }
     }
   };
 
   const handleAddFundsToGoal = async (goalId: string, amount: number) => {
+    await authService.ensureSupabaseSession();
+
     let updatedGoal: Goal | undefined;
-    setGoals((prev) => {
-      const updated = prev.map((g) => {
-        if (g.id === goalId) {
-          const updatedAmount = g.current_amount + amount;
-          const completed = updatedAmount >= g.target_amount;
-          updatedGoal = { ...g, current_amount: updatedAmount, is_completed: completed };
-          return updatedGoal;
-        }
-        return g;
-      });
-      if (currentUser?.id) {
-        AsyncStorage.setItem(`@finance_goals_${currentUser.id}`, JSON.stringify(updated));
+    const updatedGoalsList = goals.map((g) => {
+      if (g.id === goalId) {
+        const updatedAmount = g.current_amount + amount;
+        const completed = updatedAmount >= g.target_amount;
+        updatedGoal = { ...g, current_amount: updatedAmount, is_completed: completed };
+        return updatedGoal;
       }
-      return updated;
+      return g;
     });
 
+    setGoals(updatedGoalsList);
+    if (currentUser?.id) {
+      AsyncStorage.setItem(`@finance_goals_${currentUser.id}`, JSON.stringify(updatedGoalsList));
+    }
+
     // Record as an expense transaction for account outflow
-    const primaryAccount = accounts[0];
+    const primaryAccount = accounts.find((a) => isUUID(a.id)) || accounts[0];
+    const expenseCat = categories.find((c) => c.type === 'expense' && isUUID(c.id)) || categories[0];
     if (primaryAccount) {
       handleSaveTransaction({
         type: 'expense',
         amount: amount,
         description: `Savings goal: ${updatedGoal?.name || 'Vault'}`,
-        categoryId: categories[0]?.id || '',
+        categoryId: expenseCat?.id || '',
         accountId: primaryAccount.id,
       });
     }
 
-    if (supabaseActive && currentUser?.id && !goalId.startsWith('goal-')) {
+    if (supabaseActive && currentUser?.id) {
+      // 1. Try public.goals table update if it's a real UUID
+      if (isUUID(goalId)) {
+        try {
+          await supabase
+            .from('goals')
+            .update({
+              current_amount: updatedGoal?.current_amount || 0,
+              is_completed: updatedGoal?.is_completed || false,
+            })
+            .eq('id', goalId)
+            .eq('user_id', currentUser.id);
+        } catch (e) {
+          console.warn('Goals Supabase table update notice:', e);
+        }
+      }
+
+      // 2. Persist to database user_metadata
       try {
-        await supabase
-          .from('goals')
-          .update({
-            current_amount: updatedGoal?.current_amount || 0,
-            is_completed: updatedGoal?.is_completed || false,
-          })
-          .eq('id', goalId)
-          .eq('user_id', currentUser.id);
-      } catch (e) {
-        console.warn('Goals Supabase update notice:', e);
+        await supabase.auth.updateUser({
+          data: {
+            user_goals: updatedGoalsList,
+          },
+        });
+      } catch (metaErr) {
+        console.warn('Goals metadata update notice:', metaErr);
       }
     }
   };
@@ -590,6 +773,9 @@ function App(): React.JSX.Element {
           <AuthScreen
             initialMode={authMode}
             onAuthenticated={async () => {
+              if (supabaseActive) {
+                await authService.ensureSupabaseSession();
+              }
               const user = await authService.getCurrentUser();
               if (user) {
                 setCurrentUser(user);

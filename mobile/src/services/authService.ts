@@ -5,6 +5,7 @@ import { getBackendBaseUrl } from '../config/api';
 const getBaseUrl = () => getBackendBaseUrl();
 
 const AUTH_TOKEN_KEY = '@finance_auth_token';
+const AUTH_REFRESH_TOKEN_KEY = '@finance_auth_refresh_token';
 const AUTH_USER_KEY = '@finance_auth_user';
 
 export interface AuthResult {
@@ -16,6 +17,34 @@ export interface AuthResult {
 }
 
 export const authService = {
+  /**
+   * Helper to ensure the Supabase JS client is authenticated with the active session
+   */
+  async ensureSupabaseSession(): Promise<boolean> {
+    if (!isSupabaseConfigured()) return false;
+    try {
+      const { data } = await supabase.auth.getSession();
+      if (data?.session?.user) {
+        return true;
+      }
+
+      const token = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
+      const refreshToken = await AsyncStorage.getItem(AUTH_REFRESH_TOKEN_KEY);
+      if (token && refreshToken) {
+        const { data: sessionData, error } = await supabase.auth.setSession({
+          access_token: token,
+          refresh_token: refreshToken,
+        });
+        if (!error && sessionData?.session?.user) {
+          return true;
+        }
+      }
+    } catch (e) {
+      console.warn('ensureSupabaseSession notice:', e);
+    }
+    return false;
+  },
+
   /**
    * Register a new user via backend API with automatic fallback to direct Supabase client
    */
@@ -45,9 +74,25 @@ export const authService = {
         if (data.session?.access_token) {
           await AsyncStorage.setItem(AUTH_TOKEN_KEY, data.session.access_token);
         }
+        if (data.session?.refresh_token) {
+          await AsyncStorage.setItem(AUTH_REFRESH_TOKEN_KEY, data.session.refresh_token);
+        }
         if (data.user) {
           await AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(data.user));
         }
+
+        // CRITICAL: Synchronize Supabase JS client session so RLS permits DB inserts
+        if (data.session?.access_token && data.session?.refresh_token && isSupabaseConfigured()) {
+          try {
+            await supabase.auth.setSession({
+              access_token: data.session.access_token,
+              refresh_token: data.session.refresh_token,
+            });
+          } catch (sessionErr) {
+            console.warn('Supabase setSession notice during signup:', sessionErr);
+          }
+        }
+
         return {
           success: true,
           user: data.user,
@@ -86,6 +131,9 @@ export const authService = {
             });
             if (!signInError && signInData?.session) {
               await AsyncStorage.setItem(AUTH_TOKEN_KEY, signInData.session.access_token);
+              if (signInData.session.refresh_token) {
+                await AsyncStorage.setItem(AUTH_REFRESH_TOKEN_KEY, signInData.session.refresh_token);
+              }
               if (signInData.user) {
                 await AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(signInData.user));
               }
@@ -102,6 +150,9 @@ export const authService = {
 
         if (data.session?.access_token) {
           await AsyncStorage.setItem(AUTH_TOKEN_KEY, data.session.access_token);
+        }
+        if (data.session?.refresh_token) {
+          await AsyncStorage.setItem(AUTH_REFRESH_TOKEN_KEY, data.session.refresh_token);
         }
         if (data.user) {
           await AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(data.user));
@@ -154,9 +205,25 @@ export const authService = {
         if (data.session?.access_token) {
           await AsyncStorage.setItem(AUTH_TOKEN_KEY, data.session.access_token);
         }
+        if (data.session?.refresh_token) {
+          await AsyncStorage.setItem(AUTH_REFRESH_TOKEN_KEY, data.session.refresh_token);
+        }
         if (data.user) {
           await AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(data.user));
         }
+
+        // CRITICAL: Synchronize Supabase JS client session so RLS permits DB inserts
+        if (data.session?.access_token && data.session?.refresh_token && isSupabaseConfigured()) {
+          try {
+            await supabase.auth.setSession({
+              access_token: data.session.access_token,
+              refresh_token: data.session.refresh_token,
+            });
+          } catch (sessionErr) {
+            console.warn('Supabase setSession notice during signin:', sessionErr);
+          }
+        }
+
         return {
           success: true,
           user: data.user,
@@ -191,6 +258,9 @@ export const authService = {
 
         if (data.session?.access_token) {
           await AsyncStorage.setItem(AUTH_TOKEN_KEY, data.session.access_token);
+        }
+        if (data.session?.refresh_token) {
+          await AsyncStorage.setItem(AUTH_REFRESH_TOKEN_KEY, data.session.refresh_token);
         }
         if (data.user) {
           await AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(data.user));
@@ -230,6 +300,7 @@ export const authService = {
       }
     } finally {
       await AsyncStorage.removeItem(AUTH_TOKEN_KEY);
+      await AsyncStorage.removeItem(AUTH_REFRESH_TOKEN_KEY);
       await AsyncStorage.removeItem(AUTH_USER_KEY);
     }
   },
