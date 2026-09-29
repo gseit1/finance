@@ -1021,6 +1021,25 @@ function App(): React.JSX.Element {
     }
   };
 
+  const handleSignOut = async () => {
+    try {
+      await authService.signOut();
+    } catch (e) {
+      // fallback
+    }
+    setCurrentUser(null);
+    setTransactions([]);
+    setBudgets([]);
+    setGoals([]);
+    setRecurringRules([]);
+    setTasks([]);
+    setAccounts([
+      { id: 'acc-1', name: 'Main Checking', type: 'bank', balance: 0.00, currency: 'EUR', color: '#3B82F6', icon: 'bank' },
+    ]);
+    setCurrentTab('home');
+    setFlow('welcome');
+  };
+
   const userDisplayName =
     currentUser?.user_metadata?.full_name ||
     currentUser?.user_metadata?.name ||
@@ -1183,20 +1202,7 @@ function App(): React.JSX.Element {
             {currentTab === 'profile' && (
               <ProfileScreen
                 onBack={() => setCurrentTab('home')}
-                onSignOut={async () => {
-                  await authService.signOut();
-                  setCurrentUser(null);
-                  setTransactions([]);
-                  setBudgets([]);
-                  setGoals([]);
-                  setRecurringRules([]);
-                  setTasks([]);
-                  setAccounts([
-                    { id: 'acc-1', name: 'Main Checking', type: 'bank', balance: 0.00, currency: 'EUR', color: '#3B82F6', icon: 'bank' },
-                  ]);
-                  setCurrentTab('home');
-                  setFlow('welcome');
-                }}
+                onSignOut={handleSignOut}
                 onProfileUpdated={(updatedUser) => {
                   setCurrentUser((prev: any) => ({
                     ...prev,
@@ -1241,11 +1247,13 @@ function App(): React.JSX.Element {
               currentRoute={currentTab}
               onNavigate={(route) => setCurrentTab(route)}
               userName={userDisplayName}
+              userEmail={currentUser?.email}
               avatarUrl={userAvatarUrl}
               tasksCount={tasks.filter((t) => !t.completed).length}
               accountsCount={accounts.length}
               transactionsCount={transactions.length}
               goalsCount={goals.length}
+              onSignOut={handleSignOut}
               onQuickAddTransaction={() => setIsGlobalTxModalOpen(true)}
               onQuickAddTask={() => setIsGlobalTaskModalOpen(true)}
               onQuickAddAccount={() => setAddAccountModalVisible(true)}

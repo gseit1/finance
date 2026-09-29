@@ -83,7 +83,7 @@ export const TransactionsScreen: React.FC<TransactionsScreenProps> = ({
   return (
     <View style={styles.container}>
       <AppTopHeader
-        title=""
+        title="Transactions Ledger"
         onMenuPress={onMenuPress}
         onProfilePress={onOpenProfile}
         avatarUrl={avatarUrl}
@@ -109,11 +109,6 @@ export const TransactionsScreen: React.FC<TransactionsScreenProps> = ({
       />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* Title */}
-        <View style={styles.titleRow}>
-          <Text style={styles.screenTitle}>Transactions Ledger</Text>
-        </View>
-
         {/* 3 Summary Stat Cards */}
         <View style={styles.summaryRow}>
           <View style={styles.summaryCard}>
@@ -286,18 +281,8 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingTop: 8,
+    paddingTop: 12,
     paddingBottom: 24,
-  },
-  titleRow: {
-    marginBottom: 16,
-  },
-  screenTitle: {
-    fontFamily: fonts.heading,
-    fontSize: 26,
-    fontWeight: '900',
-    color: '#0A0A0A',
-    letterSpacing: -0.5,
   },
   summaryRow: {
     flexDirection: 'row',

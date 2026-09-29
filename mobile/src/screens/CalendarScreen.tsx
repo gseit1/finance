@@ -100,7 +100,7 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
   return (
     <View style={styles.container}>
       <AppTopHeader
-        title=""
+        title="Calendar & Agenda"
         onMenuPress={onMenuPress}
         onProfilePress={onOpenProfile}
         avatarUrl={avatarUrl}
@@ -116,11 +116,6 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
       />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* Title */}
-        <View style={styles.titleRow}>
-          <Text style={styles.screenTitle}>Calendar & Agenda</Text>
-        </View>
-
         {/* Interactive 7-Day Calendar Strip */}
         <View style={styles.weekStripWrapper}>
           <View style={styles.monthHeaderRow}>
@@ -405,18 +400,8 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingTop: 8,
+    paddingTop: 12,
     paddingBottom: 24,
-  },
-  titleRow: {
-    marginBottom: 16,
-  },
-  screenTitle: {
-    fontFamily: fonts.heading,
-    fontSize: 26,
-    fontWeight: '900',
-    color: '#0A0A0A',
-    letterSpacing: -0.5,
   },
   weekStripWrapper: {
     backgroundColor: '#FFFFFF',

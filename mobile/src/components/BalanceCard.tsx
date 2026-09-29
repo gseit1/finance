@@ -4,8 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Image,
-  Platform,
 } from 'react-native';
 import { colors } from '../theme/colors';
 import { fonts } from '../theme/typography';
@@ -18,6 +16,7 @@ import {
   PlusIcon,
   BellIcon,
 } from './VectorIcons';
+import { KineticVaultToken } from './KineticVaultToken';
 
 interface BalanceCardProps {
   totalBalance: number;
@@ -76,58 +75,119 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
     })}`;
   };
 
-  // 1st Goal Progress calculations (falling back to seeded goal if none set)
-  const goalTitle = firstGoal?.name || 'Design New Landing Page';
-  const goalTarget = firstGoal ? Number(firstGoal.target_amount) : 5000;
-  const goalCurrent = firstGoal ? Number(firstGoal.current_amount) : 3500;
-  const goalProgress = firstGoal
-    ? Math.min(100, Math.max(0, Math.round((goalCurrent / (goalTarget || 1)) * 100)))
-    : 70;
+  // Calculation of remaining days in current month (until next payment/month-end)
+  const today = new Date();
+  const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+  const daysRemaining = Math.max(1, lastDayOfMonth - today.getDate());
+  const dailyAllowance = Math.max(0, Math.round(totalBalance / daysRemaining));
+  const monthDay = today.getDate();
+  const monthProgress = Math.min(100, Math.max(0, Math.round((monthDay / lastDayOfMonth) * 100)));
+
+  // Financial Tier determination based on current balance and remaining days
+  const getFinancialStatus = (balance: number) => {
+    if (balance >= 700) {
+      return {
+        tier: 1,
+        quote: 'Μπροσκι ρίχτο έξω, σε παίρνει ακόμα',
+        badge: 'Άνετος',
+        badgeColor: '#ECFDF5',
+        badgeTextColor: '#059669',
+        badgeBorder: '#A7F3D0',
+        progressColor: '#059669',
+      };
+    } else if (balance >= 400) {
+      return {
+        tier: 2,
+        quote: 'Μπροσκι ο μήνας έχει μέρες ακόμα..τσιλ.',
+        badge: 'Τσιλ',
+        badgeColor: '#F4F4F5',
+        badgeTextColor: '#52525B',
+        badgeBorder: '#E4E4E7',
+        progressColor: '#71717A',
+      };
+    } else if (balance >= 100) {
+      return {
+        tier: 3,
+        quote: 'Επ δικέ μου, είσαι δυσκολα',
+        badge: 'Προσοχή',
+        badgeColor: '#FFFBEB',
+        badgeTextColor: '#B45309',
+        badgeBorder: '#FDE68A',
+        progressColor: '#D97706',
+      };
+    } else {
+      return {
+        tier: 4,
+        quote: 'μπροσκι θες 1 ευρω να παρεις τυροπιτα;',
+        badge: 'Τυρόπιτα Mode',
+        badgeColor: '#FFF1F2',
+        badgeTextColor: '#E11D48',
+        badgeBorder: '#FECDD3',
+        progressColor: '#E11D48',
+      };
+    }
+  };
+
+  const status = getFinancialStatus(totalBalance);
 
   return (
     <View style={styles.container}>
-      {/* 1. Hero Focus Card: Displaying 1st Goal Progress + 3D Character */}
+      {/* 1. Hero Card: Financial Status Tier & Monthly Runway */}
       <TouchableOpacity
         style={styles.heroCard}
         activeOpacity={0.92}
-        onPress={onOpenGoals || onOpenAnalytics || onOpenTasks}
+        onPress={onOpenAccounts || onOpenAnalytics || onOpenExpenses}
       >
-        {/* Left Side: 1st Goal Progress Info */}
+        {/* Left Side: Greek Status Tier Quote & Monthly Runway */}
         <View style={styles.heroLeftContent}>
-          <Text style={styles.heroLabel}>Today's Focus</Text>
-          <Text style={styles.heroTitle} numberOfLines={2}>
-            {goalTitle}
+          <View style={styles.heroTopStatusRow}>
+            <Text style={styles.heroLabel}>RUNWAY ΜΗΝΑ</Text>
+            <View
+              style={[
+                styles.tierBadge,
+                {
+                  backgroundColor: status.badgeColor,
+                  borderColor: status.badgeBorder,
+                },
+              ]}
+            >
+              <Text style={[styles.tierBadgeText, { color: status.badgeTextColor }]}>
+                {status.badge}
+              </Text>
+            </View>
+          </View>
+
+          <Text style={styles.heroTitle} numberOfLines={3}>
+            "{status.quote}"
           </Text>
 
-          {firstGoal && (
-            <Text style={styles.heroGoalAmountSub}>
-              €{goalCurrent.toLocaleString()} of €{goalTarget.toLocaleString()} target
-            </Text>
-          )}
+          <Text style={styles.heroMetricsSub}>
+            €{dailyAllowance}/ημέρα • {daysRemaining} μέρες για πληρωμή
+          </Text>
 
           <View style={styles.heroProgressBlock}>
-            <Text style={styles.heroProgressLabel}>Progress</Text>
             <View style={styles.heroProgressRow}>
               <View style={styles.heroProgressBarTrack}>
                 <View
                   style={[
                     styles.heroProgressBarFill,
-                    { width: `${goalProgress}%` },
+                    {
+                      width: `${monthProgress}%`,
+                      backgroundColor: status.progressColor,
+                    },
                   ]}
                 />
               </View>
-              <Text style={styles.heroProgressPercent}>{goalProgress}%</Text>
+              <Text style={styles.heroProgressPercent}>
+                {daysRemaining} {daysRemaining === 1 ? 'μέρα' : 'μέρες'}
+              </Text>
             </View>
           </View>
         </View>
 
-        {/* Right Side: 3D Illustration Avatar with Transparent Background */}
-        <View style={styles.heroAvatarWrapper} pointerEvents="none">
-          <Image
-            source={require('../assets/hero_avatar.png')}
-            style={styles.heroAvatarImage}
-            resizeMode="contain"
-          />
+        {/* Right Side: Kinetic Vault & Floating Euro Token */}
+        <View style={styles.heroVaultWrapper} pointerEvents="none">
+          <KineticVaultToken />
         </View>
       </TouchableOpacity>
 
@@ -258,51 +318,62 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   heroLeftContent: {
-    width: '56%',
+    width: '58%',
     zIndex: 2,
     justifyContent: 'space-between',
   },
+  heroTopStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingRight: 6,
+  },
   heroLabel: {
     fontFamily: fonts.bodyMedium,
-    fontSize: 11,
+    fontSize: 10.5,
     color: '#71717A',
-    fontWeight: '600',
+    fontWeight: '700',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
+  tierBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 7,
+    borderWidth: 1,
+  },
+  tierBadgeText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
   heroTitle: {
     fontFamily: fonts.heading,
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: '900',
     color: '#0A0A0A',
-    letterSpacing: -0.4,
-    lineHeight: 28,
-    marginTop: 6,
-    marginBottom: 4,
+    letterSpacing: -0.3,
+    lineHeight: 24,
+    marginTop: 4,
+    marginBottom: 6,
   },
-  heroGoalAmountSub: {
-    fontFamily: fonts.body,
-    fontSize: 12,
+  heroMetricsSub: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11.5,
     color: '#71717A',
-    fontWeight: '500',
-    marginBottom: 12,
+    fontWeight: '600',
+    marginBottom: 10,
   },
   heroProgressBlock: {
     marginTop: 'auto',
-  },
-  heroProgressLabel: {
-    fontFamily: fonts.bodyLight,
-    fontSize: 11,
-    color: '#71717A',
-    fontWeight: '500',
-    marginBottom: 6,
   },
   heroProgressRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   heroProgressBarTrack: {
-    width: 105,
+    width: 95,
     height: 6,
     borderRadius: 3,
     backgroundColor: '#F4F4F5',
@@ -310,29 +381,23 @@ const styles = StyleSheet.create({
   },
   heroProgressBarFill: {
     height: '100%',
-    backgroundColor: '#059669',
     borderRadius: 3,
   },
   heroProgressPercent: {
     fontFamily: fonts.bodyBold,
-    fontSize: 13,
+    fontSize: 11.5,
     fontWeight: '700',
     color: '#0A0A0A',
     marginLeft: 8,
   },
-  heroAvatarWrapper: {
+  heroVaultWrapper: {
     position: 'absolute',
-    right: 0,
-    bottom: -5,
+    right: 6,
     top: 0,
-    width: 175,
-    alignItems: 'flex-end',
-    justifyContent: 'flex-end',
-    overflow: 'hidden',
-  },
-  heroAvatarImage: {
-    width: 170,
-    height: 185,
+    bottom: 0,
+    width: 155,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   // 3. Bento Grid Styles (Zero Puffy Shadows, 1px Hairline Borders)
