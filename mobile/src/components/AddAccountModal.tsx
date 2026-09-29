@@ -11,6 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { colors } from '../theme/colors';
+import { fonts } from '../theme/typography';
 import { Account, AccountType } from '../types';
 
 interface AddAccountModalProps {
@@ -28,14 +29,14 @@ const ACCOUNT_TYPES: { type: AccountType; label: string; icon: string }[] = [
 ];
 
 const COLOR_PRESETS = [
-  '#3B82F6', // Cobalt
-  '#10B981', // Emerald
-  '#8B5CF6', // Purple
-  '#EC4899', // Pink
-  '#F59E0B', // Amber
-  '#06B6D4', // Cyan
-  '#6366F1', // Indigo
-  '#64748B', // Slate
+  '#0A0A0A', // Pure Obsidian
+  '#27272A', // Graphite
+  '#52525B', // Zinc
+  '#71717A', // Muted Slate
+  '#059669', // Emerald
+  '#10B981', // Mint
+  '#E11D48', // Crimson
+  '#0284C7', // Slate Cyan
 ];
 
 export const AddAccountModal: React.FC<AddAccountModalProps> = ({
@@ -185,19 +186,19 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: '#141416',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     paddingHorizontal: 24,
     paddingTop: 24,
     paddingBottom: Platform.OS === 'ios' ? 44 : 28,
     maxHeight: '88%',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: '#E4E4E7',
   },
   header: {
     flexDirection: 'row',
@@ -206,38 +207,43 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   eyebrow: {
+    fontFamily: fonts.bodyBold,
     fontSize: 10,
     fontWeight: '800',
-    letterSpacing: 1.5,
+    letterSpacing: 1,
     color: '#71717A',
     marginBottom: 4,
+    textTransform: 'uppercase',
   },
   title: {
+    fontFamily: fonts.heading,
     fontSize: 20,
     fontWeight: '800',
-    color: '#FAFAFA',
+    color: '#0A0A0A',
     letterSpacing: -0.4,
   },
   closeBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#1F1F23',
+    backgroundColor: '#F4F4F5',
     alignItems: 'center',
     justifyContent: 'center',
   },
   closeText: {
-    color: '#A1A1AA',
+    color: '#71717A',
     fontSize: 13,
     fontWeight: '600',
   },
   inputLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1.2,
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
     color: '#71717A',
     marginBottom: 8,
     marginTop: 14,
+    textTransform: 'uppercase',
   },
   typeScroll: {
     flexDirection: 'row',
@@ -248,61 +254,65 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     paddingHorizontal: 14,
-    backgroundColor: '#1A1A1E',
+    backgroundColor: '#F4F4F5',
     borderRadius: 14,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
+    borderColor: '#E4E4E7',
   },
   activeTypePill: {
-    backgroundColor: '#27272A',
-    borderColor: '#FAFAFA',
+    backgroundColor: '#0A0A0A',
+    borderColor: '#0A0A0A',
   },
   typeIcon: {
     fontSize: 14,
     marginRight: 6,
   },
   typeLabel: {
+    fontFamily: fonts.bodyMedium,
     fontSize: 13,
     fontWeight: '600',
-    color: '#A1A1AA',
+    color: '#71717A',
   },
   activeTypeLabel: {
-    color: '#FAFAFA',
+    color: '#FFFFFF',
     fontWeight: '700',
   },
   textInput: {
-    backgroundColor: '#1A1A1E',
+    fontFamily: fonts.body,
+    backgroundColor: '#F9FAFB',
     borderRadius: 14,
     paddingHorizontal: 16,
     height: 48,
-    color: '#FAFAFA',
+    color: '#0A0A0A',
     fontSize: 15,
     fontWeight: '500',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: '#E4E4E7',
   },
   amountContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1A1A1E',
+    backgroundColor: '#F9FAFB',
     borderRadius: 14,
     paddingHorizontal: 16,
     height: 52,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: '#E4E4E7',
   },
   currencyPrefix: {
+    fontFamily: fonts.heading,
     fontSize: 20,
-    fontWeight: '700',
-    color: '#FAFAFA',
+    fontWeight: '800',
+    color: '#0A0A0A',
     marginRight: 6,
   },
   amountInput: {
+    fontFamily: fonts.heading,
     flex: 1,
     fontSize: 22,
-    fontWeight: '700',
-    color: '#FAFAFA',
+    fontWeight: '800',
+    color: '#0A0A0A',
   },
   colorPalette: {
     flexDirection: 'row',
@@ -318,7 +328,7 @@ const styles = StyleSheet.create({
   },
   activeColorCircle: {
     borderWidth: 2.5,
-    borderColor: '#FAFAFA',
+    borderColor: '#0A0A0A',
   },
   colorCheck: {
     width: 8,
@@ -327,13 +337,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   errorText: {
-    color: '#F43F5E',
+    fontFamily: fonts.bodyMedium,
+    color: '#E11D48',
     fontSize: 12,
     fontWeight: '600',
     marginTop: 12,
   },
   submitButton: {
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#0A0A0A',
     borderRadius: 14,
     height: 50,
     alignItems: 'center',
@@ -342,9 +353,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   submitText: {
-    color: '#09090B',
+    fontFamily: fonts.bodyBold,
+    color: '#FFFFFF',
     fontSize: 15,
-    fontWeight: '800',
-    letterSpacing: 0.3,
+    fontWeight: '700',
+    letterSpacing: -0.2,
   },
 });

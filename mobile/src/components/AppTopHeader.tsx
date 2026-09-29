@@ -9,32 +9,33 @@ import {
   Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { UserIcon } from './VectorIcons';
+import { GridMenuIcon, UserIcon } from './VectorIcons';
+import { fonts } from '../theme/typography';
 
 export interface AppTopHeaderProps {
   title?: string;
+  subtitle?: string;
   showPulse?: boolean;
   avatarUrl?: string | null;
   userName?: string;
   onProfilePress?: () => void;
   onBackPress?: () => void;
+  onMenuPress?: () => void;
   rightAction?: React.ReactNode;
 }
-
-const MONO_FONT = Platform.OS === 'ios' ? 'Menlo' : 'monospace';
 
 export const AppTopHeader: React.FC<AppTopHeaderProps> = ({
   title,
   avatarUrl,
   onProfilePress,
   onBackPress,
+  onMenuPress,
   rightAction,
 }) => {
   const insets = useSafeAreaInsets();
 
-  // Rigid status bar height with notch safe offset
   const androidBarHeight = Platform.OS === 'android' ? (StatusBar.currentHeight || 24) : 0;
-  const safeTopPadding = Math.max(insets.top, androidBarHeight, 20);
+  const safeTopPadding = Math.max(insets.top, androidBarHeight, 16);
 
   const isImageUri =
     avatarUrl &&
@@ -60,45 +61,61 @@ export const AppTopHeader: React.FC<AppTopHeaderProps> = ({
 
   return (
     <View style={[styles.container, { paddingTop: safeTopPadding }]}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="dark-content" />
 
-      <View style={styles.statusBarRow}>
-        {/* Left: LEDGER.SYS or [ ← BACK ] */}
+      <View style={styles.headerRow}>
+        {/* Left: 4-square Grid Icon or Back Button */}
         {onBackPress ? (
           <TouchableOpacity
             onPress={onBackPress}
-            style={styles.backTouch}
+            style={styles.iconButton}
             activeOpacity={0.7}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Text style={styles.backText}>← {title ? title.toUpperCase() : 'SYS.NAV'}</Text>
+            <Text style={styles.backChevron}>‹</Text>
           </TouchableOpacity>
         ) : (
-          <View style={styles.brandGroup}>
-            <Text style={styles.brandTitle}>LEDGER.SYS</Text>
-          </View>
+          <TouchableOpacity
+            onPress={onMenuPress}
+            style={styles.iconButton}
+            activeOpacity={0.7}
+          >
+            <GridMenuIcon size={18} color="#0A0A0A" />
+          </TouchableOpacity>
         )}
 
-        {/* Right: Tactile Profile Link Button */}
+        {/* Center: Page Title or Welcome Text */}
+        {title ? (
+          <View style={styles.titleContainer}>
+            <Text style={styles.titleText} numberOfLines={1} ellipsizeMode="tail">
+              {title}
+            </Text>
+          </View>
+        ) : (
+          <View style={{ flex: 1 }} />
+        )}
+
+        {/* Right: Custom action or User Avatar */}
         {rightAction ? (
           rightAction
         ) : onProfilePress ? (
           <TouchableOpacity
-            style={styles.profileLinkButton}
+            style={styles.avatarButton}
             onPress={onProfilePress}
-            activeOpacity={0.75}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            activeOpacity={0.8}
           >
             {isImageUri ? (
               <Image source={{ uri: avatarUrl! }} style={styles.avatarImage} />
             ) : avatarUrl && avatarUrl.startsWith('preset:') ? (
               <Text style={styles.presetGlyph}>{getPresetGlyph(avatarUrl)}</Text>
             ) : (
-              <UserIcon size={16} color="#FFFFFF" />
+              <View style={styles.avatarFallback}>
+                <UserIcon size={16} color="#0A0A0A" />
+              </View>
             )}
           </TouchableOpacity>
         ) : (
-          <View style={{ width: 34 }} />
+          <View style={{ width: 42 }} />
         )}
       </View>
     </View>
@@ -107,57 +124,69 @@ export const AppTopHeader: React.FC<AppTopHeaderProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#080808',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(39, 39, 42, 0.6)',
+    backgroundColor: '#F7F7F8',
+    paddingBottom: 4,
   },
-  statusBarRow: {
-    height: 56, // h-14
+  headerRow: {
+    height: 52,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20, // px-6
+    paddingHorizontal: 20,
   },
-  brandGroup: {
-    flexDirection: 'row',
+  iconButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
-  },
-  brandTitle: {
-    fontFamily: MONO_FONT,
-    fontWeight: '900',
-    fontSize: 13,
-    letterSpacing: 2,
-    color: '#FFFFFF',
-    textTransform: 'uppercase',
-  },
-  backTouch: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  backText: {
-    fontFamily: MONO_FONT,
-    fontWeight: '800',
-    fontSize: 12,
-    letterSpacing: 1.2,
-    color: '#FFFFFF',
-  },
-  profileLinkButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: '#18181B', // bg-zinc-900
+    justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#3F3F46', // border-zinc-700
+    borderColor: '#E4E4E7',
+  },
+  backChevron: {
+    fontSize: 26,
+    fontWeight: '300',
+    color: '#0A0A0A',
+    marginTop: -2,
+  },
+  titleContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  titleText: {
+    fontFamily: fonts.heading,
+    fontSize: 17,
+    fontWeight: '900',
+    color: '#0A0A0A',
+    letterSpacing: -0.3,
+  },
+  avatarButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E4E4E7',
   },
   avatarImage: {
-    width: 36,
-    height: 36,
-    borderRadius: 9,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+  },
+  avatarFallback: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#F4F4F5',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   presetGlyph: {
-    fontSize: 16,
+    fontSize: 20,
   },
 });

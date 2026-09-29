@@ -1,8 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
-  SafeAreaView,
   ScrollView,
-  StatusBar,
   StyleSheet,
   View,
   Text,
@@ -11,23 +9,31 @@ import {
   TextInput,
 } from 'react-native';
 import { colors } from '../theme/colors';
+import { fonts } from '../theme/typography';
 import { Goal } from '../types';
 import { AddGoalModal } from '../components/AddGoalModal';
 import { AppTopHeader } from '../components/AppTopHeader';
+import {
+  GoalsIcon,
+  PlusIcon,
+  CheckIcon,
+} from '../components/VectorIcons';
 
 interface GoalsScreenProps {
   goals: Goal[];
   onAddGoal: (goal: Omit<Goal, 'id'>) => void;
   onAddFundsToGoal: (goalId: string, amount: number) => void;
   onOpenProfile?: () => void;
+  onMenuPress?: () => void;
   avatarUrl?: string | null;
 }
 
 export const GoalsScreen: React.FC<GoalsScreenProps> = ({
-  goals,
+  goals = [],
   onAddGoal,
   onAddFundsToGoal,
   onOpenProfile,
+  onMenuPress,
   avatarUrl,
 }) => {
   const [createModalVisible, setCreateModalVisible] = useState(false);
@@ -35,25 +41,22 @@ export const GoalsScreen: React.FC<GoalsScreenProps> = ({
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   const [depositAmount, setDepositAmount] = useState('');
 
-  // Overall Goals Metrics
+  // Summary Metrics calculated strictly from real goals
   const summary = useMemo(() => {
     let totalTarget = 0;
     let totalSaved = 0;
-    let completedCount = 0;
-
     goals.forEach((g) => {
-      totalTarget += g.target_amount;
-      totalSaved += g.current_amount;
-      if (g.current_amount >= g.target_amount) completedCount += 1;
+      totalTarget += Number(g.target_amount) || 0;
+      totalSaved += Number(g.current_amount) || 0;
     });
-
-    const overallProgress = totalTarget > 0 ? (totalSaved / totalTarget) * 100 : 0;
+    const overallProgress = totalTarget > 0 ? Math.min(100, Math.round((totalSaved / totalTarget) * 100)) : 0;
+    const completedCount = goals.filter((g) => g.is_completed || g.current_amount >= g.target_amount).length;
 
     return {
       totalTarget,
       totalSaved,
+      overallProgress,
       completedCount,
-      overallProgress: Math.min(overallProgress, 100).toFixed(0),
     };
   }, [goals]);
 
@@ -69,176 +72,199 @@ export const GoalsScreen: React.FC<GoalsScreenProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* Global Notch & Status Bar Protected Top Header */}
+      {/* Top Header */}
       <AppTopHeader
-        title="Goals"
-        showPulse
+        title="Financial Goals"
+        onMenuPress={onMenuPress}
         onProfilePress={onOpenProfile}
         avatarUrl={avatarUrl}
+        rightAction={
+          <TouchableOpacity
+            style={styles.headerAddBtn}
+            onPress={() => setCreateModalVisible(true)}
+            activeOpacity={0.85}
+          >
+            <PlusIcon size={16} color="#FFFFFF" />
+          </TouchableOpacity>
+        }
       />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* Unified 3-Column Summary Card */}
-        <View style={styles.summaryCard}>
-          <View style={styles.dataCol}>
-            <Text style={styles.dataLabel}>TOTAL SAVED</Text>
-            <Text style={[styles.dataValue, { color: colors.inflow }]}>
-              €{summary.totalSaved.toLocaleString()}
+        {/* 3 Stat Cards in a Row: Total Target, Total Saved, Overall Progress */}
+        <View style={styles.statCardsRow}>
+          <View style={[styles.statCard, styles.lavenderCard]}>
+            <Text style={styles.statLabel}>Total Target</Text>
+            <Text style={styles.statValue}>
+              €{summary.totalTarget.toLocaleString('en-US', { minimumFractionDigits: 0 })}
             </Text>
+            <Text style={styles.statSub}>{goals.length} Targets</Text>
           </View>
 
-          <View style={styles.dataDivider} />
-
-          <View style={styles.dataCol}>
-            <Text style={styles.dataLabel}>TARGET</Text>
-            <Text style={styles.dataValue}>€{summary.totalTarget.toLocaleString()}</Text>
+          <View style={[styles.statCard, styles.mintCard]}>
+            <Text style={styles.statLabel}>Total Saved</Text>
+            <Text style={[styles.statValue, { color: '#059669' }]}>
+              €{summary.totalSaved.toLocaleString('en-US', { minimumFractionDigits: 0 })}
+            </Text>
+            <Text style={styles.statSub}>{summary.completedCount} Completed</Text>
           </View>
 
-          <View style={styles.dataDivider} />
-
-          <View style={styles.dataCol}>
-            <Text style={styles.dataLabel}>PROGRESS</Text>
-            <Text style={styles.dataValue}>{summary.overallProgress}%</Text>
+          <View style={[styles.statCard, styles.peachCard]}>
+            <Text style={styles.statLabel}>Avg Progress</Text>
+            <Text style={[styles.statValue, { color: '#0A0A0A' }]}>
+              {summary.overallProgress}%
+            </Text>
+            <Text style={styles.statSub}>Overall</Text>
           </View>
         </View>
 
-        {/* Interactive Tactile Goal Cards */}
+        {/* Goals List */}
         <View style={styles.goalsContainer}>
-          <Text style={styles.sectionEyebrow}>ACTIVE TARGETS</Text>
+          <Text style={styles.sectionHeader}>ACTIVE SAVINGS TARGETS ({goals.length})</Text>
 
           {goals.length === 0 ? (
-            <View style={styles.emptyCard}>
-              <Text style={styles.emptyTitle}>NO GOALS ESTABLISHED</Text>
-              <Text style={styles.emptySub}>Tap below to create your first savings target.</Text>
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyTitle}>No Goals Set</Text>
+              <Text style={styles.emptySubtext}>
+                Set financial targets like Emergency Fund, Vacation, or New Equipment.
+              </Text>
+              <TouchableOpacity
+                style={styles.emptyAddBtn}
+                onPress={() => setCreateModalVisible(true)}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.emptyAddBtnText}>+ Create Financial Goal</Text>
+              </TouchableOpacity>
             </View>
           ) : (
             goals.map((g) => {
-              const progress = Math.min((g.current_amount / g.target_amount) * 100, 100);
-              const isFinished = g.current_amount >= g.target_amount;
+              const current = Number(g.current_amount) || 0;
+              const target = Number(g.target_amount) || 1;
+              const progress = Math.min(100, Math.round((current / target) * 100));
+              const isCompleted = g.is_completed || current >= target;
 
               return (
-                <TouchableOpacity
-                  key={g.id}
-                  style={styles.interactiveGoalCard}
-                  activeOpacity={0.75}
-                  onPress={() => {
-                    setSelectedGoal(g);
-                    setFundsModalVisible(true);
-                  }}
-                >
-                  {/* Top card row: Slate monochrome container + title/date + status */}
-                  <View style={styles.cardHeaderRow}>
-                    <View style={styles.titleGroup}>
-                      {/* Monochrome Slate Container */}
-                      <View style={styles.iconSlateContainer}>
-                        <Text style={styles.iconInitial}>
-                          {g.name.slice(0, 1).toUpperCase()}
-                        </Text>
+                <View key={g.id} style={styles.goalCard}>
+                  <View style={styles.goalCardTop}>
+                    <View style={styles.goalIconTitle}>
+                      <View
+                        style={[
+                          styles.goalIconBadge,
+                          { backgroundColor: g.color ? `${g.color}20` : '#F4F4F5' },
+                        ]}
+                      >
+                        <Text style={styles.goalIconEmoji}>{g.icon || '🎯'}</Text>
                       </View>
-                      <View>
-                        <Text style={styles.goalTitle}>{g.name}</Text>
-                        {g.target_date && (
-                          <Text style={styles.goalDate}>TARGET: {g.target_date.toUpperCase()}</Text>
-                        )}
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.goalName} numberOfLines={1}>
+                          {g.name}
+                        </Text>
+                        <Text style={styles.goalDate}>
+                          {g.target_date ? `Target: ${g.target_date}` : 'Ongoing target'}
+                        </Text>
                       </View>
                     </View>
 
-                    {isFinished ? (
-                      <View style={styles.completedPill}>
-                        <Text style={styles.completedPillText}>REACHED</Text>
+                    {isCompleted ? (
+                      <View style={styles.completedBadge}>
+                        <CheckIcon size={12} color="#FFFFFF" />
+                        <Text style={styles.completedBadgeText}>COMPLETED</Text>
                       </View>
                     ) : (
-                      <View style={styles.tapPill}>
-                        <Text style={styles.tapPillText}>+ ADD</Text>
-                      </View>
+                      <TouchableOpacity
+                        style={styles.addFundsBtn}
+                        onPress={() => {
+                          setSelectedGoal(g);
+                          setFundsModalVisible(true);
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        <PlusIcon size={12} color="#0A0A0A" />
+                        <Text style={styles.addFundsBtnText}>Add Funds</Text>
+                      </TouchableOpacity>
                     )}
                   </View>
 
-                  {/* Monospace Figures & Bold Percentage */}
-                  <View style={styles.figuresRow}>
-                    <Text style={styles.figuresRatio}>
-                      €{g.current_amount.toLocaleString()}{' '}
-                      <Text style={styles.figuresTarget}>/ €{g.target_amount.toLocaleString()}</Text>
+                  {/* Amounts */}
+                  <View style={styles.amountsRow}>
+                    <Text style={styles.currentAmountText}>
+                      €{current.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </Text>
-                    <Text style={[styles.percentageText, isFinished && { color: colors.inflow }]}>
-                      {progress.toFixed(0)}%
+                    <Text style={styles.targetAmountText}>
+                      of €{target.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </Text>
+                    <Text style={styles.progressPercentText}>{progress}%</Text>
                   </View>
 
-                  {/* Sleek 4px Bar with Subtle Gradient / Monochrome Fill */}
-                  <View style={styles.track}>
+                  {/* Progress Bar */}
+                  <View style={styles.progressBarTrack}>
                     <View
                       style={[
-                        styles.fill,
+                        styles.progressBarFill,
                         {
                           width: `${progress}%`,
-                          backgroundColor: isFinished ? colors.inflow : '#FAFAFA',
+                          backgroundColor: isCompleted ? '#059669' : '#0A0A0A',
                         },
                       ]}
                     />
                   </View>
-                </TouchableOpacity>
+                </View>
               );
             })
           )}
         </View>
+
+        <View style={{ height: 90 }} />
       </ScrollView>
 
-      {/* Floating Action Button */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => setCreateModalVisible(true)}
-        activeOpacity={0.85}
-      >
-        <Text style={styles.fabText}>+ Add Goal</Text>
-      </TouchableOpacity>
-
-      {/* Dedicated Add Goal Modal */}
+      {/* Add Goal Modal */}
       <AddGoalModal
         visible={createModalVisible}
         onClose={() => setCreateModalVisible(false)}
         onSave={onAddGoal}
       />
 
-      {/* Tactile Deposit Funds Modal */}
+      {/* Add Funds Modal */}
       <Modal
         visible={fundsModalVisible}
         animationType="fade"
         transparent
         onRequestClose={() => setFundsModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.depositSheet}>
-            <View style={styles.depositHeader}>
-              <View>
-                <Text style={styles.depositEyebrow}>CONTRIBUTE TO GOAL</Text>
-                <Text style={styles.depositTitle}>{selectedGoal?.name}</Text>
-              </View>
+        <View style={styles.depositModalOverlay}>
+          <View style={styles.depositModalCard}>
+            <Text style={styles.depositModalTitle}>Deposit to Goal</Text>
+            <Text style={styles.depositModalSub}>
+              {selectedGoal?.name}
+            </Text>
+
+            <TextInput
+              style={styles.depositInput}
+              placeholder="Amount in EUR (€)"
+              placeholderTextColor="#9CA3AF"
+              keyboardType="decimal-pad"
+              value={depositAmount}
+              onChangeText={setDepositAmount}
+              autoFocus
+            />
+
+            <View style={styles.depositModalButtons}>
               <TouchableOpacity
-                onPress={() => setFundsModalVisible(false)}
-                style={styles.closeBtn}
+                style={styles.depositCancelBtn}
+                onPress={() => {
+                  setDepositAmount('');
+                  setFundsModalVisible(false);
+                }}
               >
-                <Text style={styles.closeText}>✕</Text>
+                <Text style={styles.depositCancelText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.depositConfirmBtn}
+                onPress={handleDeposit}
+              >
+                <Text style={styles.depositConfirmText}>Confirm Deposit</Text>
               </TouchableOpacity>
             </View>
-
-            <Text style={styles.inputLabel}>AMOUNT (€)</Text>
-            <View style={styles.amountInputBox}>
-              <Text style={styles.currencyPrefix}>€</Text>
-              <TextInput
-                style={styles.largeInput}
-                placeholder="0.00"
-                placeholderTextColor="#71717A"
-                keyboardType="decimal-pad"
-                value={depositAmount}
-                onChangeText={setDepositAmount}
-                autoFocus
-              />
-            </View>
-
-            <TouchableOpacity style={styles.depositSubmitBtn} onPress={handleDeposit}>
-              <Text style={styles.depositSubmitText}>Deposit Funds</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -249,299 +275,288 @@ export const GoalsScreen: React.FC<GoalsScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#080808',
+    backgroundColor: '#F7F7F8',
   },
-  scrollContent: {
-    paddingBottom: 100,
-  },
-  summaryCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#141416',
-    marginHorizontal: 20,
-    borderRadius: 20,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
-    marginBottom: 20,
-  },
-  dataCol: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  dataLabel: {
-    fontFamily: 'monospace',
-    fontSize: 9,
-    letterSpacing: 1,
-    color: '#71717A',
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  dataValue: {
-    fontFamily: 'monospace',
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#FAFAFA',
-    fontVariant: ['tabular-nums'],
-  },
-  dataDivider: {
-    width: 1,
-    height: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-  },
-  goalsContainer: {
-    marginHorizontal: 20,
-  },
-  sectionEyebrow: {
-    fontFamily: 'monospace',
-    fontSize: 10,
-    letterSpacing: 1.5,
-    color: '#71717A',
-    fontWeight: '700',
-    marginBottom: 10,
-  },
-  interactiveGoalCard: {
-    backgroundColor: '#141416',
-    borderRadius: 22,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
-    marginBottom: 12,
-  },
-  cardHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 14,
-  },
-  titleGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  iconSlateContainer: {
+  headerAddBtn: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: 'rgba(39, 39, 42, 0.8)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: '#0A0A0A',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
   },
-  iconInitial: {
-    fontFamily: 'monospace',
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#FAFAFA',
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 24,
   },
-  goalTitle: {
-    fontSize: 15,
+  statCardsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  statCard: {
+    flex: 1,
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E4E4E7',
+  },
+  lavenderCard: {
+    backgroundColor: '#F4F4F5',
+  },
+  mintCard: {
+    backgroundColor: '#ECFDF5',
+    borderColor: '#A7F3D0',
+  },
+  peachCard: {
+    backgroundColor: '#F4F4F5',
+  },
+  statLabel: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#71717A',
+    marginBottom: 4,
+  },
+  statValue: {
+    fontFamily: fonts.heading,
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#0A0A0A',
+    letterSpacing: -0.3,
+  },
+  statSub: {
+    fontFamily: fonts.bodyLight,
+    fontSize: 11,
+    color: '#A1A1AA',
+    marginTop: 2,
+    fontWeight: '500',
+  },
+  goalsContainer: {
+    gap: 14,
+  },
+  sectionHeader: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
     fontWeight: '700',
-    color: '#FAFAFA',
-    letterSpacing: -0.2,
+    color: '#71717A',
+    letterSpacing: 0.6,
+    marginBottom: 4,
+  },
+  goalCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: '#E4E4E7',
+  },
+  goalCardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  goalIconTitle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+    paddingRight: 10,
+  },
+  goalIconBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  goalIconEmoji: {
+    fontSize: 20,
+  },
+  goalName: {
+    fontFamily: fonts.heading,
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0A0A0A',
   },
   goalDate: {
-    fontFamily: 'monospace',
-    fontSize: 10,
+    fontFamily: fonts.bodyLight,
+    fontSize: 12,
     color: '#71717A',
     marginTop: 2,
-    letterSpacing: 0.5,
   },
-  completedPill: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+  completedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
+    borderRadius: 8,
+    backgroundColor: '#059669',
   },
-  completedPillText: {
-    fontFamily: 'monospace',
-    fontSize: 9,
-    fontWeight: '800',
-    color: colors.inflow,
-    letterSpacing: 0.8,
-  },
-  tapPill: {
-    backgroundColor: '#1E1E22',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  tapPillText: {
-    fontFamily: 'monospace',
+  completedBadgeText: {
+    fontFamily: fonts.bodyBold,
     fontSize: 10,
-    fontWeight: '700',
-    color: '#FAFAFA',
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
   },
-  figuresRow: {
+  addFundsBtn: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: '#F4F4F5',
+    borderWidth: 1,
+    borderColor: '#E4E4E7',
+  },
+  addFundsBtnText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0A0A0A',
+  },
+  amountsRow: {
+    flexDirection: 'row',
     alignItems: 'baseline',
     marginBottom: 8,
   },
-  figuresRatio: {
-    fontFamily: 'monospace',
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#FAFAFA',
-    fontVariant: ['tabular-nums'],
+  currentAmountText: {
+    fontFamily: fonts.heading,
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#0A0A0A',
   },
-  figuresTarget: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#71717A',
-  },
-  percentageText: {
-    fontFamily: 'monospace',
+  targetAmountText: {
+    fontFamily: fonts.bodyMedium,
     fontSize: 13,
-    fontWeight: '800',
-    color: '#FAFAFA',
-    fontVariant: ['tabular-nums'],
+    color: '#71717A',
+    marginLeft: 6,
+    fontWeight: '500',
+    flex: 1,
   },
-  track: {
-    height: 4,
-    backgroundColor: '#27272A',
-    borderRadius: 2,
+  progressPercentText: {
+    fontFamily: fonts.heading,
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#059669',
+  },
+  progressBarTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#F4F4F5',
     overflow: 'hidden',
   },
-  fill: {
+  progressBarFill: {
     height: '100%',
-    borderRadius: 2,
+    borderRadius: 3,
   },
-  emptyCard: {
-    backgroundColor: '#141416',
+  emptyContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     padding: 32,
-    borderRadius: 22,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
+    borderColor: '#E4E4E7',
   },
   emptyTitle: {
-    fontFamily: 'monospace',
-    fontSize: 10,
-    letterSpacing: 1.5,
-    color: '#71717A',
+    fontFamily: fonts.heading,
+    fontSize: 16,
     fontWeight: '700',
+    color: '#0A0A0A',
     marginBottom: 4,
   },
-  emptySub: {
+  emptySubtext: {
+    fontFamily: fonts.bodyLight,
     fontSize: 13,
-    color: '#A1A1AA',
+    color: '#71717A',
     textAlign: 'center',
-  },
-  fab: {
-    position: 'absolute',
-    bottom: 92,
-    right: 20,
-    backgroundColor: '#FAFAFA',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.5,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  fabText: {
-    color: '#09090B',
-    fontSize: 13,
-    fontWeight: '800',
-    letterSpacing: 0.2,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    justifyContent: 'flex-end',
-  },
-  depositSheet: {
-    backgroundColor: '#141416',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  depositHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 18,
-  },
-  depositEyebrow: {
-    fontFamily: 'monospace',
-    fontSize: 9,
-    letterSpacing: 1.5,
-    color: '#71717A',
-    fontWeight: '700',
-    marginBottom: 2,
-  },
-  depositTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#FAFAFA',
-  },
-  closeBtn: {
-    padding: 6,
-    borderRadius: 20,
-    backgroundColor: '#1E1E22',
-  },
-  closeText: {
-    fontSize: 14,
-    color: '#A1A1AA',
-    fontWeight: '700',
-  },
-  inputLabel: {
-    fontFamily: 'monospace',
-    fontSize: 9,
-    letterSpacing: 1,
-    color: '#71717A',
-    fontWeight: '700',
-    marginBottom: 6,
-  },
-  amountInputBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#0F0F11',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    marginBottom: 20,
-  },
-  currencyPrefix: {
-    fontFamily: 'monospace',
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#FAFAFA',
-    marginRight: 6,
-  },
-  largeInput: {
-    flex: 1,
-    fontFamily: 'monospace',
-    color: '#FAFAFA',
-    fontSize: 28,
-    fontWeight: '800',
-    padding: 0,
-  },
-  depositSubmitBtn: {
-    backgroundColor: '#FAFAFA',
-    paddingVertical: 16,
-    borderRadius: 16,
-    alignItems: 'center',
     marginBottom: 16,
   },
-  depositSubmitText: {
+  emptyAddBtn: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 14,
+    backgroundColor: '#0A0A0A',
+  },
+  emptyAddBtnText: {
+    fontFamily: fonts.heading,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  depositModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  depositModalCard: {
+    width: '100%',
+    maxWidth: 340,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 22,
+    borderWidth: 1,
+    borderColor: '#E4E4E7',
+  },
+  depositModalTitle: {
+    fontFamily: fonts.heading,
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#0A0A0A',
+  },
+  depositModalSub: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: '#71717A',
+    marginTop: 2,
+    marginBottom: 16,
+  },
+  depositInput: {
+    fontFamily: fonts.body,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E4E4E7',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#0A0A0A',
+    marginBottom: 18,
+  },
+  depositModalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  depositCancelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: '#F4F4F5',
+    alignItems: 'center',
+  },
+  depositCancelText: {
+    fontFamily: fonts.bodyMedium,
     fontSize: 14,
-    fontWeight: '800',
-    color: '#09090B',
+    fontWeight: '600',
+    color: '#71717A',
+  },
+  depositConfirmBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: '#0A0A0A',
+    alignItems: 'center',
+  },
+  depositConfirmText: {
+    fontFamily: fonts.heading,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });

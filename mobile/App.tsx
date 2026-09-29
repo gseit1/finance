@@ -5,13 +5,18 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { WelcomeScreen } from './src/screens/WelcomeScreen';
 import { AuthScreen } from './src/screens/AuthScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
-import { ExpensesScreen } from './src/screens/ExpensesScreen';
+import { TasksScreen } from './src/screens/TasksScreen';
+import { CalendarScreen } from './src/screens/CalendarScreen';
 import { AccountsScreen } from './src/screens/AccountsScreen';
+import { TransactionsScreen } from './src/screens/TransactionsScreen';
+import { AnalyticsScreen } from './src/screens/AnalyticsScreen';
 import { GoalsScreen } from './src/screens/GoalsScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
 import { BottomIslandNav, NavTab } from './src/components/BottomIslandNav';
+import { SideDrawerNav } from './src/components/SideDrawerNav';
 import { AddAccountModal } from './src/components/AddAccountModal';
 import { AddTransactionModal } from './src/components/AddTransactionModal';
+import { AddTaskModal } from './src/components/AddTaskModal';
 import {
   Transaction,
   Account,
@@ -20,10 +25,12 @@ import {
   Goal,
   RecurringRule,
   TransactionType,
+  Task,
 } from './src/types';
 import { colors } from './src/theme/colors';
 import { isSupabaseConfigured, supabase } from './src/services/supabase';
 import { authService } from './src/services/authService';
+import { taskService } from './src/services/taskService';
 
 // Default clean user data
 const defaultAccounts: Account[] = [
@@ -61,8 +68,11 @@ function App(): React.JSX.Element {
   const [transactions, setTransactions] = useState<Transaction[]>(defaultTransactions);
   const [goals, setGoals] = useState<Goal[]>(defaultGoals);
   const [recurringRules, setRecurringRules] = useState<RecurringRule[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [addAccountModalVisible, setAddAccountModalVisible] = useState<boolean>(false);
   const [isGlobalTxModalOpen, setIsGlobalTxModalOpen] = useState<boolean>(false);
+  const [isGlobalTaskModalOpen, setIsGlobalTaskModalOpen] = useState<boolean>(false);
+  const [drawerVisible, setDrawerVisible] = useState<boolean>(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const supabaseActive = isSupabaseConfigured();
@@ -281,6 +291,14 @@ function App(): React.JSX.Element {
       } catch (rulesCatchErr) {
         console.warn('Recurring rules fetch notice:', rulesCatchErr);
       }
+
+      // 7. Fetch Tasks from taskService
+      try {
+        const liveTasks = await taskService.getTasks(userId);
+        setTasks(liveTasks);
+      } catch (tasksCatchErr) {
+        console.warn('Tasks fetch notice:', tasksCatchErr);
+      }
     } catch (err) {
       console.warn('Sync user data failed:', err);
     }
@@ -420,6 +438,13 @@ function App(): React.JSX.Element {
             syncUserData(currentUser.id);
           }
         )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'tasks' },
+          () => {
+            syncUserData(currentUser.id);
+          }
+        )
         .subscribe();
     }
 
@@ -431,10 +456,18 @@ function App(): React.JSX.Element {
     };
   }, [currentUser?.id, supabaseActive]);
 
+  // Initial load of tasks
+  useEffect(() => {
+    taskService.getTasks(currentUser?.id).then((t) => setTasks(t)).catch(() => {});
+  }, [currentUser?.id]);
+
   const handleRefresh = async () => {
     setRefreshing(true);
     if (currentUser?.id) {
       await syncUserData(currentUser.id);
+    } else {
+      const liveTasks = await taskService.getTasks();
+      setTasks(liveTasks);
     }
     setTimeout(() => setRefreshing(false), 500);
   };
@@ -961,10 +994,37 @@ function App(): React.JSX.Element {
     }
   };
 
+  const handleAddTask = async (newTaskData: Omit<Task, 'id'>) => {
+    try {
+      const created = await taskService.createTask(currentUser?.id, newTaskData);
+      setTasks((prev) => [created, ...prev]);
+    } catch (err) {
+      console.warn('Add task error:', err);
+    }
+  };
+
+  const handleToggleTask = async (taskId: string) => {
+    try {
+      const updated = await taskService.toggleTask(currentUser?.id, taskId);
+      setTasks((prev) => prev.map((t) => (t.id === taskId ? updated : t)));
+    } catch (err) {
+      console.warn('Toggle task error:', err);
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    try {
+      await taskService.deleteTask(currentUser?.id, taskId);
+      setTasks((prev) => prev.filter((t) => t.id !== taskId));
+    } catch (err) {
+      console.warn('Delete task error:', err);
+    }
+  };
+
   const userDisplayName =
     currentUser?.user_metadata?.full_name ||
     currentUser?.user_metadata?.name ||
-    (currentUser?.email ? currentUser.email.split('@')[0] : 'Operator');
+    (currentUser?.email ? currentUser.email.split('@')[0] : 'Hitesh Tapaniya');
 
   const userAvatarUrl = currentUser?.user_metadata?.avatar_url || null;
 
@@ -1015,36 +1075,7 @@ function App(): React.JSX.Element {
         )}
 
         {/* Flow 3: Main Financial Ledger Application */}
-        {flow === 'app' && isProfileOpen && (
-          <ProfileScreen
-            onBack={() => setIsProfileOpen(false)}
-            onSignOut={async () => {
-              await authService.signOut();
-              setCurrentUser(null);
-              setTransactions([]);
-              setBudgets([]);
-              setGoals([]);
-              setRecurringRules([]);
-              setAccounts([
-                { id: 'acc-1', name: 'Main Checking', type: 'bank', balance: 0.00, currency: 'EUR', color: '#3B82F6', icon: 'bank' },
-              ]);
-              setIsProfileOpen(false);
-              setFlow('welcome');
-            }}
-            onProfileUpdated={(updatedUser) => {
-              setCurrentUser((prev: any) => ({
-                ...prev,
-                ...updatedUser,
-                user_metadata: {
-                  ...prev?.user_metadata,
-                  ...updatedUser?.user_metadata,
-                },
-              }));
-            }}
-          />
-        )}
-
-        {flow === 'app' && !isProfileOpen && (
+        {flow === 'app' && (
           <View style={styles.screenWrapper}>
             {currentTab === 'home' && (
               <HomeScreen
@@ -1053,27 +1084,49 @@ function App(): React.JSX.Element {
                 budgets={budgets}
                 transactions={transactions}
                 recurringRules={recurringRules}
+                tasks={tasks}
+                goals={goals}
                 onAddTransaction={handleSaveTransaction}
                 onSaveBudget={handleSaveBudget}
                 onDeleteBudget={handleDeleteBudget}
                 onOpenAccounts={() => setCurrentTab('accounts')}
+                onOpenCalendar={() => setCurrentTab('calendar')}
+                onOpenTasks={() => setCurrentTab('tasks')}
+                onOpenExpenses={() => setCurrentTab('transactions')}
+                onOpenAnalytics={() => setCurrentTab('analytics')}
+                onOpenGoals={() => setCurrentTab('goals')}
                 onAddAccount={() => setAddAccountModalVisible(true)}
-                onAddRecurring={() => setCurrentTab('accounts')}
+                onAddRecurring={() => setCurrentTab('calendar')}
                 onRefresh={handleRefresh}
                 refreshing={refreshing}
-                onOpenProfile={() => setIsProfileOpen(true)}
+                onOpenProfile={() => setCurrentTab('profile')}
+                onMenuPress={() => setDrawerVisible(true)}
                 userName={userDisplayName}
                 avatarUrl={userAvatarUrl}
               />
             )}
 
-            {currentTab === 'expenses' && (
-              <ExpensesScreen
-                transactions={transactions}
-                categories={categories}
-                accounts={accounts}
-                onAddTransaction={handleSaveTransaction}
-                onOpenProfile={() => setIsProfileOpen(true)}
+            {currentTab === 'tasks' && (
+              <TasksScreen
+                tasks={tasks}
+                onAddTask={handleAddTask}
+                onToggleTask={handleToggleTask}
+                onDeleteTask={handleDeleteTask}
+                onOpenProfile={() => setCurrentTab('profile')}
+                onMenuPress={() => setDrawerVisible(true)}
+                avatarUrl={userAvatarUrl}
+              />
+            )}
+
+            {currentTab === 'calendar' && (
+              <CalendarScreen
+                tasks={tasks}
+                recurringRules={recurringRules}
+                onAddTask={handleAddTask}
+                onToggleTask={handleToggleTask}
+                onDeleteTask={handleDeleteTask}
+                onOpenProfile={() => setCurrentTab('profile')}
+                onMenuPress={() => setDrawerVisible(true)}
                 avatarUrl={userAvatarUrl}
               />
             )}
@@ -1081,15 +1134,38 @@ function App(): React.JSX.Element {
             {currentTab === 'accounts' && (
               <AccountsScreen
                 accounts={accounts}
-                recurringRules={recurringRules}
-                categories={categories}
                 onAddAccount={handleAddAccount}
                 onDeleteAccount={handleDeleteAccount}
-                onAddRecurringRule={handleAddRecurringRule}
-                onToggleRecurringRule={handleToggleRecurringRule}
-                onDeleteRecurringRule={handleDeleteRecurringRule}
-                onOpenProfile={() => setIsProfileOpen(true)}
+                onOpenProfile={() => setCurrentTab('profile')}
+                onMenuPress={() => setDrawerVisible(true)}
                 avatarUrl={userAvatarUrl}
+              />
+            )}
+
+            {currentTab === 'transactions' && (
+              <TransactionsScreen
+                transactions={transactions}
+                categories={categories}
+                accounts={accounts}
+                onAddTransaction={handleSaveTransaction}
+                onOpenProfile={() => setCurrentTab('profile')}
+                onMenuPress={() => setDrawerVisible(true)}
+                avatarUrl={userAvatarUrl}
+              />
+            )}
+
+            {currentTab === 'analytics' && (
+              <AnalyticsScreen
+                transactions={transactions}
+                accounts={accounts}
+                budgets={budgets}
+                tasks={tasks}
+                goals={goals}
+                onOpenProfile={() => setCurrentTab('profile')}
+                onMenuPress={() => setDrawerVisible(true)}
+                avatarUrl={userAvatarUrl}
+                onOpenTransactions={() => setCurrentTab('transactions')}
+                onOpenGoals={() => setCurrentTab('goals')}
               />
             )}
 
@@ -1098,19 +1174,50 @@ function App(): React.JSX.Element {
                 goals={goals}
                 onAddGoal={handleAddGoal}
                 onAddFundsToGoal={handleAddFundsToGoal}
-                onOpenProfile={() => setIsProfileOpen(true)}
+                onOpenProfile={() => setCurrentTab('profile')}
+                onMenuPress={() => setDrawerVisible(true)}
                 avatarUrl={userAvatarUrl}
               />
             )}
 
-            {/* Global Add Account Modal (accessible from HomeScreen quick action) */}
+            {currentTab === 'profile' && (
+              <ProfileScreen
+                onBack={() => setCurrentTab('home')}
+                onSignOut={async () => {
+                  await authService.signOut();
+                  setCurrentUser(null);
+                  setTransactions([]);
+                  setBudgets([]);
+                  setGoals([]);
+                  setRecurringRules([]);
+                  setTasks([]);
+                  setAccounts([
+                    { id: 'acc-1', name: 'Main Checking', type: 'bank', balance: 0.00, currency: 'EUR', color: '#3B82F6', icon: 'bank' },
+                  ]);
+                  setCurrentTab('home');
+                  setFlow('welcome');
+                }}
+                onProfileUpdated={(updatedUser) => {
+                  setCurrentUser((prev: any) => ({
+                    ...prev,
+                    ...updatedUser,
+                    user_metadata: {
+                      ...prev?.user_metadata,
+                      ...updatedUser?.user_metadata,
+                    },
+                  }));
+                }}
+              />
+            )}
+
+            {/* Global Add Account Modal */}
             <AddAccountModal
               visible={addAccountModalVisible}
               onClose={() => setAddAccountModalVisible(false)}
               onSave={handleAddAccount}
             />
 
-            {/* Global Quick Dispatch Transaction Modal (accessible from Dock Center + trigger) */}
+            {/* Global Quick Dispatch Transaction Modal */}
             <AddTransactionModal
               visible={isGlobalTxModalOpen}
               onClose={() => setIsGlobalTxModalOpen(false)}
@@ -1120,7 +1227,31 @@ function App(): React.JSX.Element {
               accounts={accounts}
             />
 
-            {/* Floating Ultra-Frosted Awwwards-Grade Bottom Island Dock */}
+            {/* Global Add Task Modal */}
+            <AddTaskModal
+              visible={isGlobalTaskModalOpen}
+              onClose={() => setIsGlobalTaskModalOpen(false)}
+              onSave={handleAddTask}
+            />
+
+            {/* Side Navigation Drawer */}
+            <SideDrawerNav
+              visible={drawerVisible}
+              onClose={() => setDrawerVisible(false)}
+              currentRoute={currentTab}
+              onNavigate={(route) => setCurrentTab(route)}
+              userName={userDisplayName}
+              avatarUrl={userAvatarUrl}
+              tasksCount={tasks.filter((t) => !t.completed).length}
+              accountsCount={accounts.length}
+              transactionsCount={transactions.length}
+              goalsCount={goals.length}
+              onQuickAddTransaction={() => setIsGlobalTxModalOpen(true)}
+              onQuickAddTask={() => setIsGlobalTaskModalOpen(true)}
+              onQuickAddAccount={() => setAddAccountModalVisible(true)}
+            />
+
+            {/* Floating 5-Tab Navigation Bar matching Mockup */}
             <BottomIslandNav
               currentTab={currentTab}
               onTabChange={setCurrentTab}
@@ -1136,16 +1267,16 @@ function App(): React.JSX.Element {
 const styles = StyleSheet.create({
   appContainer: {
     flex: 1,
-    backgroundColor: '#080808',
+    backgroundColor: '#F5F6FA',
     position: 'relative',
   },
   screenWrapper: {
     flex: 1,
-    backgroundColor: '#080808',
+    backgroundColor: '#F5F6FA',
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#080808',
+    backgroundColor: '#F5F6FA',
     alignItems: 'center',
     justifyContent: 'center',
   },

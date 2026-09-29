@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { colors } from '../theme/colors';
 import { Budget } from '../types';
 
@@ -8,39 +8,36 @@ interface SpendingBreakdownProps {
   onOpenSetBudget?: (categoryId?: string) => void;
 }
 
-const MONO_FONT = Platform.OS === 'ios' ? 'Menlo' : 'monospace';
-
 export const SpendingBreakdown: React.FC<SpendingBreakdownProps> = ({
   budgets,
   onOpenSetBudget,
 }) => {
   return (
     <View style={styles.sectionContainer}>
-      {/* Header: Row flex justify-between items-baseline px-1 mb-2 */}
       <View style={styles.headerRow}>
-        <Text style={styles.eyebrow}>// 02. BUDGET ALLOCATIONS</Text>
+        <Text style={styles.sectionTitle}>Budget Allocations</Text>
         <TouchableOpacity
           onPress={() => onOpenSetBudget?.()}
           activeOpacity={0.7}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Text style={styles.actionLink}>[ + SET LIMIT ]</Text>
+          <Text style={styles.actionLink}>+ Set Limit</Text>
         </TouchableOpacity>
       </View>
 
       {budgets.length === 0 ? (
         <TouchableOpacity
-          style={styles.emptyDashedBox}
+          style={styles.emptyCard}
           onPress={() => onOpenSetBudget?.()}
           activeOpacity={0.75}
         >
-          <Text style={styles.emptyTitle}>NO ACTIVE CONSTRAINTS</Text>
+          <Text style={styles.emptyTitle}>No Active Limits</Text>
           <Text style={styles.emptySubtext}>
-            Tap to allocate category spending caps
+            Tap to set monthly spending limits for your categories
           </Text>
         </TouchableOpacity>
       ) : (
-        <View style={styles.budgetsList}>
+        <View style={styles.cardContainer}>
           {budgets.map((b, index) => {
             const percentage = Math.min((b.spent / b.amount) * 100, 100);
             const isCritical = b.spent / b.amount >= 0.9;
@@ -53,11 +50,13 @@ export const SpendingBreakdown: React.FC<SpendingBreakdownProps> = ({
                 onPress={() => onOpenSetBudget?.(b.category_id)}
                 activeOpacity={0.7}
               >
-                {/* Category Name & Spent/Cap Monospace */}
                 <View style={styles.specRow}>
                   <View style={styles.nameGroup}>
                     <View
-                      style={[styles.colorSquare, { backgroundColor: b.color || '#FFFFFF' }]}
+                      style={[
+                        styles.colorDot,
+                        { backgroundColor: b.color || '#0A0A0A' },
+                      ]}
                     />
                     <Text style={styles.categoryName}>{b.category_name}</Text>
                   </View>
@@ -69,14 +68,14 @@ export const SpendingBreakdown: React.FC<SpendingBreakdownProps> = ({
                   </Text>
                 </View>
 
-                {/* Minimal 2px hairline progress track */}
+                {/* Smooth Progress Track */}
                 <View style={styles.track}>
                   <View
                     style={[
                       styles.fill,
                       {
                         width: `${percentage}%`,
-                        backgroundColor: isCritical ? colors.outflow : '#FFFFFF',
+                        backgroundColor: isCritical ? '#E11D48' : '#0A0A0A',
                       },
                     ]}
                   />
@@ -92,117 +91,106 @@ export const SpendingBreakdown: React.FC<SpendingBreakdownProps> = ({
 
 const styles = StyleSheet.create({
   sectionContainer: {
-    backgroundColor: '#080808',
     paddingHorizontal: 20,
-    paddingTop: 18,
+    paddingTop: 8,
     paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(39, 39, 42, 0.7)',
   },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'baseline',
-    paddingHorizontal: 2,
+    alignItems: 'center',
     marginBottom: 12,
   },
-  eyebrow: {
-    fontFamily: MONO_FONT,
-    fontSize: 10,
-    letterSpacing: 1.5,
-    color: '#71717A', // text-zinc-500
-    fontWeight: '700',
-    textTransform: 'uppercase',
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#0A0A0A',
+    letterSpacing: -0.3,
   },
   actionLink: {
-    fontFamily: MONO_FONT,
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#A1A1AA', // text-zinc-400
-    letterSpacing: 0.5,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#0A0A0A',
   },
-  emptyDashedBox: {
-    borderWidth: 1,
-    borderColor: '#27272A', // border-zinc-800
-    borderStyle: 'dashed',
-    borderRadius: 12, // rounded-xl
-    paddingVertical: 16,
-    paddingHorizontal: 16,
+  emptyCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(24, 24, 27, 0.2)',
+    borderWidth: 1,
+    borderColor: '#E4E4E7',
   },
   emptyTitle: {
-    fontFamily: MONO_FONT,
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '700',
-    color: '#A1A1AA', // text-zinc-400
-    letterSpacing: 1,
-    textTransform: 'uppercase',
+    color: '#0A0A0A',
   },
   emptySubtext: {
     fontSize: 12,
-    color: '#52525B', // text-zinc-600
+    color: '#71717A',
     marginTop: 4,
     textAlign: 'center',
   },
-  budgetsList: {
-    backgroundColor: 'transparent',
+  cardContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#E4E4E7',
   },
   budgetItem: {
-    paddingVertical: 10,
+    paddingVertical: 12,
   },
   itemDivider: {
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(39, 39, 42, 0.4)',
+    borderBottomColor: '#F4F4F5',
   },
   specRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   nameGroup: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  colorSquare: {
-    width: 6,
-    height: 6,
-    borderRadius: 1,
+  colorDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   categoryName: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
-    color: '#FFFFFF',
-    letterSpacing: -0.2,
+    color: '#111827',
   },
   amountFigures: {
-    fontFamily: MONO_FONT,
-    fontSize: 12,
-    color: '#71717A',
-    fontVariant: ['tabular-nums'],
+    fontSize: 13,
+    color: '#6B7280',
   },
   capDivider: {
-    color: '#3F3F46',
+    color: '#D1D5DB',
   },
   spentAmount: {
-    color: '#FFFFFF',
+    color: '#111827',
     fontWeight: '700',
   },
   overAmount: {
-    color: colors.outflow,
+    color: '#EF4444',
     fontWeight: '700',
   },
   track: {
-    height: 2,
-    backgroundColor: '#18181B', // bg-zinc-900
-    borderRadius: 1,
+    height: 6,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 3,
     overflow: 'hidden',
   },
   fill: {
     height: '100%',
-    borderRadius: 1,
+    borderRadius: 3,
   },
 });

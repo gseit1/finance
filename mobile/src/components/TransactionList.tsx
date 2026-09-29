@@ -1,18 +1,18 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { colors } from '../theme/colors';
 import { Transaction } from '../types';
 
 interface TransactionListProps {
   transactions: Transaction[];
   onSelectTransaction?: (tx: Transaction) => void;
+  onSeeAll?: () => void;
 }
-
-const MONO_FONT = Platform.OS === 'ios' ? 'Menlo' : 'monospace';
 
 export const TransactionList: React.FC<TransactionListProps> = ({
   transactions,
   onSelectTransaction,
+  onSeeAll,
 }) => {
   const formatAmount = (tx: Transaction) => {
     const isIncome = tx.type === 'income';
@@ -34,59 +34,73 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 
   return (
     <View style={styles.sectionContainer}>
-      {/* Header: // 03. RECENT ACTIVITY */}
+      {/* Section Header */}
       <View style={styles.headerRow}>
-        <Text style={styles.eyebrow}>// 03. RECENT ACTIVITY</Text>
+        <Text style={styles.sectionTitle}>Recent Transactions</Text>
+        {onSeeAll && (
+          <TouchableOpacity onPress={onSeeAll} activeOpacity={0.7}>
+            <Text style={styles.seeAllText}>See All ›</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {transactions.length === 0 ? (
-        <View style={styles.emptyDashedBox}>
-          <Text style={styles.emptyTitle}>NO RECORDED TRANSACTIONS</Text>
-          <Text style={styles.emptySubtext}>Stream waiting for incoming ledger activity</Text>
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyTitle}>No Transactions Yet</Text>
+          <Text style={styles.emptySubtext}>Your recent activity will appear here.</Text>
         </View>
       ) : (
-        <View style={styles.streamList}>
+        <View style={styles.listCard}>
           {transactions.map((tx, index) => {
             const isIncome = tx.type === 'income';
             const isLast = index === transactions.length - 1;
-            const initialTag = (tx.category_name || tx.description || 'D')
+            const initialTag = (tx.category_name || tx.description || 'G')
               .trim()
               .slice(0, 1)
               .toUpperCase();
 
-            const subSpecParts = [
-              tx.category_name || 'General',
-              tx.account_name || 'Account',
-              formatDate(tx.date),
-            ].filter(Boolean);
-
             return (
               <TouchableOpacity
                 key={tx.id}
-                style={[styles.streamRow, !isLast && styles.rowDivider]}
+                style={[styles.txRow, !isLast && styles.rowDivider]}
                 activeOpacity={0.7}
                 onPress={() => onSelectTransaction?.(tx)}
               >
-                {/* Micro square category tag: [ D ] */}
-                <View style={styles.categoryMicroTag}>
-                  <Text style={styles.categoryMicroText}>[ {initialTag} ]</Text>
+                {/* Micro Category Icon Badge */}
+                <View
+                  style={[
+                    styles.categoryBadge,
+                    {
+                      backgroundColor: isIncome ? '#ECFDF5' : '#FFF1F2',
+                      borderColor: isIncome ? '#A7F3D0' : '#FECDD3',
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.categoryBadgeText,
+                      { color: isIncome ? '#059669' : '#E11D48' },
+                    ]}
+                  >
+                    {initialTag}
+                  </Text>
                 </View>
 
-                {/* Center: Entity name + Sub-spec */}
-                <View style={styles.specCenter}>
-                  <Text style={styles.entityName} numberOfLines={1}>
+                {/* Description & Sub-spec */}
+                <View style={styles.txDetails}>
+                  <Text style={styles.txDescription} numberOfLines={1}>
                     {tx.description || 'Transaction'}
                   </Text>
-                  <Text style={styles.subSpecText} numberOfLines={1}>
-                    {subSpecParts.join(' · ')}
+                  <Text style={styles.txMeta} numberOfLines={1}>
+                    {tx.category_name || 'General'} • {tx.account_name || 'Account'} • {formatDate(tx.date)}
                   </Text>
                 </View>
 
-                {/* Right: Crisp tabular monospace figure */}
+                {/* Amount */}
                 <Text
                   style={[
-                    styles.amountFigure,
-                    isIncome ? styles.inflowAmount : styles.whiteAmount,
+                    styles.txAmount,
+                    isIncome ? styles.inflowAmount : styles.outflowAmount,
                   ]}
                 >
                   {formatAmount(tx)}
@@ -102,107 +116,99 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 
 const styles = StyleSheet.create({
   sectionContainer: {
-    backgroundColor: '#080808',
     paddingHorizontal: 20,
-    paddingTop: 18,
-    paddingBottom: 40,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(39, 39, 42, 0.7)',
+    paddingTop: 6,
+    paddingBottom: 24,
   },
   headerRow: {
-    marginBottom: 10,
-    paddingHorizontal: 2,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
   },
-  eyebrow: {
-    fontFamily: MONO_FONT,
-    fontSize: 10,
-    letterSpacing: 1.5,
-    color: '#71717A', // text-zinc-500
-    fontWeight: '700',
-    textTransform: 'uppercase',
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#0A0A0A',
+    letterSpacing: -0.3,
   },
-  emptyDashedBox: {
-    borderWidth: 1,
-    borderColor: '#27272A', // border-zinc-800
-    borderStyle: 'dashed',
-    borderRadius: 12,
-    paddingVertical: 20,
-    paddingHorizontal: 16,
+  seeAllText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#0A0A0A',
+  },
+  emptyCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(24, 24, 27, 0.2)',
+    borderWidth: 1,
+    borderColor: '#E4E4E7',
   },
   emptyTitle: {
-    fontFamily: MONO_FONT,
-    fontSize: 11,
+    fontSize: 14,
     fontWeight: '700',
-    color: '#A1A1AA',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
+    color: '#0A0A0A',
   },
   emptySubtext: {
     fontSize: 12,
-    color: '#52525B',
+    color: '#71717A',
     marginTop: 4,
   },
-  streamList: {
-    backgroundColor: 'transparent',
+  listCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: '#E4E4E7',
   },
-  streamRow: {
+  txRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14, // py-3.5
-    paddingHorizontal: 4,
+    paddingVertical: 14,
   },
   rowDivider: {
     borderBottomWidth: 1,
-    borderBottomColor: '#18181B', // border-zinc-900
+    borderBottomColor: '#F4F4F5',
   },
-  categoryMicroTag: {
-    width: 32, // w-8
-    height: 32, // h-8
-    borderRadius: 8, // rounded-lg
-    backgroundColor: '#18181B', // bg-zinc-900
+  categoryBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#27272A', // border-zinc-800
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
-  categoryMicroText: {
-    fontFamily: MONO_FONT,
-    fontSize: 10, // text-[10px]
-    fontWeight: '900', // font-black
-    color: '#D4D4D8', // text-zinc-300
-    letterSpacing: -0.5,
-  },
-  specCenter: {
-    flex: 1,
-    paddingRight: 10,
-  },
-  entityName: {
+  categoryBadgeText: {
     fontSize: 14,
-    fontWeight: '700', // font-bold
-    color: '#FFFFFF',
+    fontWeight: '800',
+  },
+  txDetails: {
+    flex: 1,
+    paddingRight: 8,
+  },
+  txDescription: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#0A0A0A',
     letterSpacing: -0.2,
   },
-  subSpecText: {
-    fontFamily: MONO_FONT,
-    fontSize: 11, // text-xs
-    color: '#71717A', // text-zinc-500
-    marginTop: 2, // mt-0.5
+  txMeta: {
+    fontSize: 12,
+    color: '#71717A',
+    marginTop: 2,
   },
-  amountFigure: {
-    fontFamily: MONO_FONT,
-    fontSize: 14, // text-sm
-    fontWeight: '900', // font-black
-    fontVariant: ['tabular-nums'],
+  txAmount: {
+    fontSize: 15,
+    fontWeight: '800',
     letterSpacing: -0.2,
-  },
-  whiteAmount: {
-    color: '#FFFFFF',
   },
   inflowAmount: {
-    color: '#10B981',
+    color: '#059669',
+  },
+  outflowAmount: {
+    color: '#E11D48',
   },
 });

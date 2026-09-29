@@ -1,25 +1,31 @@
 import React, { useState } from 'react';
 import {
-  SafeAreaView,
   ScrollView,
-  StatusBar,
   StyleSheet,
   View,
   Text,
   RefreshControl,
   TouchableOpacity,
-  Platform,
+  Alert,
 } from 'react-native';
 import { colors } from '../theme/colors';
+import { fonts } from '../theme/typography';
 import { BalanceCard } from '../components/BalanceCard';
+import { AppTopHeader } from '../components/AppTopHeader';
 import { SpendingBreakdown } from '../components/SpendingBreakdown';
 import { TransactionList } from '../components/TransactionList';
 import { AddTransactionModal } from '../components/AddTransactionModal';
 import { SetBudgetModal } from '../components/SetBudgetModal';
-import { AppTopHeader } from '../components/AppTopHeader';
-import { Transaction, Account, Category, Budget, TransactionType, RecurringRule } from '../types';
-
-const MONO_FONT = Platform.OS === 'ios' ? 'Menlo' : 'monospace';
+import {
+  Transaction,
+  Account,
+  Category,
+  Budget,
+  TransactionType,
+  RecurringRule,
+  Task,
+  Goal,
+} from '../types';
 
 interface HomeScreenProps {
   accounts: Account[];
@@ -27,6 +33,8 @@ interface HomeScreenProps {
   budgets: Budget[];
   transactions: Transaction[];
   recurringRules?: RecurringRule[];
+  tasks?: Task[];
+  goals?: Goal[];
   onAddTransaction: (tx: {
     type: TransactionType;
     amount: number;
@@ -37,11 +45,17 @@ interface HomeScreenProps {
   onSaveBudget?: (budget: { categoryId: string; amount: number }) => void;
   onDeleteBudget?: (categoryId: string) => void;
   onOpenAccounts?: () => void;
+  onOpenCalendar?: () => void;
+  onOpenTasks?: () => void;
+  onOpenExpenses?: () => void;
+  onOpenAnalytics?: () => void;
+  onOpenGoals?: () => void;
   onAddAccount?: () => void;
   onAddRecurring?: () => void;
   onRefresh?: () => void;
   refreshing?: boolean;
   onOpenProfile?: () => void;
+  onMenuPress?: () => void;
   userName?: string;
   avatarUrl?: string | null;
 }
@@ -52,16 +66,24 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   budgets,
   transactions,
   recurringRules = [],
+  tasks = [],
+  goals = [],
   onAddTransaction,
   onSaveBudget,
   onDeleteBudget,
   onOpenAccounts,
+  onOpenCalendar,
+  onOpenTasks,
+  onOpenExpenses,
+  onOpenAnalytics,
+  onOpenGoals,
   onAddAccount,
   onAddRecurring,
   onRefresh,
   refreshing = false,
   onOpenProfile,
-  userName,
+  onMenuPress,
+  userName = 'Hitesh Tapaniya',
   avatarUrl,
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
@@ -79,20 +101,81 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     if (tx.type === 'expense') expense += tx.amount;
   });
 
+  // Calculate today ISO date string
+  const todayIso = new Date().toISOString().split('T')[0];
+
+  // Determine Today's Focus task from live tasks
+  const pendingTasks = tasks.filter((t) => !t.completed);
+  const todaysFocusTask =
+    pendingTasks.find((t) => t.due_date === todayIso) ||
+    pendingTasks[0] ||
+    tasks[0] ||
+    null;
+
+  // First Goal for Hero Card Progress Display (as requested by user)
+  const firstGoal = goals.length > 0 ? goals[0] : null;
+
+  // Count events for today (tasks due today + recurring rules due today)
+  const tasksDueToday = tasks.filter((t) => t.due_date === todayIso).length;
+  const billsDueToday = recurringRules.filter(
+    (r) => r.is_active && r.next_run_date === todayIso
+  ).length;
+  const todayEventsCount = tasksDueToday + billsDueToday;
+
   // Upcoming bills sorted by next run date
-  const upcomingBills = recurringRules
+  const upcomingBill = recurringRules
     .filter((r) => r.is_active && r.type === 'expense')
-    .slice(0, 3);
+    .map((r) => {
+      let dueNotice = 'Due soon';
+      try {
+        const target = new Date(r.next_run_date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        target.setHours(0, 0, 0, 0);
+        const diffDays = Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        if (diffDays === 0) dueNotice = 'Today, 2:00 PM';
+        else if (diffDays === 1) dueNotice = 'Tomorrow';
+        else if (diffDays > 1) dueNotice = `In ${diffDays} days`;
+      } catch {
+        // fallback
+      }
+      return {
+        description: r.description,
+        amount: r.amount,
+        dueNotice,
+      };
+    })[0] || null;
+
+  // Handle Bell Notification Press
+  const handleNotificationPress = () => {
+    const goalName = firstGoal ? firstGoal.name : 'Primary Savings Target';
+    const billDesc = upcomingBill ? `${upcomingBill.description} (${upcomingBill.dueNotice})` : 'All bills settled';
+
+    Alert.alert(
+      'Notifications & Alerts',
+      `🎯 Active Target:\n${goalName}\n\n📅 Agenda:\n${tasksDueToday} tasks and ${billsDueToday} bills due today.\n\n💳 Upcoming Obligation:\n${billDesc}`,
+      [
+        { text: 'View Calendar', onPress: onOpenCalendar },
+        { text: 'View Tasks', onPress: onOpenTasks },
+        { text: 'Close', style: 'cancel' },
+      ]
+    );
+  };
+
+  // Clean username without emoji
+  const cleanUserName = (userName || 'User')
+    .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}👋]/gu, '')
+    .trim() || 'User';
 
   return (
     <View style={styles.container}>
-      {/* Precision 1-Line Status Bar Header */}
+      {/* App Top Header: Menu Button, Welcome to Username, and Profile Avatar */}
       <AppTopHeader
-        title="Ledger"
-        showPulse
+        title={`Welcome, ${cleanUserName}`}
+        onMenuPress={onMenuPress}
         onProfilePress={onOpenProfile}
         avatarUrl={avatarUrl}
-        userName={userName}
+        userName={cleanUserName}
       />
 
       <ScrollView
@@ -103,22 +186,39 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#FFFFFF"
-              colors={['#FFFFFF']}
+              tintColor="#0A0A0A"
+              colors={['#0A0A0A']}
             />
           ) : undefined
         }
       >
-        {/* // 01. NET LIQUIDITY POSITION */}
+        {/* Mockup Top Header + Hero Focus Card (1st Goal Progress) + Bento Grid */}
         <BalanceCard
           totalBalance={totalBalance}
           monthlyIncome={income}
           monthlyExpense={expense}
+          transactionCount={transactions.length}
+          accountCount={accounts.length}
+          userName={userName}
+          focusTask={todaysFocusTask}
+          firstGoal={firstGoal}
+          pendingTaskCount={pendingTasks.length}
+          todayEventsCount={todayEventsCount}
+          upcomingBill={upcomingBill}
           onAddTransaction={() => setModalVisible(true)}
-          onOptionsPress={() => setModalVisible(true)}
+          onOpenTasks={onOpenTasks}
+          onOpenExpenses={onOpenExpenses}
+          onOpenCalendar={onOpenCalendar}
+          onOpenAccounts={onOpenAccounts}
+          onOpenAnalytics={onOpenAnalytics}
+          onOpenGoals={onOpenGoals}
+          onNotificationPress={handleNotificationPress}
+          onMenuPress={onMenuPress}
+          avatarUrl={avatarUrl}
+          onOpenProfile={onOpenProfile}
         />
 
-        {/* // 02. BUDGET ALLOCATIONS */}
+        {/* Budget Allocations */}
         <SpendingBreakdown
           budgets={budgets}
           onOpenSetBudget={(catId) => {
@@ -127,15 +227,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           }}
         />
 
-        {/* // 03. RECENT ACTIVITY */}
-        <TransactionList transactions={transactions.slice(0, 10)} />
+        {/* Recent Transactions List */}
+        <TransactionList transactions={transactions.slice(0, 8)} />
 
-        {/* // 04. REPOSITORIES & VAULTS */}
+        {/* Account Repositories Horizontal Carousel */}
         <View style={styles.sectionLedger}>
           <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionEyebrow}>// 04. REPOSITORIES & VAULTS</Text>
-            <TouchableOpacity onPress={onOpenAccounts} activeOpacity={0.7} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Text style={styles.actionLinkText}>[ MANAGE › ]</Text>
+            <Text style={styles.sectionTitle}>Accounts & Wallets</Text>
+            <TouchableOpacity onPress={onOpenAccounts} activeOpacity={0.7}>
+              <Text style={styles.actionLinkText}>Manage ›</Text>
             </TouchableOpacity>
           </View>
 
@@ -149,94 +249,50 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 key={acc.id}
                 style={styles.accountMiniCard}
                 onPress={onOpenAccounts}
-                activeOpacity={0.75}
+                activeOpacity={0.8}
               >
                 <View style={styles.accountMiniTop}>
-                  <View style={[styles.accountColorSquare, { backgroundColor: acc.color || '#FFFFFF' }]} />
+                  <View
+                    style={[
+                      styles.accountColorSquare,
+                      { backgroundColor: acc.color || '#0A0A0A' },
+                    ]}
+                  />
                   <Text style={styles.accountTypeMini}>{(acc.type || 'bank').toUpperCase()}</Text>
                 </View>
                 <Text style={styles.accountMiniName} numberOfLines={1}>{acc.name}</Text>
-                <Text style={[styles.accountMiniBalance, acc.balance < 0 && { color: colors.outflow }]}>
+                <Text style={[styles.accountMiniBalance, acc.balance < 0 && { color: '#E11D48' }]}>
                   {acc.balance < 0 ? '-' : ''}€{Math.abs(acc.balance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </Text>
               </TouchableOpacity>
             ))}
-
-            {/* Quick Add Account Button */}
-            <TouchableOpacity
-              style={styles.addAccountMiniCard}
-              onPress={onAddAccount || onOpenAccounts}
-              activeOpacity={0.75}
-            >
-              <Text style={styles.plusIcon}>+</Text>
-              <Text style={styles.addAccountText}>[ + NEW ]</Text>
-            </TouchableOpacity>
           </ScrollView>
         </View>
 
-        {/* // 05. SCHEDULED COMMITMENTS */}
-        <View style={styles.sectionLedger}>
-          <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionEyebrow}>// 05. SCHEDULED COMMITMENTS</Text>
-            <TouchableOpacity onPress={onOpenAccounts} activeOpacity={0.7} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Text style={styles.actionLinkText}>[ ALL BILLS › ]</Text>
-            </TouchableOpacity>
-          </View>
-
-          {upcomingBills.length === 0 ? (
-            <TouchableOpacity
-              style={styles.emptyDashedBox}
-              onPress={onAddRecurring || onOpenAccounts}
-              activeOpacity={0.75}
-            >
-              <Text style={styles.emptyTitle}>NO ACTIVE RECURRING COMMITMENTS</Text>
-              <Text style={styles.emptySubtext}>Tap to schedule subscriptions, rent, and utility commitments</Text>
-            </TouchableOpacity>
-          ) : (
-            <View style={styles.recurringList}>
-              {upcomingBills.map((bill, index) => {
-                const isLast = index === upcomingBills.length - 1;
-                return (
-                  <View key={bill.id} style={[styles.recurringItemRow, !isLast && styles.itemBorderBottom]}>
-                    <View style={styles.billInfo}>
-                      <Text style={styles.billDescription}>{bill.description}</Text>
-                      <Text style={styles.billDate}>Next: {bill.next_run_date} · {bill.frequency.toUpperCase()}</Text>
-                    </View>
-                    <Text style={styles.billAmount}>-€{bill.amount.toFixed(2)}</Text>
-                  </View>
-                );
-              })}
-            </View>
-          )}
-        </View>
+        <View style={{ height: 90 }} />
       </ScrollView>
 
-      {/* Transaction Logging Modal */}
+      {/* Add Transaction Modal */}
       <AddTransactionModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
         onSave={onAddTransaction}
-        initialType="expense"
         categories={categories}
         accounts={accounts}
       />
 
-      {/* Budget Limit Setting & Editing Modal */}
-      <SetBudgetModal
-        visible={budgetModalVisible}
-        onClose={() => setBudgetModalVisible(false)}
-        onSave={(b) => {
-          onSaveBudget?.(b);
-          setBudgetModalVisible(false);
-        }}
-        onDelete={(catId) => {
-          onDeleteBudget?.(catId);
-          setBudgetModalVisible(false);
-        }}
-        categories={categories}
-        budgets={budgets}
-        initialCategoryId={selectedBudgetCategoryId}
-      />
+      {/* Set Budget Modal */}
+      {onSaveBudget && (
+        <SetBudgetModal
+          visible={budgetModalVisible}
+          onClose={() => setBudgetModalVisible(false)}
+          onSave={onSaveBudget}
+          onDelete={onDeleteBudget}
+          categories={categories}
+          budgets={budgets}
+          initialCategoryId={selectedBudgetCategoryId}
+        />
+      )}
     </View>
   );
 };
@@ -244,169 +300,76 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#080808',
+    backgroundColor: '#F7F7F8',
   },
   scrollContent: {
-    paddingBottom: 110,
+    paddingBottom: 24,
   },
   sectionLedger: {
-    backgroundColor: '#080808',
     paddingHorizontal: 20,
-    paddingTop: 18,
-    paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(39, 39, 42, 0.7)',
+    paddingTop: 8,
+    paddingBottom: 24,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'baseline',
+    alignItems: 'center',
     marginBottom: 12,
-    paddingHorizontal: 2,
   },
-  sectionEyebrow: {
-    fontFamily: MONO_FONT,
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 1.5,
-    color: '#71717A',
-    textTransform: 'uppercase',
+  sectionTitle: {
+    fontFamily: fonts.heading,
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#0A0A0A',
+    letterSpacing: -0.3,
   },
   actionLinkText: {
-    fontFamily: MONO_FONT,
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#A1A1AA',
-    letterSpacing: 0.5,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#0A0A0A',
   },
   accountsScroll: {
-    paddingRight: 10,
+    paddingRight: 20,
+    gap: 12,
   },
   accountMiniCard: {
-    backgroundColor: '#101012',
-    borderRadius: 10,
-    padding: 12,
     width: 140,
-    marginRight: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 14,
     borderWidth: 1,
-    borderColor: '#27272A',
+    borderColor: '#E4E4E7',
   },
   accountMiniTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    gap: 6,
+    marginBottom: 8,
   },
   accountColorSquare: {
-    width: 6,
-    height: 6,
-    borderRadius: 1,
-    marginRight: 6,
+    width: 8,
+    height: 8,
+    borderRadius: 3,
   },
   accountTypeMini: {
-    fontFamily: MONO_FONT,
-    fontSize: 9,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 10,
     fontWeight: '700',
     color: '#71717A',
-    letterSpacing: 0.8,
+    letterSpacing: 0.5,
   },
   accountMiniName: {
+    fontFamily: fonts.body,
     fontSize: 13,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontWeight: '600',
+    color: '#0A0A0A',
     marginBottom: 4,
   },
   accountMiniBalance: {
-    fontFamily: MONO_FONT,
-    fontSize: 14,
+    fontFamily: fonts.heading,
+    fontSize: 15,
     fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: -0.3,
-    fontVariant: ['tabular-nums'],
-  },
-  addAccountMiniCard: {
-    backgroundColor: '#101012',
-    borderRadius: 10,
-    padding: 12,
-    width: 110,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: '#27272A',
-  },
-  plusIcon: {
-    fontFamily: MONO_FONT,
-    fontSize: 16,
-    color: '#A1A1AA',
-    marginBottom: 2,
-    fontWeight: '700',
-  },
-  addAccountText: {
-    fontFamily: MONO_FONT,
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#A1A1AA',
-    letterSpacing: 0.5,
-  },
-  emptyDashedBox: {
-    borderWidth: 1,
-    borderColor: '#27272A',
-    borderStyle: 'dashed',
-    borderRadius: 10,
-    paddingVertical: 18,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(24, 24, 27, 0.2)',
-  },
-  emptyTitle: {
-    fontFamily: MONO_FONT,
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#A1A1AA',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-  emptySubtext: {
-    fontSize: 12,
-    color: '#52525B',
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  recurringList: {
-    backgroundColor: 'transparent',
-  },
-  recurringItemRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  itemBorderBottom: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#18181B',
-  },
-  billInfo: {
-    flex: 1,
-    marginRight: 10,
-  },
-  billDescription: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 2,
-  },
-  billDate: {
-    fontFamily: MONO_FONT,
-    color: '#71717A',
-    fontSize: 11,
-  },
-  billAmount: {
-    fontFamily: MONO_FONT,
-    color: colors.outflow,
-    fontSize: 13,
-    fontWeight: '900',
-    fontVariant: ['tabular-nums'],
+    color: '#0A0A0A',
   },
 });
-

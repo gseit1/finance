@@ -8,6 +8,7 @@ import {
   StatusBar,
 } from 'react-native';
 import { TitaniumCardVisual } from '../components/TitaniumCardVisual';
+import { fonts } from '../theme/typography';
 
 interface WelcomeScreenProps {
   onGetStarted: () => void;
@@ -20,11 +21,9 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
 }) => {
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="dark-content" />
 
-
-
-      {/* Kinetic Visual Centerpiece: Dynamic 3D Perspective Card & Concentric Rings */}
+      {/* Centerpiece: Dynamic Perspective Visual Card */}
       <View style={styles.centerpieceContainer}>
         <TitaniumCardVisual />
       </View>
@@ -54,7 +53,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
             activeOpacity={0.7}
           >
             <Text style={styles.secondaryLinkText}>
-              Already have an account? <Text style={styles.whiteHighlight}>Sign In</Text>
+              Already have an account? <Text style={styles.obsidianHighlight}>Sign In</Text>
             </Text>
           </TouchableOpacity>
         </View>
@@ -66,20 +65,8 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#08080A',
+    backgroundColor: '#F7F7F8',
     justifyContent: 'space-between',
-  },
-  topHeader: {
-    paddingHorizontal: 24,
-    paddingTop: 16,
-    paddingBottom: 8,
-  },
-  watermark: {
-    fontFamily: 'monospace',
-    fontSize: 10,
-    letterSpacing: 2,
-    color: '#52525B',
-    fontWeight: '700',
   },
   centerpieceContainer: {
     flex: 1,
@@ -94,17 +81,19 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   headline: {
-    fontSize: 34,
+    fontFamily: fonts.heading,
+    fontSize: 32,
     fontWeight: '900',
-    color: '#FAFAFA',
+    color: '#0A0A0A',
     lineHeight: 38,
-    letterSpacing: -1,
+    letterSpacing: -0.8,
     marginBottom: 10,
   },
   narrative: {
-    fontSize: 13,
-    color: '#A1A1AA',
-    lineHeight: 20,
+    fontFamily: fonts.body,
+    fontSize: 14,
+    color: '#71717A',
+    lineHeight: 22,
     maxWidth: 320,
     letterSpacing: -0.1,
   },
@@ -113,33 +102,30 @@ const styles = StyleSheet.create({
   },
   primaryCta: {
     height: 56,
-    borderRadius: 18,
-    backgroundColor: '#FAFAFA',
+    borderRadius: 16,
+    backgroundColor: '#0A0A0A',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#FFF',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 8,
   },
   primaryCtaText: {
-    color: '#08080A',
-    fontSize: 15,
+    fontFamily: fonts.bodyBold,
+    color: '#FFFFFF',
+    fontSize: 16,
     fontWeight: '800',
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
   },
   secondaryLink: {
     paddingVertical: 12,
     alignItems: 'center',
   },
   secondaryLinkText: {
-    fontSize: 12,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
     color: '#71717A',
     fontWeight: '500',
   },
-  whiteHighlight: {
-    color: '#FAFAFA',
+  obsidianHighlight: {
+    color: '#0A0A0A',
     fontWeight: '700',
   },
 });
