@@ -58,6 +58,13 @@ export const lightTheme = {
   inputText: '#0A0A0A',
   inputPlaceholder: '#A1A1AA',
 
+  // Brand Signature Pink
+  brandPink: '#E11D74',
+  brandPinkBg: '#FDF2F8',
+  brandPinkBorder: '#FBCFE8',
+  brandPinkText: '#BE185D',
+  brandPinkSubtle: '#FFF5F9',
+
   // Misc
   pillBg: '#F4F4F5',
   pillText: '#71717A',
@@ -113,6 +120,13 @@ export const darkTheme: typeof lightTheme = {
   inputBorder: '#3F3F46',
   inputText: '#FAFAFA',
   inputPlaceholder: '#71717A',
+
+  // Brand Signature Pink
+  brandPink: '#FF2E93',
+  brandPinkBg: '#240816',
+  brandPinkBorder: '#701A45',
+  brandPinkText: '#F472B6',
+  brandPinkSubtle: '#1C0612',
 
   pillBg: '#27272A',
   pillText: '#A1A1AA',

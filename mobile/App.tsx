@@ -638,6 +638,49 @@ function App(): React.JSX.Element {
     }
   };
 
+  const handleDeleteTransaction = async (txId: string) => {
+    const txToDelete = transactions.find((t) => t.id === txId);
+    if (!txToDelete) return;
+
+    // 1. Remove from local transactions state
+    setTransactions((prev) => prev.filter((t) => t.id !== txId));
+
+    // 2. Revert Account balance locally
+    setAccounts((prev) =>
+      prev.map((acc) => {
+        if (acc.id === txToDelete.account_id) {
+          const revertDelta = txToDelete.type === 'income' ? -txToDelete.amount : txToDelete.amount;
+          return { ...acc, balance: acc.balance + revertDelta };
+        }
+        return acc;
+      })
+    );
+
+    // 3. Revert Budget spent amount if expense
+    if (txToDelete.type === 'expense' && txToDelete.category_id) {
+      setBudgets((prev) =>
+        prev.map((b) => {
+          if (b.category_id === txToDelete.category_id) {
+            return { ...b, spent: Math.max(0, b.spent - txToDelete.amount) };
+          }
+          return b;
+        })
+      );
+    }
+
+    // 4. Delete from Supabase PostgreSQL if active session
+    if (supabaseActive && currentUser?.id && isUUID(txId)) {
+      try {
+        const { error } = await supabase.from('transactions').delete().eq('id', txId);
+        if (error) {
+          console.error('Supabase transaction delete error:', error.message);
+        }
+      } catch (e) {
+        console.error('Supabase transaction delete network notice:', e);
+      }
+    }
+  };
+
   const handleSaveBudget = async (b: { categoryId: string; amount: number }) => {
     await authService.ensureSupabaseSession();
 
@@ -1179,6 +1222,7 @@ function App(): React.JSX.Element {
                 categories={categories}
                 accounts={accounts}
                 onAddTransaction={handleSaveTransaction}
+                onDeleteTransaction={handleDeleteTransaction}
                 onOpenProfile={() => setCurrentTab('profile')}
                 onMenuPress={() => setDrawerVisible(true)}
                 avatarUrl={userAvatarUrl}

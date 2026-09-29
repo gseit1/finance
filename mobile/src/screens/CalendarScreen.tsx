@@ -101,7 +101,7 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <AppTopHeader
-        title="Ημερολόγιο & Προγραμματισμός"
+        title="Ημερολόγιο"
         onMenuPress={onMenuPress}
         onProfilePress={onOpenProfile}
         avatarUrl={avatarUrl}
@@ -595,7 +595,7 @@ const styles = StyleSheet.create({
     paddingRight: 8,
   },
   taskItemTitle: {
-    fontFamily: fonts.heading,
+    fontFamily: fonts.bodyBold,
     fontSize: 15,
     fontWeight: '700',
     color: '#0A0A0A',

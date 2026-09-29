@@ -6,6 +6,7 @@ import {
   Text,
   TouchableOpacity,
   TextInput,
+  Alert,
 } from 'react-native';
 import { fonts } from '../theme/typography';
 import { Transaction, Category, Account, TransactionType } from '../types';
@@ -15,7 +16,6 @@ import { useTheme } from '../theme/ThemeContext';
 import {
   SearchIcon,
   PlusIcon,
-  CheckIcon,
 } from '../components/VectorIcons';
 
 interface TransactionsScreenProps {
@@ -30,6 +30,7 @@ interface TransactionsScreenProps {
     accountId: string;
     date?: string;
   }) => void;
+  onDeleteTransaction?: (txId: string) => void;
   onOpenProfile?: () => void;
   onMenuPress?: () => void;
   avatarUrl?: string | null;
@@ -42,6 +43,7 @@ export const TransactionsScreen: React.FC<TransactionsScreenProps> = ({
   categories,
   accounts,
   onAddTransaction,
+  onDeleteTransaction,
   onOpenProfile,
   onMenuPress,
   avatarUrl,
@@ -91,10 +93,27 @@ export const TransactionsScreen: React.FC<TransactionsScreenProps> = ({
     }
   };
 
+  const handleRowLongPress = (tx: Transaction) => {
+    if (!onDeleteTransaction) return;
+
+    Alert.alert(
+      'Διαγραφή Συναλλαγής',
+      `Είστε βέβαιοι ότι θέλετε να διαγράψετε τη συναλλαγή "${tx.description || 'Χωρίς περιγραφή'}" ποσού €${tx.amount.toFixed(2)};`,
+      [
+        { text: 'Ακύρωση', style: 'cancel' },
+        {
+          text: 'Διαγραφή',
+          style: 'destructive',
+          onPress: () => onDeleteTransaction(tx.id),
+        },
+      ]
+    );
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <AppTopHeader
-        title="Συναλλαγές"
+        title="ΒΙΒΛΙΟ ΣΥΝΑΛΛΑΓΩΝ"
         onMenuPress={onMenuPress}
         onProfilePress={onOpenProfile}
         avatarUrl={avatarUrl}
@@ -109,25 +128,24 @@ export const TransactionsScreen: React.FC<TransactionsScreenProps> = ({
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.headerIconBtn, { backgroundColor: theme.buttonPrimaryBg }]}
+              style={[styles.headerIconBtn, { backgroundColor: theme.brandPink, borderColor: theme.brandPink }]}
               onPress={() => setModalVisible(true)}
               activeOpacity={0.85}
             >
-              <PlusIcon size={16} color={theme.buttonPrimaryText} />
+              <PlusIcon size={16} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
         }
       />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-
         {/* Search Bar */}
         {isSearching && (
           <View style={[styles.searchBarContainer, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder }]}>
             <SearchIcon size={14} color={theme.textMuted} />
             <TextInput
               style={[styles.searchInput, { color: theme.inputText }]}
-              placeholder="Αναζήτηση..."
+              placeholder="Αναζήτηση συναλλαγής..."
               placeholderTextColor={theme.inputPlaceholder}
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -141,81 +159,103 @@ export const TransactionsScreen: React.FC<TransactionsScreenProps> = ({
           </View>
         )}
 
-        {/* Cashflow summary — inline, not 3 cards */}
-        <View style={[styles.cashflowBar, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
+        {/* High-Contrast Cashflow Status Strip */}
+        <View style={[styles.cashflowBar, { backgroundColor: theme.brandPink, borderWidth: 0 }]}>
           <View style={styles.cashflowCol}>
-            <Text style={[styles.cashflowLabel, { color: theme.textMuted }]}>Εισροές</Text>
-            <Text style={[styles.cashflowValue, { color: theme.emerald }]}>
+            <Text style={[styles.cashflowLabel, { color: 'rgba(255, 255, 255, 0.82)' }]}>ΕΙΣΡΟΕΣ</Text>
+            <Text style={[styles.cashflowValue, { color: '#A7F3D0' }]}>
               +€{totalIncome.toLocaleString('el-GR', { minimumFractionDigits: 0 })}
             </Text>
           </View>
-          <View style={[styles.cashflowDivider, { backgroundColor: theme.hairline }]} />
+          <View style={[styles.cashflowDivider, { backgroundColor: 'rgba(255, 255, 255, 0.22)' }]} />
           <View style={styles.cashflowCol}>
-            <Text style={[styles.cashflowLabel, { color: theme.textMuted }]}>Εκροές</Text>
-            <Text style={[styles.cashflowValue, { color: theme.crimson }]}>
+            <Text style={[styles.cashflowLabel, { color: 'rgba(255, 255, 255, 0.82)' }]}>ΕΚΡΟΕΣ</Text>
+            <Text style={[styles.cashflowValue, { color: '#FECDD3' }]}>
               −€{totalExpense.toLocaleString('el-GR', { minimumFractionDigits: 0 })}
             </Text>
           </View>
-          <View style={[styles.cashflowDivider, { backgroundColor: theme.hairline }]} />
+          <View style={[styles.cashflowDivider, { backgroundColor: 'rgba(255, 255, 255, 0.22)' }]} />
           <View style={styles.cashflowCol}>
-            <Text style={[styles.cashflowLabel, { color: theme.textMuted }]}>Καθαρό</Text>
-            <Text style={[styles.cashflowValue, { color: netCashflow >= 0 ? theme.emerald : theme.crimson }]}>
-              €{netCashflow.toLocaleString('el-GR', { minimumFractionDigits: 0 })}
+            <Text style={[styles.cashflowLabel, { color: 'rgba(255, 255, 255, 0.82)' }]}>ΚΑΘΑΡΟ</Text>
+            <Text style={[styles.cashflowValue, { color: '#FFFFFF' }]}>
+              {netCashflow >= 0 ? '+' : ''}€{netCashflow.toLocaleString('el-GR', { minimumFractionDigits: 0 })}
             </Text>
           </View>
         </View>
 
         {/* Filter Pills */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterPillsRow}>
-          {(['all', 'expense', 'income', 'transfer'] as TxFilter[]).map((f) => (
-            <TouchableOpacity
-              key={f}
-              style={[
-                styles.pill,
-                { backgroundColor: theme.pillBg, borderColor: theme.hairline },
-                activeFilter === f && { backgroundColor: theme.buttonPrimaryBg, borderColor: theme.buttonPrimaryBg },
-              ]}
-              onPress={() => setActiveFilter(f)}
-              activeOpacity={0.7}
-            >
-              <Text style={[
-                styles.pillText,
-                { color: theme.pillText },
-                activeFilter === f && { color: theme.buttonPrimaryText },
-              ]}>
-                {filterLabels[f]}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {(['all', 'expense', 'income', 'transfer'] as TxFilter[]).map((f) => {
+            const isActive = activeFilter === f;
+            return (
+              <TouchableOpacity
+                key={f}
+                style={[
+                  styles.pill,
+                  {
+                    backgroundColor: isActive ? theme.brandPink : theme.surface,
+                    borderColor: isActive ? theme.brandPink : theme.hairline,
+                  },
+                ]}
+                onPress={() => setActiveFilter(f)}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[
+                    styles.pillText,
+                    {
+                      color: isActive ? '#FFFFFF' : theme.textSecondary,
+                      fontWeight: isActive ? '700' : '600',
+                    },
+                  ]}
+                >
+                  {filterLabels[f]}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
 
-        {/* ─── Continuous Ledger List ─── */}
-        {filteredTransactions.length === 0 ? (
-          <View style={[styles.emptyContainer, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
-            <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Δεν βρέθηκαν συναλλαγές</Text>
-            <Text style={[styles.emptySubtext, { color: theme.textSecondary }]}>Πατήστε + για να καταχωρήσετε νέα συναλλαγή.</Text>
-          </View>
-        ) : (
-          <View style={[styles.ledgerContainer, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
-            {filteredTransactions.map((tx, index) => {
+        {/* Open Ledger List with Long-Press Delete Trigger */}
+        <View style={styles.openLedgerContainer}>
+          {filteredTransactions.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Δεν βρέθηκαν συναλλαγές</Text>
+              <Text style={[styles.emptySubtext, { color: theme.textMuted }]}>
+                Πατήστε το κουμπί + για καταχώρηση νέας συναλλαγής.
+              </Text>
+            </View>
+          ) : (
+            filteredTransactions.map((tx, index) => {
               const isIncome = tx.type === 'income';
               const isTransfer = tx.type === 'transfer';
               const isLast = index === filteredTransactions.length - 1;
+
               return (
-                <View
+                <TouchableOpacity
                   key={tx.id}
+                  activeOpacity={0.65}
+                  onLongPress={() => handleRowLongPress(tx)}
+                  delayLongPress={350}
                   style={[
                     styles.ledgerRow,
-                    !isLast && { borderBottomWidth: 1, borderBottomColor: theme.hairlineFaint },
+                    { borderBottomColor: theme.hairline },
+                    !isLast && { borderBottomWidth: 1 },
                   ]}
                 >
-                  {/* Left: subtle income/expense indicator dot */}
-                  <View style={[
-                    styles.typeDot,
-                    {
-                      backgroundColor: isIncome ? theme.emerald : isTransfer ? theme.textMuted : theme.crimson,
-                    },
-                  ]} />
+                  {/* Subtle Type Dot */}
+                  <View
+                    style={[
+                      styles.typeDot,
+                      {
+                        backgroundColor: isIncome
+                          ? theme.emerald
+                          : isTransfer
+                            ? theme.brandPink
+                            : theme.crimson,
+                      },
+                    ]}
+                  />
 
                   {/* Center: Description + inline metadata */}
                   <View style={styles.ledgerMiddle}>
@@ -227,28 +267,27 @@ export const TransactionsScreen: React.FC<TransactionsScreenProps> = ({
                     </Text>
                   </View>
 
-                  {/* Right: amount */}
+                  {/* Right: Tabular Numerical Amount */}
                   <Text
                     style={[
                       styles.ledgerAmount,
                       {
                         color: isIncome
                           ? theme.emerald
-                          : isTransfer
-                            ? theme.textPrimary
-                            : theme.crimson,
+                          : theme.textPrimary,
                       },
                     ]}
                   >
-                    {isIncome ? '+' : '−'}€{tx.amount.toFixed(2)}
+                    {isIncome ? '+' : '−'}€{tx.amount.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </Text>
-                </View>
+                </TouchableOpacity>
               );
-            })}
-          </View>
-        )}
+            })
+          )}
+        </View>
 
-        <View style={{ height: 90 }} />
+        {/* Bottom Dock Spacing */}
+        <View style={{ height: 110 }} />
       </ScrollView>
 
       <AddTransactionModal
@@ -263,7 +302,9 @@ export const TransactionsScreen: React.FC<TransactionsScreenProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: {
+    flex: 1,
+  },
   headerRightGroup: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -279,7 +320,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingTop: 12,
+    paddingTop: 8,
     paddingBottom: 24,
   },
   searchBarContainer: {
@@ -303,14 +344,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
   },
-  // Inline cashflow summary bar — single card, 3 columns
   cashflowBar: {
     flexDirection: 'row',
-    borderRadius: 14,
-    borderWidth: 1,
+    borderRadius: 16,
     paddingVertical: 14,
     paddingHorizontal: 16,
-    marginBottom: 14,
+    marginBottom: 16,
   },
   cashflowCol: {
     flex: 1,
@@ -321,11 +360,11 @@ const styles = StyleSheet.create({
     marginVertical: 2,
   },
   cashflowLabel: {
-    fontFamily: fonts.bodyMedium,
+    fontFamily: fonts.bodyBold,
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '800',
+    letterSpacing: 0.8,
     textTransform: 'uppercase',
-    letterSpacing: 0.4,
     marginBottom: 3,
   },
   cashflowValue: {
@@ -335,11 +374,11 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   filterPillsRow: {
-    gap: 7,
+    gap: 8,
     paddingBottom: 14,
   },
   pill: {
-    paddingHorizontal: 13,
+    paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 1,
@@ -347,18 +386,13 @@ const styles = StyleSheet.create({
   pillText: {
     fontFamily: fonts.bodyMedium,
     fontSize: 12,
-    fontWeight: '600',
   },
-  // Continuous ledger
-  ledgerContainer: {
-    borderRadius: 16,
-    borderWidth: 1,
-    overflow: 'hidden',
+  openLedgerContainer: {
+    paddingTop: 4,
   },
   ledgerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
     paddingVertical: 13,
   },
   typeDot: {
@@ -373,39 +407,37 @@ const styles = StyleSheet.create({
     paddingRight: 10,
   },
   ledgerTitle: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 14,
-    fontWeight: '600',
+    fontFamily: fonts.bodyBold,
+    fontSize: 13.5,
+    fontWeight: '700',
     letterSpacing: -0.1,
+    marginBottom: 2,
   },
   ledgerMeta: {
     fontFamily: fonts.body,
-    fontSize: 12,
-    marginTop: 1,
-    letterSpacing: 0,
+    fontSize: 11.5,
   },
   ledgerAmount: {
     fontFamily: fonts.heading,
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '900',
     letterSpacing: -0.2,
     flexShrink: 0,
   },
   emptyContainer: {
-    borderRadius: 16,
-    padding: 32,
+    paddingVertical: 36,
     alignItems: 'center',
-    borderWidth: 1,
+    justifyContent: 'center',
   },
   emptyTitle: {
     fontFamily: fonts.heading,
-    fontSize: 15,
-    fontWeight: '700',
-    marginBottom: 4,
+    fontSize: 16,
+    fontWeight: '800',
+    marginBottom: 6,
   },
   emptySubtext: {
     fontFamily: fonts.body,
-    fontSize: 13,
+    fontSize: 12.5,
     textAlign: 'center',
   },
 });

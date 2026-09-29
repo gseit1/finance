@@ -9,7 +9,12 @@ import {
 
 const euroCoinImg = require('../assets/euro-coin.png');
 
-export const KineticVaultToken: React.FC = () => {
+export interface KineticVaultTokenProps {
+  scale?: number;
+  style?: any;
+}
+
+export const KineticVaultToken: React.FC<KineticVaultTokenProps> = ({ scale = 1, style }) => {
   // 1. Soft anti-gravity floating bounce
   const floatAnim = useRef(new Animated.Value(0)).current;
 
@@ -142,7 +147,7 @@ export const KineticVaultToken: React.FC = () => {
   });
 
   return (
-    <View style={styles.vaultStage}>
+    <View style={[styles.vaultStage, scale !== 1 && { transform: [{ scale }] }, style]}>
       <View style={styles.coinStageWrapper}>
         {/* Dynamic Ground Contact Shadow (Expands & softens as coin rises) */}
         <Animated.View

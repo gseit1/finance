@@ -27,10 +27,18 @@ type AccountFilter = 'all' | 'bank' | 'cash' | 'credit_card' | 'savings';
 
 const accountFilterLabels: Record<AccountFilter, string> = {
   all: 'Όλοι',
-  bank: 'Τράπεζα',
+  bank: 'Τράπεζες',
   cash: 'Μετρητά',
   credit_card: 'Πιστωτικές',
   savings: 'Ταμιευτήριο',
+};
+
+const accountTypeGreek: Record<string, string> = {
+  bank: 'Τράπεζα',
+  cash: 'Μετρητά',
+  credit_card: 'Πιστωτική',
+  savings: 'Ταμιευτήριο',
+  investment: 'Επένδυση',
 };
 
 export const AccountsScreen: React.FC<AccountsScreenProps> = ({
@@ -76,38 +84,37 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({
         avatarUrl={avatarUrl}
         rightAction={
           <TouchableOpacity
-            style={[styles.headerAddBtn, { backgroundColor: theme.buttonPrimaryBg }]}
+            style={[styles.headerAddBtn, { backgroundColor: theme.brandPink }]}
             onPress={() => setAddAccountVisible(true)}
             activeOpacity={0.85}
           >
-            <PlusIcon size={16} color={theme.buttonPrimaryText} />
+            <PlusIcon size={16} color="#FFFFFF" />
           </TouchableOpacity>
         }
       />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-
-        {/* Net worth summary — single compact card */}
-        <View style={[styles.netWorthCard, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
+        {/* Fully Pink Background Net Worth Bar */}
+        <View style={[styles.netWorthCard, { backgroundColor: theme.brandPink, borderWidth: 0 }]}>
           <View style={styles.netWorthRow}>
             <View style={styles.netWorthCol}>
-              <Text style={[styles.netWorthLabel, { color: theme.textMuted }]}>Καθαρή Αξία</Text>
-              <Text style={[styles.netWorthValue, { color: theme.textPrimary }]}>
-                {fmt(accountMetrics.net)}
+              <Text style={[styles.netWorthLabel, { color: 'rgba(255, 255, 255, 0.82)' }]}>ΚΑΘΑΡΗ ΑΞΙΑ</Text>
+              <Text style={[styles.netWorthValue, { color: '#FFFFFF' }]}>
+                {accountMetrics.net < 0 ? '-' : ''}{fmt(accountMetrics.net)}
               </Text>
             </View>
-            <View style={[styles.dividerV, { backgroundColor: theme.hairline }]} />
+            <View style={[styles.dividerV, { backgroundColor: 'rgba(255, 255, 255, 0.22)' }]} />
             <View style={styles.netWorthCol}>
-              <Text style={[styles.netWorthLabel, { color: theme.textMuted }]}>Ενεργητικό</Text>
-              <Text style={[styles.netWorthValue, { color: theme.emerald }]}>
-                {fmt(accountMetrics.assets)}
+              <Text style={[styles.netWorthLabel, { color: 'rgba(255, 255, 255, 0.82)' }]}>ΕΝΕΡΓΗΤΙΚΟ</Text>
+              <Text style={[styles.netWorthValue, { color: '#A7F3D0' }]}>
+                +{fmt(accountMetrics.assets)}
               </Text>
             </View>
-            <View style={[styles.dividerV, { backgroundColor: theme.hairline }]} />
+            <View style={[styles.dividerV, { backgroundColor: 'rgba(255, 255, 255, 0.22)' }]} />
             <View style={styles.netWorthCol}>
-              <Text style={[styles.netWorthLabel, { color: theme.textMuted }]}>Παθητικό</Text>
-              <Text style={[styles.netWorthValue, { color: accountMetrics.debt > 0 ? theme.crimson : theme.textSecondary }]}>
-                {fmt(accountMetrics.debt)}
+              <Text style={[styles.netWorthLabel, { color: 'rgba(255, 255, 255, 0.82)' }]}>ΠΑΘΗΤΙΚΟ</Text>
+              <Text style={[styles.netWorthValue, { color: accountMetrics.debt > 0 ? '#FECDD3' : '#FFFFFF' }]}>
+                {accountMetrics.debt > 0 ? '-' : ''}{fmt(accountMetrics.debt)}
               </Text>
             </View>
           </View>
@@ -115,48 +122,61 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({
 
         {/* Filter Pills */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-          {(['all', 'bank', 'cash', 'credit_card', 'savings'] as AccountFilter[]).map((f) => (
-            <TouchableOpacity
-              key={f}
-              style={[
-                styles.pill,
-                { backgroundColor: theme.pillBg, borderColor: theme.hairline },
-                activeFilter === f && { backgroundColor: theme.buttonPrimaryBg, borderColor: theme.buttonPrimaryBg },
-              ]}
-              onPress={() => setActiveFilter(f)}
-              activeOpacity={0.7}
-            >
-              <Text style={[
-                styles.pillText,
-                { color: theme.pillText },
-                activeFilter === f && { color: theme.buttonPrimaryText },
-              ]}>
-                {f === 'all' ? `${accountFilterLabels[f]} (${accounts.length})` : accountFilterLabels[f]}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {(['all', 'bank', 'cash', 'credit_card', 'savings'] as AccountFilter[]).map((f) => {
+            const isActive = activeFilter === f;
+            return (
+              <TouchableOpacity
+                key={f}
+                style={[
+                  styles.pill,
+                  {
+                    backgroundColor: isActive ? theme.brandPink : theme.surface,
+                    borderColor: isActive ? theme.brandPink : theme.hairline,
+                  },
+                ]}
+                onPress={() => setActiveFilter(f)}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[
+                    styles.pillText,
+                    {
+                      color: isActive ? '#FFFFFF' : theme.textSecondary,
+                      fontWeight: isActive ? '700' : '600',
+                    },
+                  ]}
+                >
+                  {f === 'all' ? `${accountFilterLabels[f]} (${accounts.length})` : accountFilterLabels[f]}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
 
-        {/* ─── Continuous Accounts Ledger ─── */}
-        {filteredAccounts.length === 0 ? (
-          <View style={[styles.emptyCard, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
-            <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Δεν βρέθηκαν λογαριασμοί</Text>
-            <Text style={[styles.emptySubtext, { color: theme.textSecondary }]}>Πατήστε + για να προσθέσετε τον πρώτο λογαριασμό.</Text>
-          </View>
-        ) : (
-          <View style={[styles.ledgerCard, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
-            {filteredAccounts.map((acc, index) => {
+        {/* ─── Open Accounts Ledger (Borderless, Non-Boxy) ─── */}
+        <View style={styles.openLedgerContainer}>
+          {filteredAccounts.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Δεν βρέθηκαν λογαριασμοί</Text>
+              <Text style={[styles.emptySubtext, { color: theme.textMuted }]}>
+                Πατήστε το ροζ κουμπί + για προσθήκη νέου λογαριασμού.
+              </Text>
+            </View>
+          ) : (
+            filteredAccounts.map((acc, index) => {
               const isLast = index === filteredAccounts.length - 1;
+              const typeLabel = accountTypeGreek[acc.type] || acc.type || 'Τράπεζα';
               return (
                 <View
                   key={acc.id}
                   style={[
                     styles.ledgerRow,
-                    !isLast && { borderBottomWidth: 1, borderBottomColor: theme.hairlineFaint },
+                    { borderBottomColor: theme.hairline },
+                    !isLast && { borderBottomWidth: 1 },
                   ]}
                 >
                   {/* Color swatch */}
-                  <View style={[styles.colorSwatch, { backgroundColor: acc.color || theme.textPrimary }]} />
+                  <View style={[styles.colorSwatch, { backgroundColor: acc.color || theme.brandPink }]} />
 
                   {/* Name + type inline */}
                   <View style={styles.ledgerMiddle}>
@@ -164,19 +184,19 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({
                       {acc.name}
                     </Text>
                     <Text style={[styles.ledgerMeta, { color: theme.textMuted }]}>
-                      {(acc.type || 'ΤΡΑΠΕΖΑ').toUpperCase().replace('_', ' ')} · {acc.currency || 'EUR'}
+                      {typeLabel} · {acc.currency || 'EUR'}
                     </Text>
                   </View>
 
                   {/* Balance + delete */}
                   <View style={styles.ledgerRight}>
                     <Text style={[styles.ledgerBalance, { color: acc.balance < 0 ? theme.crimson : theme.textPrimary }]}>
-                      {acc.balance < 0 ? '−' : ''}€{Math.abs(acc.balance).toLocaleString('el-GR', { minimumFractionDigits: 2 })}
+                      {acc.balance < 0 ? '−' : ''}€{Math.abs(acc.balance).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </Text>
                     {onDeleteAccount && (
                       <TouchableOpacity
                         onPress={() => {
-                          Alert.alert('Διαγραφή', `Διαγραφή "${acc.name}";`, [
+                          Alert.alert('Διαγραφή', `Διαγραφή του λογαριασμού "${acc.name}";`, [
                             { text: 'Άκυρο', style: 'cancel' },
                             { text: 'Διαγραφή', style: 'destructive', onPress: () => onDeleteAccount(acc.id) },
                           ]);
@@ -189,11 +209,11 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({
                   </View>
                 </View>
               );
-            })}
-          </View>
-        )}
+            })
+          )}
+        </View>
 
-        <View style={{ height: 90 }} />
+        <View style={{ height: 100 }} />
       </ScrollView>
 
       <AddAccountModal
@@ -206,7 +226,9 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: {
+    flex: 1,
+  },
   headerAddBtn: {
     width: 38,
     height: 38,
@@ -216,16 +238,17 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingTop: 12,
+    paddingTop: 8,
     paddingBottom: 24,
   },
-  // ─── Net Worth compact bar ───
+
+  // ─── Net Worth Brand Pink Card ──────────────────────────────────────
   netWorthCard: {
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1,
     paddingVertical: 14,
     paddingHorizontal: 16,
-    marginBottom: 14,
+    marginBottom: 16,
   },
   netWorthRow: {
     flexDirection: 'row',
@@ -237,15 +260,15 @@ const styles = StyleSheet.create({
   },
   dividerV: {
     width: 1,
-    height: 32,
+    height: 30,
     marginHorizontal: 4,
   },
   netWorthLabel: {
-    fontFamily: fonts.bodyMedium,
+    fontFamily: fonts.bodyBold,
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '800',
     textTransform: 'uppercase',
-    letterSpacing: 0.4,
+    letterSpacing: 0.8,
     marginBottom: 3,
   },
   netWorthValue: {
@@ -254,13 +277,14 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: -0.3,
   },
-  // ─── Filter pills ───
+
+  // ─── Filter row ──────────────────────────────────────────────────────
   filterRow: {
-    gap: 7,
+    gap: 8,
     paddingBottom: 14,
   },
   pill: {
-    paddingHorizontal: 13,
+    paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 1,
@@ -268,25 +292,22 @@ const styles = StyleSheet.create({
   pillText: {
     fontFamily: fonts.bodyMedium,
     fontSize: 12,
-    fontWeight: '600',
   },
-  // ─── Ledger ───
-  ledgerCard: {
-    borderRadius: 16,
-    borderWidth: 1,
-    overflow: 'hidden',
+
+  // ─── Open Ledger (Borderless, Non-Boxy) ──────────────────────────────
+  openLedgerContainer: {
+    paddingTop: 4,
   },
   ledgerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 13,
   },
   colorSwatch: {
-    width: 8,
-    height: 32,
-    borderRadius: 4,
-    marginRight: 14,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 12,
     flexShrink: 0,
   },
   ledgerMiddle: {
@@ -294,46 +315,44 @@ const styles = StyleSheet.create({
     paddingRight: 10,
   },
   ledgerTitle: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 14,
+    fontFamily: fonts.bodyBold,
+    fontSize: 13.5,
     fontWeight: '700',
+    letterSpacing: -0.1,
+    marginBottom: 2,
   },
   ledgerMeta: {
     fontFamily: fonts.body,
-    fontSize: 12,
-    marginTop: 2,
+    fontSize: 11.5,
   },
   ledgerRight: {
     alignItems: 'flex-end',
   },
   ledgerBalance: {
     fontFamily: fonts.heading,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '900',
-    letterSpacing: -0.3,
+    letterSpacing: -0.2,
   },
   deleteLink: {
     fontFamily: fonts.bodyMedium,
     fontSize: 11,
-    fontWeight: '600',
     marginTop: 3,
   },
-  // ─── Empty ───
-  emptyCard: {
-    borderRadius: 16,
-    padding: 32,
+  emptyContainer: {
+    paddingVertical: 36,
     alignItems: 'center',
-    borderWidth: 1,
+    justifyContent: 'center',
   },
   emptyTitle: {
     fontFamily: fonts.heading,
-    fontSize: 15,
-    fontWeight: '700',
-    marginBottom: 4,
+    fontSize: 16,
+    fontWeight: '800',
+    marginBottom: 6,
   },
   emptySubtext: {
     fontFamily: fonts.body,
-    fontSize: 13,
+    fontSize: 12.5,
     textAlign: 'center',
   },
 });
