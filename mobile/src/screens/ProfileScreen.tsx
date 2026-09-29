@@ -279,7 +279,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
           <View style={styles.dataCol}>
             <Text style={styles.dataLabel}>SESSION</Text>
-            <Text style={[styles.dataValue, { color: colors.inflow }]}>ACTIVE</Text>
+            <Text style={[styles.dataValue, { color: '#059669' }]}>ACTIVE</Text>
           </View>
 
           <View style={styles.dataDivider} />

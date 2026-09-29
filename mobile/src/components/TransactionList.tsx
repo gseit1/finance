@@ -17,19 +17,9 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 }) => {
   const { theme } = useTheme();
 
-  const formatAmount = (tx: Transaction) => {
-    const isIncome = tx.type === 'income';
-    const prefix = isIncome ? '+' : '-';
-    return `${prefix}€${tx.amount.toLocaleString('el-GR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
-  };
-
   const formatDate = (dateString: string) => {
     try {
-      const d = new Date(dateString);
-      return d.toLocaleDateString('el-GR', { day: 'numeric', month: 'short' });
+      return new Date(dateString).toLocaleDateString('el-GR', { day: 'numeric', month: 'short' });
     } catch {
       return dateString;
     }
@@ -42,7 +32,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
         <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Πρόσφατες Συναλλαγές</Text>
         {onSeeAll && (
           <TouchableOpacity onPress={onSeeAll} activeOpacity={0.7}>
-            <Text style={[styles.seeAllText, { color: theme.textPrimary }]}>Όλες ›</Text>
+            <Text style={[styles.seeAllText, { color: theme.textSecondary }]}>Όλες ›</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -53,60 +43,44 @@ export const TransactionList: React.FC<TransactionListProps> = ({
           <Text style={[styles.emptySubtext, { color: theme.textSecondary }]}>Η πρόσφατη δραστηριότητα θα εμφανιστεί εδώ.</Text>
         </View>
       ) : (
-        <View style={[styles.listCard, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
+        <View style={[styles.ledgerCard, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
           {transactions.map((tx, index) => {
             const isIncome = tx.type === 'income';
+            const isTransfer = tx.type === 'transfer';
             const isLast = index === transactions.length - 1;
-            const initialTag = (tx.category_name || tx.description || 'Γ')
-              .trim()
-              .slice(0, 1)
-              .toUpperCase();
 
             return (
               <TouchableOpacity
                 key={tx.id}
-                style={[styles.txRow, !isLast && [styles.rowDivider, { borderBottomColor: theme.hairlineFaint }]]}
-                activeOpacity={0.7}
+                style={[
+                  styles.ledgerRow,
+                  !isLast && { borderBottomWidth: 1, borderBottomColor: theme.hairlineFaint },
+                ]}
+                activeOpacity={0.6}
                 onPress={() => onSelectTransaction?.(tx)}
               >
-                {/* Category Icon Badge */}
-                <View
-                  style={[
-                    styles.categoryBadge,
-                    {
-                      backgroundColor: isIncome ? theme.emeraldBg : theme.crimsonBg,
-                      borderColor: isIncome ? theme.emeraldBorder : theme.crimsonBorder,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.categoryBadgeText,
-                      { color: isIncome ? theme.emerald : theme.crimson },
-                    ]}
-                  >
-                    {initialTag}
-                  </Text>
-                </View>
+                {/* Type indicator dot */}
+                <View style={[
+                  styles.typeDot,
+                  { backgroundColor: isIncome ? theme.emerald : isTransfer ? theme.textMuted : theme.crimson },
+                ]} />
 
-                {/* Description & Sub-spec */}
-                <View style={styles.txDetails}>
-                  <Text style={[styles.txDescription, { color: theme.textPrimary }]} numberOfLines={1}>
+                {/* Description + metadata inline */}
+                <View style={styles.ledgerMiddle}>
+                  <Text style={[styles.ledgerTitle, { color: theme.textPrimary }]} numberOfLines={1}>
                     {tx.description || 'Συναλλαγή'}
                   </Text>
-                  <Text style={[styles.txMeta, { color: theme.textSecondary }]} numberOfLines={1}>
-                    {tx.category_name || 'Γενικά'} • {tx.account_name || 'Λογαριασμός'} • {formatDate(tx.date)}
+                  <Text style={[styles.ledgerMeta, { color: theme.textMuted }]} numberOfLines={1}>
+                    {tx.category_name || 'Γενικά'} · {tx.account_name || '—'} · {formatDate(tx.date)}
                   </Text>
                 </View>
 
                 {/* Amount */}
-                <Text
-                  style={[
-                    styles.txAmount,
-                    { color: isIncome ? theme.emerald : theme.crimson },
-                  ]}
-                >
-                  {formatAmount(tx)}
+                <Text style={[
+                  styles.ledgerAmount,
+                  { color: isIncome ? theme.emerald : isTransfer ? theme.textSecondary : theme.crimson },
+                ]}>
+                  {isIncome ? '+' : '−'}€{tx.amount.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </Text>
               </TouchableOpacity>
             );
@@ -127,11 +101,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   sectionTitle: {
     fontFamily: fonts.heading,
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '900',
     letterSpacing: -0.3,
   },
@@ -141,7 +115,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   emptyCard: {
-    borderRadius: 18,
+    borderRadius: 14,
     padding: 24,
     alignItems: 'center',
     justifyContent: 'center',
@@ -153,56 +127,49 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   emptySubtext: {
-    fontFamily: fonts.bodyLight,
+    fontFamily: fonts.body,
     fontSize: 12,
     marginTop: 4,
+    textAlign: 'center',
   },
-  listCard: {
-    borderRadius: 18,
-    paddingHorizontal: 16,
+  // ─── Continuous Ledger ───
+  ledgerCard: {
+    borderRadius: 16,
     borderWidth: 1,
+    overflow: 'hidden',
   },
-  txRow: {
+  ledgerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
-  rowDivider: {
-    borderBottomWidth: 1,
-  },
-  categoryBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+  typeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     marginRight: 12,
+    flexShrink: 0,
   },
-  categoryBadgeText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  txDetails: {
+  ledgerMiddle: {
     flex: 1,
-    paddingRight: 8,
+    paddingRight: 10,
   },
-  txDescription: {
-    fontFamily: fonts.heading,
-    fontSize: 15,
-    fontWeight: '700',
-    letterSpacing: -0.2,
+  ledgerTitle: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 14,
+    fontWeight: '600',
   },
-  txMeta: {
-    fontFamily: fonts.bodyLight,
+  ledgerMeta: {
+    fontFamily: fonts.body,
     fontSize: 12,
     marginTop: 2,
   },
-  txAmount: {
+  ledgerAmount: {
     fontFamily: fonts.heading,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '800',
     letterSpacing: -0.2,
+    flexShrink: 0,
   },
 });

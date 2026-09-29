@@ -81,59 +81,52 @@ export const GoalsScreen: React.FC<GoalsScreenProps> = ({
         avatarUrl={avatarUrl}
         rightAction={
           <TouchableOpacity
-            style={styles.headerAddBtn}
+            style={[styles.headerAddBtn, { backgroundColor: theme.buttonPrimaryBg }]}
             onPress={() => setCreateModalVisible(true)}
             activeOpacity={0.85}
           >
-            <PlusIcon size={16} color="#FFFFFF" />
+            <PlusIcon size={16} color={theme.buttonPrimaryText} />
           </TouchableOpacity>
         }
       />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* 3 Stat Cards in a Row: Total Target, Total Saved, Overall Progress */}
-        <View style={styles.statCardsRow}>
-          <View style={[styles.statCard, styles.lavenderCard]}>
-            <Text style={styles.statLabel}>Total Target</Text>
-            <Text style={styles.statValue}>
-              €{summary.totalTarget.toLocaleString('en-US', { minimumFractionDigits: 0 })}
-            </Text>
-            <Text style={styles.statSub}>{goals.length} Targets</Text>
+        {/* Compact goals summary bar */}
+        <View style={[styles.summaryBar, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
+          <View style={styles.summaryCol}>
+            <Text style={[styles.summaryLabel, { color: theme.textMuted }]}>Στόχοι</Text>
+            <Text style={[styles.summaryValue, { color: theme.textPrimary }]}>{goals.length}</Text>
           </View>
-
-          <View style={[styles.statCard, styles.mintCard]}>
-            <Text style={styles.statLabel}>Total Saved</Text>
-            <Text style={[styles.statValue, { color: '#059669' }]}>
-              €{summary.totalSaved.toLocaleString('en-US', { minimumFractionDigits: 0 })}
+          <View style={[styles.summaryDivider, { backgroundColor: theme.hairline }]} />
+          <View style={styles.summaryCol}>
+            <Text style={[styles.summaryLabel, { color: theme.textMuted }]}>Αποταμιευμένα</Text>
+            <Text style={[styles.summaryValue, { color: theme.emerald }]}>
+              €{summary.totalSaved.toLocaleString('el-GR', { minimumFractionDigits: 0 })}
             </Text>
-            <Text style={styles.statSub}>{summary.completedCount} Completed</Text>
           </View>
-
-          <View style={[styles.statCard, styles.peachCard]}>
-            <Text style={styles.statLabel}>Avg Progress</Text>
-            <Text style={[styles.statValue, { color: '#0A0A0A' }]}>
-              {summary.overallProgress}%
-            </Text>
-            <Text style={styles.statSub}>Overall</Text>
+          <View style={[styles.summaryDivider, { backgroundColor: theme.hairline }]} />
+          <View style={styles.summaryCol}>
+            <Text style={[styles.summaryLabel, { color: theme.textMuted }]}>Πρόοδος</Text>
+            <Text style={[styles.summaryValue, { color: theme.textPrimary }]}>{summary.overallProgress}%</Text>
           </View>
         </View>
 
         {/* Goals List */}
         <View style={styles.goalsContainer}>
-          <Text style={styles.sectionHeader}>ACTIVE SAVINGS TARGETS ({goals.length})</Text>
+          <Text style={[styles.sectionHeader, { color: theme.textMuted }]}>ΕΝΕΡΓΟΙ ΣΤΟΧΟΙ ({goals.length})</Text>
 
           {goals.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyTitle}>No Goals Set</Text>
-              <Text style={styles.emptySubtext}>
-                Set financial targets like Emergency Fund, Vacation, or New Equipment.
+          <View style={[styles.emptyContainer, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
+              <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Δεν έχετε ορίσει στόχους</Text>
+              <Text style={[styles.emptySubtext, { color: theme.textSecondary }]}>
+                Ορίστε στόχους αποταμίευσης: Έκτακτο Ταμείο, Διακοπές, Εξοπλισμό.
               </Text>
               <TouchableOpacity
-                style={styles.emptyAddBtn}
+                style={[styles.emptyAddBtn, { backgroundColor: theme.buttonPrimaryBg }]}
                 onPress={() => setCreateModalVisible(true)}
                 activeOpacity={0.85}
               >
-                <Text style={styles.emptyAddBtnText}>+ Create Financial Goal</Text>
+                <Text style={[styles.emptyAddBtnText, { color: theme.buttonPrimaryText }]}>+ Νέος Στόχος</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -144,7 +137,7 @@ export const GoalsScreen: React.FC<GoalsScreenProps> = ({
               const isCompleted = g.is_completed || current >= target;
 
               return (
-                <View key={g.id} style={styles.goalCard}>
+                <View key={g.id} style={[styles.goalCard, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
                   <View style={styles.goalCardTop}>
                     <View style={styles.goalIconTitle}>
                       <View
@@ -156,54 +149,54 @@ export const GoalsScreen: React.FC<GoalsScreenProps> = ({
                         <Text style={styles.goalIconEmoji}>{g.icon || '🎯'}</Text>
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Text style={styles.goalName} numberOfLines={1}>
+                        <Text style={[styles.goalName, { color: theme.textPrimary }]} numberOfLines={1}>
                           {g.name}
                         </Text>
-                        <Text style={styles.goalDate}>
-                          {g.target_date ? `Target: ${g.target_date}` : 'Ongoing target'}
+                        <Text style={[styles.goalDate, { color: theme.textMuted }]}>
+                          {g.target_date ? `Στόχος: ${g.target_date}` : 'Συνεχής στόχος'}
                         </Text>
                       </View>
                     </View>
 
                     {isCompleted ? (
-                      <View style={styles.completedBadge}>
+                      <View style={[styles.completedBadge, { backgroundColor: theme.emerald }]}>
                         <CheckIcon size={12} color="#FFFFFF" />
-                        <Text style={styles.completedBadgeText}>COMPLETED</Text>
+                        <Text style={styles.completedBadgeText}>ΟΛΟΚΛΗΡΩΘΗΚΕ</Text>
                       </View>
                     ) : (
                       <TouchableOpacity
-                        style={styles.addFundsBtn}
+                        style={[styles.addFundsBtn, { backgroundColor: theme.track, borderColor: theme.hairline }]}
                         onPress={() => {
                           setSelectedGoal(g);
                           setFundsModalVisible(true);
                         }}
                         activeOpacity={0.8}
                       >
-                        <PlusIcon size={12} color="#0A0A0A" />
-                        <Text style={styles.addFundsBtnText}>Add Funds</Text>
+                        <PlusIcon size={12} color={theme.textPrimary} />
+                        <Text style={[styles.addFundsBtnText, { color: theme.textPrimary }]}>Κατάθεση</Text>
                       </TouchableOpacity>
                     )}
                   </View>
 
                   {/* Amounts */}
                   <View style={styles.amountsRow}>
-                    <Text style={styles.currentAmountText}>
-                      €{current.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    <Text style={[styles.currentAmountText, { color: theme.textPrimary }]}>
+                      €{current.toLocaleString('el-GR', { minimumFractionDigits: 2 })}
                     </Text>
-                    <Text style={styles.targetAmountText}>
-                      of €{target.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    <Text style={[styles.targetAmountText, { color: theme.textMuted }]}>
+                      από €{target.toLocaleString('el-GR', { minimumFractionDigits: 2 })}
                     </Text>
-                    <Text style={styles.progressPercentText}>{progress}%</Text>
+                    <Text style={[styles.progressPercentText, { color: theme.textSecondary }]}>{progress}%</Text>
                   </View>
 
                   {/* Progress Bar */}
-                  <View style={styles.progressBarTrack}>
+                  <View style={[styles.progressBarTrack, { backgroundColor: theme.track }]}>
                     <View
                       style={[
                         styles.progressBarFill,
                         {
                           width: `${progress}%`,
-                          backgroundColor: isCompleted ? '#059669' : '#0A0A0A',
+                          backgroundColor: isCompleted ? theme.emerald : theme.textPrimary,
                         },
                       ]}
                     />
@@ -233,15 +226,15 @@ export const GoalsScreen: React.FC<GoalsScreenProps> = ({
       >
         <View style={styles.depositModalOverlay}>
           <View style={styles.depositModalCard}>
-            <Text style={styles.depositModalTitle}>Deposit to Goal</Text>
+            <Text style={[styles.depositModalTitle, { color: theme.textPrimary }]}>Κατάθεση σε Στόχο</Text>
             <Text style={styles.depositModalSub}>
               {selectedGoal?.name}
             </Text>
 
             <TextInput
               style={styles.depositInput}
-              placeholder="Amount in EUR (€)"
-              placeholderTextColor="#9CA3AF"
+              placeholder="Ποσό σε EUR (€)"
+              placeholderTextColor={theme.inputPlaceholder}
               keyboardType="decimal-pad"
               value={depositAmount}
               onChangeText={setDepositAmount}
@@ -256,14 +249,14 @@ export const GoalsScreen: React.FC<GoalsScreenProps> = ({
                   setFundsModalVisible(false);
                 }}
               >
-                <Text style={styles.depositCancelText}>Cancel</Text>
+                <Text style={styles.depositCancelText}>Áκυρο</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.depositConfirmBtn}
                 onPress={handleDeposit}
               >
-                <Text style={styles.depositConfirmText}>Confirm Deposit</Text>
+                <Text style={styles.depositConfirmText}>Επιβεβαίωση</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -279,10 +272,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#F7F7F8',
   },
   headerAddBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: '#0A0A0A',
+    width: 38,
+    height: 38,
+    borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -291,10 +283,37 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 24,
   },
-  statCardsRow: {
+  // ─── Compact summary bar ───
+  summaryBar: {
     flexDirection: 'row',
-    gap: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     marginBottom: 20,
+  },
+  summaryCol: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  summaryDivider: {
+    width: 1,
+    height: 32,
+    marginHorizontal: 4,
+  },
+  summaryLabel: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginBottom: 3,
+  },
+  summaryValue: {
+    fontFamily: fonts.heading,
+    fontSize: 15,
+    fontWeight: '900',
+    letterSpacing: -0.3,
   },
   statCard: {
     flex: 1,

@@ -83,25 +83,33 @@ export const TransactionsScreen: React.FC<TransactionsScreenProps> = ({
     transfer: 'Μεταφορές',
   };
 
+  const formatDate = (dateString: string) => {
+    try {
+      return new Date(dateString).toLocaleDateString('el-GR', { day: 'numeric', month: 'short' });
+    } catch {
+      return dateString;
+    }
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <AppTopHeader
-        title="Βιβλίο Συναλλαγών"
+        title="Συναλλαγές"
         onMenuPress={onMenuPress}
         onProfilePress={onOpenProfile}
         avatarUrl={avatarUrl}
         rightAction={
           <View style={styles.headerRightGroup}>
             <TouchableOpacity
-              style={[styles.searchIconButton, { backgroundColor: theme.iconButtonBg, borderColor: theme.iconButtonBorder }]}
+              style={[styles.headerIconBtn, { backgroundColor: theme.iconButtonBg, borderColor: theme.iconButtonBorder }]}
               onPress={() => setIsSearching(!isSearching)}
               activeOpacity={0.7}
             >
-              <SearchIcon size={18} color={theme.iconButtonColor} />
+              <SearchIcon size={17} color={theme.iconButtonColor} />
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.addIconButton, { backgroundColor: theme.buttonPrimaryBg }]}
+              style={[styles.headerIconBtn, { backgroundColor: theme.buttonPrimaryBg }]}
               onPress={() => setModalVisible(true)}
               activeOpacity={0.85}
             >
@@ -112,37 +120,14 @@ export const TransactionsScreen: React.FC<TransactionsScreenProps> = ({
       />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* Summary Cards */}
-        <View style={styles.summaryRow}>
-          <View style={[styles.summaryCard, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
-            <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Συνολικές Εισροές</Text>
-            <Text style={[styles.summaryNumber, { color: theme.emerald }]}>
-              +€{totalIncome.toLocaleString('el-GR', { minimumFractionDigits: 0 })}
-            </Text>
-          </View>
-
-          <View style={[styles.summaryCard, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
-            <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Συνολικές Εκροές</Text>
-            <Text style={[styles.summaryNumber, { color: theme.crimson }]}>
-              -€{totalExpense.toLocaleString('el-GR', { minimumFractionDigits: 0 })}
-            </Text>
-          </View>
-
-          <View style={[styles.summaryCard, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
-            <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Καθαρή Ταμειακή Ροή</Text>
-            <Text style={[styles.summaryNumber, { color: netCashflow >= 0 ? theme.emerald : theme.crimson }]}>
-              €{netCashflow.toLocaleString('el-GR', { minimumFractionDigits: 0 })}
-            </Text>
-          </View>
-        </View>
 
         {/* Search Bar */}
         {isSearching && (
           <View style={[styles.searchBarContainer, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder }]}>
-            <SearchIcon size={16} color={theme.textMuted} />
+            <SearchIcon size={14} color={theme.textMuted} />
             <TextInput
               style={[styles.searchInput, { color: theme.inputText }]}
-              placeholder="Αναζήτηση περιγραφής, κατηγορίας..."
+              placeholder="Αναζήτηση..."
               placeholderTextColor={theme.inputPlaceholder}
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -150,11 +135,35 @@ export const TransactionsScreen: React.FC<TransactionsScreenProps> = ({
             />
             {searchQuery.length > 0 && (
               <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <Text style={[styles.clearSearch, { color: theme.textSecondary }]}>✕</Text>
+                <Text style={[styles.clearSearch, { color: theme.textMuted }]}>✕</Text>
               </TouchableOpacity>
             )}
           </View>
         )}
+
+        {/* Cashflow summary — inline, not 3 cards */}
+        <View style={[styles.cashflowBar, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
+          <View style={styles.cashflowCol}>
+            <Text style={[styles.cashflowLabel, { color: theme.textMuted }]}>Εισροές</Text>
+            <Text style={[styles.cashflowValue, { color: theme.emerald }]}>
+              +€{totalIncome.toLocaleString('el-GR', { minimumFractionDigits: 0 })}
+            </Text>
+          </View>
+          <View style={[styles.cashflowDivider, { backgroundColor: theme.hairline }]} />
+          <View style={styles.cashflowCol}>
+            <Text style={[styles.cashflowLabel, { color: theme.textMuted }]}>Εκροές</Text>
+            <Text style={[styles.cashflowValue, { color: theme.crimson }]}>
+              −€{totalExpense.toLocaleString('el-GR', { minimumFractionDigits: 0 })}
+            </Text>
+          </View>
+          <View style={[styles.cashflowDivider, { backgroundColor: theme.hairline }]} />
+          <View style={styles.cashflowCol}>
+            <Text style={[styles.cashflowLabel, { color: theme.textMuted }]}>Καθαρό</Text>
+            <Text style={[styles.cashflowValue, { color: netCashflow >= 0 ? theme.emerald : theme.crimson }]}>
+              €{netCashflow.toLocaleString('el-GR', { minimumFractionDigits: 0 })}
+            </Text>
+          </View>
+        </View>
 
         {/* Filter Pills */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterPillsRow}>
@@ -180,63 +189,64 @@ export const TransactionsScreen: React.FC<TransactionsScreenProps> = ({
           ))}
         </ScrollView>
 
-        {/* Transactions List */}
-        <View style={styles.taskList}>
-          {filteredTransactions.length === 0 ? (
-            <View style={[styles.emptyContainer, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
-              <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Δεν βρέθηκαν συναλλαγές</Text>
-              <Text style={[styles.emptySubtext, { color: theme.textSecondary }]}>Πατήστε + για να καταχωρήσετε νέα συναλλαγή.</Text>
-            </View>
-          ) : (
-            filteredTransactions.map((tx) => {
+        {/* ─── Continuous Ledger List ─── */}
+        {filteredTransactions.length === 0 ? (
+          <View style={[styles.emptyContainer, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
+            <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Δεν βρέθηκαν συναλλαγές</Text>
+            <Text style={[styles.emptySubtext, { color: theme.textSecondary }]}>Πατήστε + για να καταχωρήσετε νέα συναλλαγή.</Text>
+          </View>
+        ) : (
+          <View style={[styles.ledgerContainer, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
+            {filteredTransactions.map((tx, index) => {
               const isIncome = tx.type === 'income';
               const isTransfer = tx.type === 'transfer';
+              const isLast = index === filteredTransactions.length - 1;
               return (
-                <View key={tx.id} style={[styles.taskCard, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
-                  <View style={styles.radioWrapper}>
-                    {isIncome ? (
-                      <View style={[styles.checkedCircle, { backgroundColor: theme.emerald }]}>
-                        <CheckIcon size={12} color="#FFFFFF" />
-                      </View>
-                    ) : (
-                      <View style={[styles.uncheckedCircle, { borderColor: theme.hairline }]} />
-                    )}
-                  </View>
+                <View
+                  key={tx.id}
+                  style={[
+                    styles.ledgerRow,
+                    !isLast && { borderBottomWidth: 1, borderBottomColor: theme.hairlineFaint },
+                  ]}
+                >
+                  {/* Left: subtle income/expense indicator dot */}
+                  <View style={[
+                    styles.typeDot,
+                    {
+                      backgroundColor: isIncome ? theme.emerald : isTransfer ? theme.textMuted : theme.crimson,
+                    },
+                  ]} />
 
-                  <View style={styles.taskDetails}>
-                    <Text style={[styles.taskTitle, { color: theme.textPrimary }]} numberOfLines={1}>
+                  {/* Center: Description + inline metadata */}
+                  <View style={styles.ledgerMiddle}>
+                    <Text style={[styles.ledgerTitle, { color: theme.textPrimary }]} numberOfLines={1}>
                       {tx.description || 'Συναλλαγή'}
                     </Text>
-                    <View style={styles.metaRow}>
-                      <View style={[styles.categoryPill, { backgroundColor: theme.track }]}>
-                        <Text style={[styles.categoryPillText, { color: theme.textSecondary }]}>{tx.category_name || 'Γενικά'}</Text>
-                      </View>
-                      <Text style={[styles.accNameText, { color: theme.textSecondary }]}>{tx.account_name}</Text>
-                    </View>
+                    <Text style={[styles.ledgerMeta, { color: theme.textMuted }]} numberOfLines={1}>
+                      {tx.category_name || 'Γενικά'} · {tx.account_name || '—'} · {formatDate(tx.date)}
+                    </Text>
                   </View>
 
-                  <View style={styles.taskRight}>
-                    <Text
-                      style={[
-                        styles.txAmount,
-                        isIncome
-                          ? { color: theme.emerald }
+                  {/* Right: amount */}
+                  <Text
+                    style={[
+                      styles.ledgerAmount,
+                      {
+                        color: isIncome
+                          ? theme.emerald
                           : isTransfer
-                            ? { color: theme.textPrimary }
-                            : { color: theme.crimson },
-                      ]}
-                    >
-                      {isIncome ? '+' : '-'}€{tx.amount.toFixed(2)}
-                    </Text>
-                    <Text style={[styles.txDate, { color: theme.textMuted }]}>
-                      {new Date(tx.date).toLocaleDateString('el-GR')}
-                    </Text>
-                  </View>
+                            ? theme.textPrimary
+                            : theme.crimson,
+                      },
+                    ]}
+                  >
+                    {isIncome ? '+' : '−'}€{tx.amount.toFixed(2)}
+                  </Text>
                 </View>
               );
-            })
-          )}
-        </View>
+            })}
+          </View>
+        )}
 
         <View style={{ height: 90 }} />
       </ScrollView>
@@ -253,63 +263,32 @@ export const TransactionsScreen: React.FC<TransactionsScreenProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   headerRightGroup: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
-  searchIconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+  headerIconBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-  },
-  addIconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   scrollContent: {
     paddingHorizontal: 20,
     paddingTop: 12,
     paddingBottom: 24,
   },
-  summaryRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
-  },
-  summaryCard: {
-    flex: 1,
-    borderRadius: 16,
-    padding: 14,
-    borderWidth: 1,
-  },
-  summaryLabel: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 11,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  summaryNumber: {
-    fontFamily: fonts.heading,
-    fontSize: 15,
-    fontWeight: '900',
-  },
   searchBarContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    height: 44,
-    marginBottom: 16,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 40,
+    marginBottom: 12,
     borderWidth: 1,
     gap: 8,
   },
@@ -321,16 +300,47 @@ const styles = StyleSheet.create({
   },
   clearSearch: {
     fontFamily: fonts.bodyBold,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
   },
+  // Inline cashflow summary bar — single card, 3 columns
+  cashflowBar: {
+    flexDirection: 'row',
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 14,
+  },
+  cashflowCol: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  cashflowDivider: {
+    width: 1,
+    marginVertical: 2,
+  },
+  cashflowLabel: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginBottom: 3,
+  },
+  cashflowValue: {
+    fontFamily: fonts.heading,
+    fontSize: 15,
+    fontWeight: '900',
+    letterSpacing: -0.3,
+  },
   filterPillsRow: {
-    gap: 8,
-    paddingBottom: 16,
+    gap: 7,
+    paddingBottom: 14,
   },
   pill: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+    paddingHorizontal: 13,
+    paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 1,
   },
@@ -339,73 +349,47 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
-  taskList: {
-    gap: 12,
-  },
-  taskCard: {
+  // Continuous ledger
+  ledgerContainer: {
     borderRadius: 16,
-    padding: 16,
     borderWidth: 1,
+    overflow: 'hidden',
+  },
+  ledgerRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 13,
   },
-  radioWrapper: {
+  typeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     marginRight: 12,
+    flexShrink: 0,
   },
-  uncheckedCircle: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 1.5,
-  },
-  checkedCircle: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  taskDetails: {
+  ledgerMiddle: {
     flex: 1,
-    paddingRight: 8,
+    paddingRight: 10,
   },
-  taskTitle: {
-    fontFamily: fonts.heading,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 4,
-  },
-  categoryPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  categoryPillText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 10,
+  ledgerTitle: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 14,
     fontWeight: '600',
+    letterSpacing: -0.1,
   },
-  accNameText: {
-    fontFamily: fonts.bodyLight,
-    fontSize: 11,
-    fontWeight: '500',
+  ledgerMeta: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    marginTop: 1,
+    letterSpacing: 0,
   },
-  taskRight: {
-    alignItems: 'flex-end',
-  },
-  txAmount: {
+  ledgerAmount: {
     fontFamily: fonts.heading,
-    fontSize: 15,
-    fontWeight: '900',
-  },
-  txDate: {
-    fontSize: 11,
-    marginTop: 4,
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: -0.2,
+    flexShrink: 0,
   },
   emptyContainer: {
     borderRadius: 16,
@@ -414,11 +398,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   emptyTitle: {
-    fontSize: 16,
+    fontFamily: fonts.heading,
+    fontSize: 15,
     fontWeight: '700',
     marginBottom: 4,
   },
   emptySubtext: {
+    fontFamily: fonts.body,
     fontSize: 13,
     textAlign: 'center',
   },

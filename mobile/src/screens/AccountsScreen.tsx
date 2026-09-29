@@ -8,14 +8,11 @@ import {
   Alert,
 } from 'react-native';
 import { fonts } from '../theme/typography';
-import { Account, AccountType } from '../types';
+import { Account } from '../types';
 import { AppTopHeader } from '../components/AppTopHeader';
 import { AddAccountModal } from '../components/AddAccountModal';
 import { useTheme } from '../theme/ThemeContext';
-import {
-  AccountsIcon,
-  PlusIcon,
-} from '../components/VectorIcons';
+import { PlusIcon } from '../components/VectorIcons';
 
 interface AccountsScreenProps {
   accounts: Account[];
@@ -59,8 +56,7 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({
         else debt += Math.abs(a.balance);
       }
     });
-    const net = assets - debt;
-    return { assets, debt, net };
+    return { assets, debt, net: assets - debt };
   }, [accounts]);
 
   const filteredAccounts = useMemo(() => {
@@ -68,10 +64,13 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({
     return accounts.filter((a) => a.type === activeFilter);
   }, [accounts, activeFilter]);
 
+  const fmt = (n: number) =>
+    `€${Math.abs(n).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <AppTopHeader
-        title="Λογαριασμοί & Θησαυροφυλάκιο"
+        title="Λογαριασμοί"
         onMenuPress={onMenuPress}
         onProfilePress={onOpenProfile}
         avatarUrl={avatarUrl}
@@ -87,28 +86,35 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({
       />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* Summary Cards */}
-        <View style={styles.summaryRow}>
-          <View style={[styles.summaryCard, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
-            <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Καθαρή Αξία</Text>
-            <Text style={[styles.summaryNumber, { color: theme.textPrimary }]}>€{accountMetrics.net.toLocaleString('el-GR')}</Text>
-          </View>
-          <View style={[styles.summaryCard, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
-            <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Ενεργητικό</Text>
-            <Text style={[styles.summaryNumber, { color: theme.emerald }]}>
-              €{accountMetrics.assets.toLocaleString('el-GR')}
-            </Text>
-          </View>
-          <View style={[styles.summaryCard, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
-            <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Παθητικό</Text>
-            <Text style={[styles.summaryNumber, { color: theme.crimson }]}>
-              €{accountMetrics.debt.toLocaleString('el-GR')}
-            </Text>
+
+        {/* Net worth summary — single compact card */}
+        <View style={[styles.netWorthCard, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
+          <View style={styles.netWorthRow}>
+            <View style={styles.netWorthCol}>
+              <Text style={[styles.netWorthLabel, { color: theme.textMuted }]}>Καθαρή Αξία</Text>
+              <Text style={[styles.netWorthValue, { color: theme.textPrimary }]}>
+                {fmt(accountMetrics.net)}
+              </Text>
+            </View>
+            <View style={[styles.dividerV, { backgroundColor: theme.hairline }]} />
+            <View style={styles.netWorthCol}>
+              <Text style={[styles.netWorthLabel, { color: theme.textMuted }]}>Ενεργητικό</Text>
+              <Text style={[styles.netWorthValue, { color: theme.emerald }]}>
+                {fmt(accountMetrics.assets)}
+              </Text>
+            </View>
+            <View style={[styles.dividerV, { backgroundColor: theme.hairline }]} />
+            <View style={styles.netWorthCol}>
+              <Text style={[styles.netWorthLabel, { color: theme.textMuted }]}>Παθητικό</Text>
+              <Text style={[styles.netWorthValue, { color: accountMetrics.debt > 0 ? theme.crimson : theme.textSecondary }]}>
+                {fmt(accountMetrics.debt)}
+              </Text>
+            </View>
           </View>
         </View>
 
         {/* Filter Pills */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterPillsRow}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
           {(['all', 'bank', 'cash', 'credit_card', 'savings'] as AccountFilter[]).map((f) => (
             <TouchableOpacity
               key={f}
@@ -125,64 +131,67 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({
                 { color: theme.pillText },
                 activeFilter === f && { color: theme.buttonPrimaryText },
               ]}>
-                {f === 'all'
-                  ? `${accountFilterLabels[f]} (${accounts.length})`
-                  : accountFilterLabels[f]}
+                {f === 'all' ? `${accountFilterLabels[f]} (${accounts.length})` : accountFilterLabels[f]}
               </Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
 
-        {/* Accounts List */}
-        <View style={styles.itemsList}>
-          {filteredAccounts.length === 0 ? (
-            <View style={[styles.emptyContainer, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
-              <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Δεν βρέθηκαν λογαριασμοί</Text>
-              <Text style={[styles.emptySubtext, { color: theme.textSecondary }]}>Πατήστε + για να προσθέσετε τον πρώτο λογαριασμό.</Text>
-            </View>
-          ) : (
-            filteredAccounts.map((acc) => (
-              <View key={acc.id} style={[styles.accountCard, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
-                <View style={styles.accountCardLeft}>
-                  <View style={[styles.accIconBadge, { backgroundColor: theme.track, borderColor: theme.hairline }]}>
-                    <AccountsIcon size={18} color={theme.textPrimary} />
-                  </View>
+        {/* ─── Continuous Accounts Ledger ─── */}
+        {filteredAccounts.length === 0 ? (
+          <View style={[styles.emptyCard, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
+            <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Δεν βρέθηκαν λογαριασμοί</Text>
+            <Text style={[styles.emptySubtext, { color: theme.textSecondary }]}>Πατήστε + για να προσθέσετε τον πρώτο λογαριασμό.</Text>
+          </View>
+        ) : (
+          <View style={[styles.ledgerCard, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
+            {filteredAccounts.map((acc, index) => {
+              const isLast = index === filteredAccounts.length - 1;
+              return (
+                <View
+                  key={acc.id}
+                  style={[
+                    styles.ledgerRow,
+                    !isLast && { borderBottomWidth: 1, borderBottomColor: theme.hairlineFaint },
+                  ]}
+                >
+                  {/* Color swatch */}
+                  <View style={[styles.colorSwatch, { backgroundColor: acc.color || theme.textPrimary }]} />
 
-                  <View>
-                    <Text style={[styles.accountName, { color: theme.textPrimary }]}>{acc.name}</Text>
-                    <Text style={[styles.accountType, { color: theme.textSecondary }]}>
-                      {(acc.type || 'Τράπεζα').toUpperCase()} • {acc.currency || 'EUR'}
+                  {/* Name + type inline */}
+                  <View style={styles.ledgerMiddle}>
+                    <Text style={[styles.ledgerTitle, { color: theme.textPrimary }]} numberOfLines={1}>
+                      {acc.name}
+                    </Text>
+                    <Text style={[styles.ledgerMeta, { color: theme.textMuted }]}>
+                      {(acc.type || 'ΤΡΑΠΕΖΑ').toUpperCase().replace('_', ' ')} · {acc.currency || 'EUR'}
                     </Text>
                   </View>
-                </View>
 
-                <View style={styles.accountCardRight}>
-                  <Text style={[styles.accountBalance, { color: acc.balance < 0 ? theme.crimson : theme.textPrimary }]}>
-                    €{acc.balance.toLocaleString('el-GR', { minimumFractionDigits: 2 })}
-                  </Text>
-
-                  {onDeleteAccount && (
-                    <TouchableOpacity
-                      onPress={() => {
-                        Alert.alert('Διαγραφή Λογαριασμού', `Διαγραφή "${acc.name}";`, [
-                          { text: 'Άκυρο', style: 'cancel' },
-                          {
-                            text: 'Διαγραφή',
-                            style: 'destructive',
-                            onPress: () => onDeleteAccount(acc.id),
-                          },
-                        ]);
-                      }}
-                      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                    >
-                      <Text style={[styles.deleteLink, { color: theme.crimson }]}>Διαγραφή</Text>
-                    </TouchableOpacity>
-                  )}
+                  {/* Balance + delete */}
+                  <View style={styles.ledgerRight}>
+                    <Text style={[styles.ledgerBalance, { color: acc.balance < 0 ? theme.crimson : theme.textPrimary }]}>
+                      {acc.balance < 0 ? '−' : ''}€{Math.abs(acc.balance).toLocaleString('el-GR', { minimumFractionDigits: 2 })}
+                    </Text>
+                    {onDeleteAccount && (
+                      <TouchableOpacity
+                        onPress={() => {
+                          Alert.alert('Διαγραφή', `Διαγραφή "${acc.name}";`, [
+                            { text: 'Άκυρο', style: 'cancel' },
+                            { text: 'Διαγραφή', style: 'destructive', onPress: () => onDeleteAccount(acc.id) },
+                          ]);
+                        }}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Text style={[styles.deleteLink, { color: theme.textMuted }]}>Διαγραφή</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 </View>
-              </View>
-            ))
-          )}
-        </View>
+              );
+            })}
+          </View>
+        )}
 
         <View style={{ height: 90 }} />
       </ScrollView>
@@ -197,13 +206,11 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   headerAddBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 38,
+    height: 38,
+    borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -212,36 +219,49 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 24,
   },
-  summaryRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
-  },
-  summaryCard: {
-    flex: 1,
-    borderRadius: 16,
-    padding: 14,
+  // ─── Net Worth compact bar ───
+  netWorthCard: {
+    borderRadius: 14,
     borderWidth: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 14,
   },
-  summaryLabel: {
+  netWorthRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  netWorthCol: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  dividerV: {
+    width: 1,
+    height: 32,
+    marginHorizontal: 4,
+  },
+  netWorthLabel: {
     fontFamily: fonts.bodyMedium,
-    fontSize: 11,
-    fontWeight: '600',
-    marginBottom: 4,
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginBottom: 3,
   },
-  summaryNumber: {
+  netWorthValue: {
     fontFamily: fonts.heading,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '900',
     letterSpacing: -0.3,
   },
-  filterPillsRow: {
-    gap: 8,
-    paddingBottom: 16,
+  // ─── Filter pills ───
+  filterRow: {
+    gap: 7,
+    paddingBottom: 14,
   },
   pill: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+    paddingHorizontal: 13,
+    paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 1,
   },
@@ -250,57 +270,56 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
-  itemsList: {
-    gap: 12,
-  },
-  accountCard: {
+  // ─── Ledger ───
+  ledgerCard: {
     borderRadius: 16,
-    padding: 16,
     borderWidth: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    overflow: 'hidden',
   },
-  accountCardLeft: {
+  ledgerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  colorSwatch: {
+    width: 8,
+    height: 32,
+    borderRadius: 4,
+    marginRight: 14,
+    flexShrink: 0,
+  },
+  ledgerMiddle: {
     flex: 1,
+    paddingRight: 10,
   },
-  accIconBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-  },
-  accountName: {
-    fontFamily: fonts.heading,
-    fontSize: 15,
+  ledgerTitle: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 14,
     fontWeight: '700',
   },
-  accountType: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 11,
-    fontWeight: '600',
+  ledgerMeta: {
+    fontFamily: fonts.body,
+    fontSize: 12,
     marginTop: 2,
   },
-  accountCardRight: {
+  ledgerRight: {
     alignItems: 'flex-end',
   },
-  accountBalance: {
+  ledgerBalance: {
     fontFamily: fonts.heading,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '900',
+    letterSpacing: -0.3,
   },
   deleteLink: {
     fontFamily: fonts.bodyMedium,
     fontSize: 11,
     fontWeight: '600',
-    marginTop: 4,
+    marginTop: 3,
   },
-  emptyContainer: {
+  // ─── Empty ───
+  emptyCard: {
     borderRadius: 16,
     padding: 32,
     alignItems: 'center',
@@ -308,12 +327,12 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontFamily: fonts.heading,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     marginBottom: 4,
   },
   emptySubtext: {
-    fontFamily: fonts.bodyLight,
+    fontFamily: fonts.body,
     fontSize: 13,
     textAlign: 'center',
   },
