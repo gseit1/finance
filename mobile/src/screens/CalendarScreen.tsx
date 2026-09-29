@@ -7,8 +7,8 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
-import { colors } from '../theme/colors';
 import { fonts } from '../theme/typography';
+import { useTheme } from '../theme/ThemeContext';
 import { RecurringRule, Task } from '../types';
 import { AppTopHeader } from '../components/AppTopHeader';
 import { AddTaskModal } from '../components/AddTaskModal';
@@ -40,6 +40,7 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
   onMenuPress,
   avatarUrl,
 }) => {
+  const { theme } = useTheme();
   const [addTaskVisible, setAddTaskVisible] = useState(false);
 
   // Helper for ISO Date YYYY-MM-DD
@@ -98,9 +99,9 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <AppTopHeader
-        title="Calendar & Agenda"
+        title="Ημερολόγιο & Προγραμματισμός"
         onMenuPress={onMenuPress}
         onProfilePress={onOpenProfile}
         avatarUrl={avatarUrl}
@@ -120,7 +121,7 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
         <View style={styles.weekStripWrapper}>
           <View style={styles.monthHeaderRow}>
             <Text style={styles.monthHeaderText}>
-              {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              {new Date().toLocaleDateString('el-GR', { month: 'long', year: 'numeric' })}
             </Text>
             {selectedDate !== todayIso && (
               <TouchableOpacity
@@ -128,7 +129,7 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
                 style={styles.todayPillBtn}
                 activeOpacity={0.7}
               >
-                <Text style={styles.todayPillText}>Today</Text>
+                <Text style={styles.todayPillText}>Σήμερα</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -194,7 +195,7 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
           <View>
             <Text style={styles.agendaDateTitle}>{getReadableSelectedDate()}</Text>
             <Text style={styles.agendaDateSub}>
-              {selectedDateTasks.length} {selectedDateTasks.length === 1 ? 'Task' : 'Tasks'} • {selectedDateBills.length} {selectedDateBills.length === 1 ? 'Bill' : 'Bills'} Due
+              {selectedDateTasks.length} {selectedDateTasks.length === 1 ? 'Εργασία' : 'Εργασίες'} • {selectedDateBills.length} {selectedDateBills.length === 1 ? 'Πληρωμή' : 'Πληρωμές'}
             </Text>
           </View>
 

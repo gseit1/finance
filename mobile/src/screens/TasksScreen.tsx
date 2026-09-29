@@ -8,8 +8,8 @@ import {
   TextInput,
   Alert,
 } from 'react-native';
-import { colors } from '../theme/colors';
 import { fonts } from '../theme/typography';
+import { useTheme } from '../theme/ThemeContext';
 import { Task } from '../types';
 import { AddTaskModal } from '../components/AddTaskModal';
 import { AppTopHeader } from '../components/AppTopHeader';
@@ -40,6 +40,7 @@ export const TasksScreen: React.FC<TasksScreenProps> = ({
   onMenuPress,
   avatarUrl,
 }) => {
+  const { theme } = useTheme();
   const [activeFilter, setActiveFilter] = useState<FilterChip>('all');
   const [taskModalVisible, setTaskModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -71,29 +72,29 @@ export const TasksScreen: React.FC<TasksScreenProps> = ({
   }, [tasks, activeFilter, searchQuery]);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Top Bar with Menu & Plus Button */}
       <AppTopHeader
-        title="My Tasks & Focus"
+        title="Εργασίες & Στόχοι"
         onMenuPress={onMenuPress}
         onProfilePress={onOpenProfile}
         avatarUrl={avatarUrl}
         rightAction={
           <View style={styles.headerRightGroup}>
             <TouchableOpacity
-              style={styles.searchIconButton}
+              style={[styles.searchIconButton, { backgroundColor: theme.iconButtonBg, borderColor: theme.iconButtonBorder }]}
               onPress={() => setIsSearching(!isSearching)}
               activeOpacity={0.7}
             >
-              <SearchIcon size={18} color="#111827" />
+              <SearchIcon size={18} color={theme.iconButtonColor} />
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.addIconButton}
+              style={[styles.addIconButton, { backgroundColor: theme.buttonPrimaryBg }]}
               onPress={() => setTaskModalVisible(true)}
               activeOpacity={0.85}
             >
-              <PlusIcon size={16} color="#FFFFFF" />
+              <PlusIcon size={16} color={theme.buttonPrimaryText} />
             </TouchableOpacity>
           </View>
         }
@@ -102,19 +103,19 @@ export const TasksScreen: React.FC<TasksScreenProps> = ({
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Search Bar */}
         {isSearching && (
-          <View style={styles.searchBarContainer}>
+          <View style={[styles.searchBarContainer, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder }]}>
             <SearchIcon size={16} color="#9CA3AF" />
             <TextInput
-              style={styles.searchInput}
-              placeholder="Search tasks, categories, deliverables..."
-              placeholderTextColor="#9CA3AF"
+              style={[styles.searchInput, { color: theme.inputText }]}
+              placeholder="Αναζήτηση εργασιών, κατηγοριών..."
+              placeholderTextColor={theme.inputPlaceholder}
               value={searchQuery}
               onChangeText={setSearchQuery}
               autoFocus
             />
             {searchQuery.length > 0 && (
               <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <Text style={styles.clearSearch}>✕</Text>
+                <Text style={[styles.clearSearch, { color: theme.textSecondary }]}>✕</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -123,42 +124,42 @@ export const TasksScreen: React.FC<TasksScreenProps> = ({
         {/* Filter Pills */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterPillsRow}>
           <TouchableOpacity
-            style={[styles.pill, activeFilter === 'all' && styles.activePill]}
+            style={[styles.pill, { backgroundColor: activeFilter === 'all' ? theme.buttonPrimaryBg : theme.pillBg, borderColor: activeFilter === 'all' ? theme.buttonPrimaryBg : theme.hairline }]}
             onPress={() => setActiveFilter('all')}
             activeOpacity={0.7}
           >
-            <Text style={[styles.pillText, activeFilter === 'all' && styles.activePillText]}>
-              All ({tasks.length})
+            <Text style={[styles.pillText, { color: activeFilter === 'all' ? theme.buttonPrimaryText : theme.pillText }]}>
+              Όλες ({tasks.length})
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.pill, activeFilter === 'todo' && styles.activePill]}
+            style={[styles.pill, { backgroundColor: activeFilter === 'todo' ? theme.buttonPrimaryBg : theme.pillBg, borderColor: activeFilter === 'todo' ? theme.buttonPrimaryBg : theme.hairline }]}
             onPress={() => setActiveFilter('todo')}
             activeOpacity={0.7}
           >
-            <Text style={[styles.pillText, activeFilter === 'todo' && styles.activePillText]}>
-              To Do ({todoCount})
+            <Text style={[styles.pillText, { color: activeFilter === 'todo' ? theme.buttonPrimaryText : theme.pillText }]}>
+              Προς Εκτέλεση ({todoCount})
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.pill, activeFilter === 'inprogress' && styles.activePill]}
+            style={[styles.pill, { backgroundColor: activeFilter === 'inprogress' ? theme.buttonPrimaryBg : theme.pillBg, borderColor: activeFilter === 'inprogress' ? theme.buttonPrimaryBg : theme.hairline }]}
             onPress={() => setActiveFilter('inprogress')}
             activeOpacity={0.7}
           >
-            <Text style={[styles.pillText, activeFilter === 'inprogress' && styles.activePillText]}>
-              In Progress ({inProgressCount})
+            <Text style={[styles.pillText, { color: activeFilter === 'inprogress' ? theme.buttonPrimaryText : theme.pillText }]}>
+              Σε Εξέλιξη ({inProgressCount})
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.pill, activeFilter === 'completed' && styles.activePill]}
+            style={[styles.pill, { backgroundColor: activeFilter === 'completed' ? theme.buttonPrimaryBg : theme.pillBg, borderColor: activeFilter === 'completed' ? theme.buttonPrimaryBg : theme.hairline }]}
             onPress={() => setActiveFilter('completed')}
             activeOpacity={0.7}
           >
-            <Text style={[styles.pillText, activeFilter === 'completed' && styles.activePillText]}>
-              Completed ({completedCount})
+            <Text style={[styles.pillText, { color: activeFilter === 'completed' ? theme.buttonPrimaryText : theme.pillText }]}>
+              Ολοκληρωμένες ({completedCount})
             </Text>
           </TouchableOpacity>
         </ScrollView>
@@ -166,43 +167,43 @@ export const TasksScreen: React.FC<TasksScreenProps> = ({
         {/* 3 Status Summary Cards */}
         <View style={styles.summaryRow}>
           <TouchableOpacity
-            style={styles.summaryCard}
+            style={[styles.summaryCard, { backgroundColor: theme.surface, borderColor: theme.hairline }]}
             onPress={() => setActiveFilter('todo')}
             activeOpacity={0.8}
           >
-            <Text style={styles.summaryLabel}>To Do</Text>
-            <Text style={[styles.summaryNumber, { color: '#0A0A0A' }]}>{todoCount}</Text>
+            <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Προς Εκτέλεση</Text>
+            <Text style={[styles.summaryNumber, { color: theme.textPrimary }]}>{todoCount}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.summaryCard}
+            style={[styles.summaryCard, { backgroundColor: theme.surface, borderColor: theme.hairline }]}
             onPress={() => setActiveFilter('inprogress')}
             activeOpacity={0.8}
           >
-            <Text style={styles.summaryLabel}>In Progress</Text>
-            <Text style={[styles.summaryNumber, { color: '#71717A' }]}>{inProgressCount}</Text>
+            <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Σε Εξέλιξη</Text>
+            <Text style={[styles.summaryNumber, { color: theme.textSecondary }]}>{inProgressCount}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.summaryCard}
+            style={[styles.summaryCard, { backgroundColor: theme.surface, borderColor: theme.hairline }]}
             onPress={() => setActiveFilter('completed')}
             activeOpacity={0.8}
           >
-            <Text style={styles.summaryLabel}>Completed</Text>
-            <Text style={[styles.summaryNumber, { color: '#059669' }]}>{completedCount}</Text>
+            <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Ολοκληρωμένες</Text>
+            <Text style={[styles.summaryNumber, { color: theme.emerald }]}>{completedCount}</Text>
           </TouchableOpacity>
         </View>
 
         {/* Task Items List */}
         <View style={styles.taskList}>
           {filteredTasks.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyTitle}>No Tasks Found</Text>
-              <Text style={styles.emptySubtext}>Tap the + button to create a new task.</Text>
+            <View style={[styles.emptyContainer, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
+              <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Δεν βρέθηκαν εργασίες</Text>
+              <Text style={[styles.emptySubtext, { color: theme.textSecondary }]}>Πατήστε + για να δημιουργήσετε νέα εργασία.</Text>
             </View>
           ) : (
             filteredTasks.map((t) => (
-              <View key={t.id} style={styles.taskCard}>
+              <View key={t.id} style={[styles.taskCard, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
                 {/* Left: Radio / Check Status Icon */}
                 <TouchableOpacity
                   style={styles.radioWrapper}
@@ -221,21 +222,21 @@ export const TasksScreen: React.FC<TasksScreenProps> = ({
                 {/* Middle: Title & Status */}
                 <View style={styles.taskDetails}>
                   <Text
-                    style={[styles.taskTitle, t.completed && styles.completedText]}
+                    style={[styles.taskTitle, { color: theme.textPrimary }, t.completed && styles.completedText]}
                     numberOfLines={1}
                   >
                     {t.title}
                   </Text>
 
                   {t.description ? (
-                    <Text style={styles.taskDesc} numberOfLines={1}>
+                    <Text style={[styles.taskDesc, { color: theme.textSecondary }]} numberOfLines={1}>
                       {t.description}
                     </Text>
                   ) : null}
 
                   <View style={styles.metaRow}>
-                    <View style={styles.categoryPill}>
-                      <Text style={styles.categoryPillText}>{t.category || 'General'}</Text>
+                    <View style={[styles.categoryPill, { backgroundColor: theme.track }]}>
+                      <Text style={[styles.categoryPillText, { color: theme.textSecondary }]}>{t.category || 'Γενικά'}</Text>
                     </View>
 
                     <View
@@ -248,15 +249,15 @@ export const TasksScreen: React.FC<TasksScreenProps> = ({
                           : styles.priorityLow,
                       ]}
                     >
-                      <Text style={styles.priorityPillText}>
-                        {(t.priority || 'medium').toUpperCase()}
+                      <Text style={[styles.priorityPillText, { color: t.priority === 'high' ? theme.crimson : theme.textPrimary }]}>
+                        {t.priority === 'high' ? 'ΥΨΗΛΗ' : t.priority === 'medium' ? 'ΜΕΣΗ' : 'ΧΑΜΗΛΗ'}
                       </Text>
                     </View>
                   </View>
 
                   {/* Progress Bar */}
                   <View style={styles.progressRow}>
-                    <View style={styles.progressBarTrack}>
+                    <View style={[styles.progressBarTrack, { backgroundColor: theme.track }]}>
                       <View
                         style={[
                           styles.progressBarFill,
@@ -264,13 +265,13 @@ export const TasksScreen: React.FC<TasksScreenProps> = ({
                         ]}
                       />
                     </View>
-                    <Text style={styles.progressText}>{t.progress}%</Text>
+                    <Text style={[styles.progressText, { color: theme.textMuted }]}>{t.progress}%</Text>
                   </View>
                 </View>
 
                 {/* Right: Due Date & Action */}
                 <View style={styles.taskRight}>
-                  <Text style={styles.taskDueDate}>{t.due_date}</Text>
+                  <Text style={[styles.taskDueDate, { color: theme.textSecondary }]}>{t.due_date}</Text>
 
                   <TouchableOpacity
                     onPress={() => {
@@ -310,7 +311,6 @@ export const TasksScreen: React.FC<TasksScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F8',
   },
   headerRightGroup: {
     flexDirection: 'row',
@@ -321,17 +321,14 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E4E4E7',
   },
   addIconButton: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#0A0A0A',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -343,13 +340,11 @@ const styles = StyleSheet.create({
   searchBarContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     paddingHorizontal: 14,
     height: 44,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#E4E4E7',
     gap: 8,
   },
   searchInput: {
@@ -373,9 +368,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E4E4E7',
   },
   activePill: {
     backgroundColor: '#0A0A0A',
@@ -399,9 +392,7 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 16,
     padding: 14,
-    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E4E4E7',
   },
   summaryLabel: {
     fontFamily: fonts.bodyMedium,
@@ -420,11 +411,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   taskCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E4E4E7',
     flexDirection: 'row',
     alignItems: 'flex-start',
   },
@@ -545,12 +534,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   emptyContainer: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 32,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E4E4E7',
   },
   emptyTitle: {
     fontFamily: fonts.heading,

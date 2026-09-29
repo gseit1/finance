@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { colors } from '../theme/colors';
 import { Budget } from '../types';
+import { useTheme } from '../theme/ThemeContext';
+import { fonts } from '../theme/typography';
 
 interface SpendingBreakdownProps {
   budgets: Budget[];
@@ -12,32 +13,34 @@ export const SpendingBreakdown: React.FC<SpendingBreakdownProps> = ({
   budgets,
   onOpenSetBudget,
 }) => {
+  const { theme } = useTheme();
+
   return (
     <View style={styles.sectionContainer}>
       <View style={styles.headerRow}>
-        <Text style={styles.sectionTitle}>Budget Allocations</Text>
+        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Κατανομή Προϋπολογισμού</Text>
         <TouchableOpacity
           onPress={() => onOpenSetBudget?.()}
           activeOpacity={0.7}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Text style={styles.actionLink}>+ Set Limit</Text>
+          <Text style={[styles.actionLink, { color: theme.textPrimary }]}>+ Όριο</Text>
         </TouchableOpacity>
       </View>
 
       {budgets.length === 0 ? (
         <TouchableOpacity
-          style={styles.emptyCard}
+          style={[styles.emptyCard, { backgroundColor: theme.surface, borderColor: theme.hairline }]}
           onPress={() => onOpenSetBudget?.()}
           activeOpacity={0.75}
         >
-          <Text style={styles.emptyTitle}>No Active Limits</Text>
-          <Text style={styles.emptySubtext}>
-            Tap to set monthly spending limits for your categories
+          <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Δεν υπάρχουν ενεργά όρια</Text>
+          <Text style={[styles.emptySubtext, { color: theme.textSecondary }]}>
+            Πατήστε για να ορίσετε μηνιαία όρια δαπανών ανά κατηγορία
           </Text>
         </TouchableOpacity>
       ) : (
-        <View style={styles.cardContainer}>
+        <View style={[styles.cardContainer, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
           {budgets.map((b, index) => {
             const percentage = Math.min((b.spent / b.amount) * 100, 100);
             const isCritical = b.spent / b.amount >= 0.9;
@@ -46,7 +49,7 @@ export const SpendingBreakdown: React.FC<SpendingBreakdownProps> = ({
             return (
               <TouchableOpacity
                 key={b.id}
-                style={[styles.budgetItem, !isLast && styles.itemDivider]}
+                style={[styles.budgetItem, !isLast && [styles.itemDivider, { borderBottomColor: theme.hairlineFaint }]]}
                 onPress={() => onOpenSetBudget?.(b.category_id)}
                 activeOpacity={0.7}
               >
@@ -55,27 +58,27 @@ export const SpendingBreakdown: React.FC<SpendingBreakdownProps> = ({
                     <View
                       style={[
                         styles.colorDot,
-                        { backgroundColor: b.color || '#0A0A0A' },
+                        { backgroundColor: b.color || theme.textPrimary },
                       ]}
                     />
-                    <Text style={styles.categoryName}>{b.category_name}</Text>
+                    <Text style={[styles.categoryName, { color: theme.textPrimary }]}>{b.category_name}</Text>
                   </View>
-                  <Text style={styles.amountFigures}>
-                    <Text style={isCritical ? styles.overAmount : styles.spentAmount}>
-                      €{b.spent.toLocaleString()}
+                  <Text style={[styles.amountFigures, { color: theme.textSecondary }]}>
+                    <Text style={isCritical ? { color: theme.crimson, fontWeight: '700' } : { color: theme.textPrimary, fontWeight: '700' }}>
+                      €{b.spent.toLocaleString('el-GR')}
                     </Text>{' '}
-                    <Text style={styles.capDivider}>/</Text> €{b.amount.toLocaleString()}
+                    <Text style={{ color: theme.textMuted }}>/</Text> €{b.amount.toLocaleString('el-GR')}
                   </Text>
                 </View>
 
-                {/* Smooth Progress Track */}
-                <View style={styles.track}>
+                {/* Progress Track */}
+                <View style={[styles.track, { backgroundColor: theme.track }]}>
                   <View
                     style={[
                       styles.fill,
                       {
                         width: `${percentage}%`,
-                        backgroundColor: isCritical ? '#E11D48' : '#0A0A0A',
+                        backgroundColor: isCritical ? theme.crimson : theme.textPrimary,
                       },
                     ]}
                   />
@@ -102,50 +105,45 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: {
+    fontFamily: fonts.heading,
     fontSize: 18,
     fontWeight: '900',
-    color: '#0A0A0A',
     letterSpacing: -0.3,
   },
   actionLink: {
+    fontFamily: fonts.bodyMedium,
     fontSize: 13,
     fontWeight: '600',
-    color: '#0A0A0A',
   },
   emptyCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     padding: 20,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E4E4E7',
   },
   emptyTitle: {
+    fontFamily: fonts.heading,
     fontSize: 14,
     fontWeight: '700',
-    color: '#0A0A0A',
   },
   emptySubtext: {
+    fontFamily: fonts.bodyLight,
     fontSize: 12,
-    color: '#71717A',
     marginTop: 4,
     textAlign: 'center',
   },
   cardContainer: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderWidth: 1,
-    borderColor: '#E4E4E7',
   },
   budgetItem: {
     paddingVertical: 12,
   },
   itemDivider: {
     borderBottomWidth: 1,
-    borderBottomColor: '#F4F4F5',
   },
   specRow: {
     flexDirection: 'row',
@@ -164,28 +162,16 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   categoryName: {
+    fontFamily: fonts.bodyMedium,
     fontSize: 14,
     fontWeight: '700',
-    color: '#111827',
   },
   amountFigures: {
+    fontFamily: fonts.body,
     fontSize: 13,
-    color: '#6B7280',
-  },
-  capDivider: {
-    color: '#D1D5DB',
-  },
-  spentAmount: {
-    color: '#111827',
-    fontWeight: '700',
-  },
-  overAmount: {
-    color: '#EF4444',
-    fontWeight: '700',
   },
   track: {
     height: 6,
-    backgroundColor: '#F3F4F6',
     borderRadius: 3,
     overflow: 'hidden',
   },

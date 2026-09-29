@@ -7,11 +7,11 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
-import { colors } from '../theme/colors';
 import { fonts } from '../theme/typography';
 import { Account, AccountType } from '../types';
 import { AppTopHeader } from '../components/AppTopHeader';
 import { AddAccountModal } from '../components/AddAccountModal';
+import { useTheme } from '../theme/ThemeContext';
 import {
   AccountsIcon,
   PlusIcon,
@@ -28,6 +28,14 @@ interface AccountsScreenProps {
 
 type AccountFilter = 'all' | 'bank' | 'cash' | 'credit_card' | 'savings';
 
+const accountFilterLabels: Record<AccountFilter, string> = {
+  all: 'Όλοι',
+  bank: 'Τράπεζα',
+  cash: 'Μετρητά',
+  credit_card: 'Πιστωτικές',
+  savings: 'Ταμιευτήριο',
+};
+
 export const AccountsScreen: React.FC<AccountsScreenProps> = ({
   accounts,
   onAddAccount,
@@ -36,10 +44,10 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({
   onMenuPress,
   avatarUrl,
 }) => {
+  const { theme } = useTheme();
   const [addAccountVisible, setAddAccountVisible] = useState(false);
   const [activeFilter, setActiveFilter] = useState<AccountFilter>('all');
 
-  // Accounts Net Worth & Liquidity Metrics
   const accountMetrics = useMemo(() => {
     let assets = 0;
     let debt = 0;
@@ -61,40 +69,40 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({
   }, [accounts, activeFilter]);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <AppTopHeader
-        title="Accounts & Vault"
+        title="Λογαριασμοί & Θησαυροφυλάκιο"
         onMenuPress={onMenuPress}
         onProfilePress={onOpenProfile}
         avatarUrl={avatarUrl}
         rightAction={
           <TouchableOpacity
-            style={styles.headerAddBtn}
+            style={[styles.headerAddBtn, { backgroundColor: theme.buttonPrimaryBg }]}
             onPress={() => setAddAccountVisible(true)}
             activeOpacity={0.85}
           >
-            <PlusIcon size={16} color="#FFFFFF" />
+            <PlusIcon size={16} color={theme.buttonPrimaryText} />
           </TouchableOpacity>
         }
       />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* 3 Summary Stat Cards in a Row */}
+        {/* Summary Cards */}
         <View style={styles.summaryRow}>
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>Total Net</Text>
-            <Text style={styles.summaryNumber}>€{accountMetrics.net.toLocaleString()}</Text>
+          <View style={[styles.summaryCard, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
+            <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Καθαρή Αξία</Text>
+            <Text style={[styles.summaryNumber, { color: theme.textPrimary }]}>€{accountMetrics.net.toLocaleString('el-GR')}</Text>
           </View>
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>Assets</Text>
-            <Text style={[styles.summaryNumber, { color: '#059669' }]}>
-              €{accountMetrics.assets.toLocaleString()}
+          <View style={[styles.summaryCard, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
+            <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Ενεργητικό</Text>
+            <Text style={[styles.summaryNumber, { color: theme.emerald }]}>
+              €{accountMetrics.assets.toLocaleString('el-GR')}
             </Text>
           </View>
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>Liabilities</Text>
-            <Text style={[styles.summaryNumber, { color: '#E11D48' }]}>
-              €{accountMetrics.debt.toLocaleString()}
+          <View style={[styles.summaryCard, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
+            <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Παθητικό</Text>
+            <Text style={[styles.summaryNumber, { color: theme.crimson }]}>
+              €{accountMetrics.debt.toLocaleString('el-GR')}
             </Text>
           </View>
         </View>
@@ -104,16 +112,22 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({
           {(['all', 'bank', 'cash', 'credit_card', 'savings'] as AccountFilter[]).map((f) => (
             <TouchableOpacity
               key={f}
-              style={[styles.pill, activeFilter === f && styles.activePill]}
+              style={[
+                styles.pill,
+                { backgroundColor: theme.pillBg, borderColor: theme.hairline },
+                activeFilter === f && { backgroundColor: theme.buttonPrimaryBg, borderColor: theme.buttonPrimaryBg },
+              ]}
               onPress={() => setActiveFilter(f)}
               activeOpacity={0.7}
             >
-              <Text style={[styles.pillText, activeFilter === f && styles.activePillText]}>
+              <Text style={[
+                styles.pillText,
+                { color: theme.pillText },
+                activeFilter === f && { color: theme.buttonPrimaryText },
+              ]}>
                 {f === 'all'
-                  ? `All (${accounts.length})`
-                  : f === 'credit_card'
-                  ? 'Credit Cards'
-                  : f.charAt(0).toUpperCase() + f.slice(1)}
+                  ? `${accountFilterLabels[f]} (${accounts.length})`
+                  : accountFilterLabels[f]}
               </Text>
             </TouchableOpacity>
           ))}
@@ -122,43 +136,38 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({
         {/* Accounts List */}
         <View style={styles.itemsList}>
           {filteredAccounts.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyTitle}>No Accounts Linked</Text>
-              <Text style={styles.emptySubtext}>Tap the + button to add your first account.</Text>
+            <View style={[styles.emptyContainer, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
+              <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Δεν βρέθηκαν λογαριασμοί</Text>
+              <Text style={[styles.emptySubtext, { color: theme.textSecondary }]}>Πατήστε + για να προσθέσετε τον πρώτο λογαριασμό.</Text>
             </View>
           ) : (
             filteredAccounts.map((acc) => (
-              <View key={acc.id} style={styles.accountCard}>
+              <View key={acc.id} style={[styles.accountCard, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
                 <View style={styles.accountCardLeft}>
-                  <View style={styles.accIconBadge}>
-                    <AccountsIcon size={18} color="#0A0A0A" />
+                  <View style={[styles.accIconBadge, { backgroundColor: theme.track, borderColor: theme.hairline }]}>
+                    <AccountsIcon size={18} color={theme.textPrimary} />
                   </View>
 
                   <View>
-                    <Text style={styles.accountName}>{acc.name}</Text>
-                    <Text style={styles.accountType}>
-                      {(acc.type || 'Bank').toUpperCase()} • {acc.currency || 'EUR'}
+                    <Text style={[styles.accountName, { color: theme.textPrimary }]}>{acc.name}</Text>
+                    <Text style={[styles.accountType, { color: theme.textSecondary }]}>
+                      {(acc.type || 'Τράπεζα').toUpperCase()} • {acc.currency || 'EUR'}
                     </Text>
                   </View>
                 </View>
 
                 <View style={styles.accountCardRight}>
-                  <Text
-                    style={[
-                      styles.accountBalance,
-                      acc.balance < 0 && { color: '#E11D48' },
-                    ]}
-                  >
-                    €{acc.balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  <Text style={[styles.accountBalance, { color: acc.balance < 0 ? theme.crimson : theme.textPrimary }]}>
+                    €{acc.balance.toLocaleString('el-GR', { minimumFractionDigits: 2 })}
                   </Text>
 
                   {onDeleteAccount && (
                     <TouchableOpacity
                       onPress={() => {
-                        Alert.alert('Remove Account', `Delete ${acc.name}?`, [
-                          { text: 'Cancel', style: 'cancel' },
+                        Alert.alert('Διαγραφή Λογαριασμού', `Διαγραφή "${acc.name}";`, [
+                          { text: 'Άκυρο', style: 'cancel' },
                           {
-                            text: 'Delete',
+                            text: 'Διαγραφή',
                             style: 'destructive',
                             onPress: () => onDeleteAccount(acc.id),
                           },
@@ -166,7 +175,7 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({
                       }}
                       hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                     >
-                      <Text style={styles.deleteLink}>Delete</Text>
+                      <Text style={[styles.deleteLink, { color: theme.crimson }]}>Διαγραφή</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -178,7 +187,6 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({
         <View style={{ height: 90 }} />
       </ScrollView>
 
-      {/* Add Account Modal */}
       <AddAccountModal
         visible={addAccountVisible}
         onClose={() => setAddAccountVisible(false)}
@@ -191,13 +199,11 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F8',
   },
   headerAddBtn: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#0A0A0A',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -215,22 +221,18 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 16,
     padding: 14,
-    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E4E4E7',
   },
   summaryLabel: {
     fontFamily: fonts.bodyMedium,
     fontSize: 11,
     fontWeight: '600',
-    color: '#71717A',
     marginBottom: 4,
   },
   summaryNumber: {
     fontFamily: fonts.heading,
     fontSize: 16,
     fontWeight: '900',
-    color: '#0A0A0A',
     letterSpacing: -0.3,
   },
   filterPillsRow: {
@@ -241,32 +243,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E4E4E7',
-  },
-  activePill: {
-    backgroundColor: '#0A0A0A',
-    borderColor: '#0A0A0A',
   },
   pillText: {
     fontFamily: fonts.bodyMedium,
     fontSize: 12,
     fontWeight: '600',
-    color: '#71717A',
-  },
-  activePillText: {
-    color: '#FFFFFF',
   },
   itemsList: {
     gap: 12,
   },
   accountCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E4E4E7',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -281,22 +271,18 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#F4F4F5',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E4E4E7',
   },
   accountName: {
     fontFamily: fonts.heading,
     fontSize: 15,
     fontWeight: '700',
-    color: '#0A0A0A',
   },
   accountType: {
     fontFamily: fonts.bodyMedium,
     fontSize: 11,
-    color: '#71717A',
     fontWeight: '600',
     marginTop: 2,
   },
@@ -307,34 +293,28 @@ const styles = StyleSheet.create({
     fontFamily: fonts.heading,
     fontSize: 16,
     fontWeight: '900',
-    color: '#0A0A0A',
   },
   deleteLink: {
     fontFamily: fonts.bodyMedium,
     fontSize: 11,
-    color: '#E11D48',
     fontWeight: '600',
     marginTop: 4,
   },
   emptyContainer: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 32,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E4E4E7',
   },
   emptyTitle: {
     fontFamily: fonts.heading,
     fontSize: 16,
     fontWeight: '700',
-    color: '#0A0A0A',
     marginBottom: 4,
   },
   emptySubtext: {
     fontFamily: fonts.bodyLight,
     fontSize: 13,
-    color: '#71717A',
     textAlign: 'center',
   },
 });

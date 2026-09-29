@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from 'react-native';
-import { colors } from '../theme/colors';
 import { fonts } from '../theme/typography';
 import { Task, Goal } from '../types';
 import {
@@ -14,9 +13,9 @@ import {
   ExpensesIcon,
   ChevronRightIcon,
   PlusIcon,
-  BellIcon,
 } from './VectorIcons';
 import { KineticVaultToken } from './KineticVaultToken';
+import { useTheme } from '../theme/ThemeContext';
 
 interface BalanceCardProps {
   totalBalance: number;
@@ -49,7 +48,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
   monthlyExpense,
   transactionCount = 12,
   accountCount = 4,
-  userName = 'Hitesh Tapaniya',
+  userName = 'Χρήστης',
   focusTask,
   firstGoal,
   pendingTaskCount = 4,
@@ -67,15 +66,15 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
   avatarUrl,
   onOpenProfile,
 }) => {
-  // Clean currency formatter
+  const { theme } = useTheme();
+
   const formatCurrency = (val: number) => {
-    return `€${Math.abs(val).toLocaleString('en-US', {
+    return `€${Math.abs(val).toLocaleString('el-GR', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 2,
     })}`;
   };
 
-  // Calculation of remaining days in current month (until next payment/month-end)
   const today = new Date();
   const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
   const daysRemaining = Math.max(1, lastDayOfMonth - today.getDate());
@@ -83,47 +82,46 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
   const monthDay = today.getDate();
   const monthProgress = Math.min(100, Math.max(0, Math.round((monthDay / lastDayOfMonth) * 100)));
 
-  // Financial Tier determination based on current balance and remaining days
   const getFinancialStatus = (balance: number) => {
     if (balance >= 700) {
       return {
         tier: 1,
         quote: 'Μπροσκι ρίχτο έξω, σε παίρνει ακόμα',
         badge: 'Άνετος',
-        badgeColor: '#ECFDF5',
-        badgeTextColor: '#059669',
-        badgeBorder: '#A7F3D0',
-        progressColor: '#059669',
+        badgeColor: theme.emeraldBg,
+        badgeTextColor: theme.emerald,
+        badgeBorder: theme.emeraldBorder,
+        progressColor: theme.emerald,
       };
     } else if (balance >= 400) {
       return {
         tier: 2,
         quote: 'Μπροσκι ο μήνας έχει μέρες ακόμα..τσιλ.',
         badge: 'Τσιλ',
-        badgeColor: '#F4F4F5',
-        badgeTextColor: '#52525B',
-        badgeBorder: '#E4E4E7',
-        progressColor: '#71717A',
+        badgeColor: theme.track,
+        badgeTextColor: theme.textSecondary,
+        badgeBorder: theme.hairline,
+        progressColor: theme.textSecondary,
       };
     } else if (balance >= 100) {
       return {
         tier: 3,
-        quote: 'Επ δικέ μου, είσαι δυσκολα',
+        quote: 'Επ δικέ μου, είσαι δύσκολα',
         badge: 'Προσοχή',
-        badgeColor: '#FFFBEB',
+        badgeColor: theme.isDark ? '#1A1100' : '#FFFBEB',
         badgeTextColor: '#B45309',
-        badgeBorder: '#FDE68A',
+        badgeBorder: theme.isDark ? '#3D2600' : '#FDE68A',
         progressColor: '#D97706',
       };
     } else {
       return {
         tier: 4,
-        quote: 'μπροσκι θες 1 ευρω να παρεις τυροπιτα;',
+        quote: 'Μπροσκι θες 1 ευρώ να πάρεις τυρόπιτα;',
         badge: 'Τυρόπιτα Mode',
-        badgeColor: '#FFF1F2',
-        badgeTextColor: '#E11D48',
-        badgeBorder: '#FECDD3',
-        progressColor: '#E11D48',
+        badgeColor: theme.crimsonBg,
+        badgeTextColor: theme.crimson,
+        badgeBorder: theme.crimsonBorder,
+        progressColor: theme.crimson,
       };
     }
   };
@@ -132,42 +130,34 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* 1. Hero Card: Financial Status Tier & Monthly Runway */}
+      {/* Hero Card */}
       <TouchableOpacity
-        style={styles.heroCard}
+        style={[styles.heroCard, { backgroundColor: theme.surface, borderColor: theme.hairline }]}
         activeOpacity={0.92}
         onPress={onOpenAccounts || onOpenAnalytics || onOpenExpenses}
       >
-        {/* Left Side: Greek Status Tier Quote & Monthly Runway */}
+        {/* Left: Greek Status Quote + Monthly Runway */}
         <View style={styles.heroLeftContent}>
           <View style={styles.heroTopStatusRow}>
-            <Text style={styles.heroLabel}>RUNWAY ΜΗΝΑ</Text>
-            <View
-              style={[
-                styles.tierBadge,
-                {
-                  backgroundColor: status.badgeColor,
-                  borderColor: status.badgeBorder,
-                },
-              ]}
-            >
+            <Text style={[styles.heroLabel, { color: theme.textSecondary }]}>RUNWAY ΜΗΝΑ</Text>
+            <View style={[styles.tierBadge, { backgroundColor: status.badgeColor, borderColor: status.badgeBorder }]}>
               <Text style={[styles.tierBadgeText, { color: status.badgeTextColor }]}>
                 {status.badge}
               </Text>
             </View>
           </View>
 
-          <Text style={styles.heroTitle} numberOfLines={3}>
+          <Text style={[styles.heroTitle, { color: theme.textPrimary }]} numberOfLines={3}>
             "{status.quote}"
           </Text>
 
-          <Text style={styles.heroMetricsSub}>
-            €{dailyAllowance}/ημέρα • {daysRemaining} μέρες για πληρωμή
+          <Text style={[styles.heroMetricsSub, { color: theme.textSecondary }]}>
+            €{dailyAllowance}/ημέρα • {daysRemaining} {daysRemaining === 1 ? 'μέρα' : 'μέρες'} για πληρωμή
           </Text>
 
           <View style={styles.heroProgressBlock}>
             <View style={styles.heroProgressRow}>
-              <View style={styles.heroProgressBarTrack}>
+              <View style={[styles.heroProgressBarTrack, { backgroundColor: theme.track }]}>
                 <View
                   style={[
                     styles.heroProgressBarFill,
@@ -178,120 +168,117 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
                   ]}
                 />
               </View>
-              <Text style={styles.heroProgressPercent}>
+              <Text style={[styles.heroProgressPercent, { color: theme.textPrimary }]}>
                 {daysRemaining} {daysRemaining === 1 ? 'μέρα' : 'μέρες'}
               </Text>
             </View>
           </View>
         </View>
 
-        {/* Right Side: Kinetic Vault & Floating Euro Token */}
+        {/* Right: Floating Euro Coin */}
         <View style={styles.heroVaultWrapper} pointerEvents="none">
           <KineticVaultToken />
         </View>
       </TouchableOpacity>
 
-      {/* 3. Bento Grid - Row 1: Tasks & Expenses of Month (2-Columns) */}
+      {/* Bento Grid Row 1 */}
       <View style={styles.gridRow}>
-        {/* Card A: Tasks */}
+        {/* Εργασίες */}
         <TouchableOpacity
-          style={styles.gridCard}
+          style={[styles.gridCard, { backgroundColor: theme.surface, borderColor: theme.hairline }]}
           activeOpacity={0.85}
           onPress={onOpenTasks}
         >
           <View style={styles.gridCardTop}>
             <View>
-              <Text style={styles.gridCardLabel}>Tasks</Text>
-              <Text style={styles.gridCardNumber}>{pendingTaskCount}</Text>
+              <Text style={[styles.gridCardLabel, { color: theme.textSecondary }]}>Εργασίες</Text>
+              <Text style={[styles.gridCardNumber, { color: theme.textPrimary }]}>{pendingTaskCount}</Text>
             </View>
-            <View style={styles.tasksIconBadge}>
-              <CheckIcon size={16} color="#0A0A0A" />
+            <View style={[styles.tasksIconBadge, { backgroundColor: theme.track, borderColor: theme.hairline }]}>
+              <CheckIcon size={16} color={theme.textPrimary} />
             </View>
           </View>
-          <Text style={styles.gridCardSub}>Remaining</Text>
+          <Text style={[styles.gridCardSub, { color: theme.textMuted }]}>Εκκρεμείς</Text>
         </TouchableOpacity>
 
-        {/* Card B: Expenses of Month (Requested: Display Total Expenses Amount) */}
+        {/* Έξοδα Μήνα */}
         <TouchableOpacity
-          style={styles.gridCard}
+          style={[styles.gridCard, { backgroundColor: theme.surface, borderColor: theme.hairline }]}
           activeOpacity={0.85}
           onPress={onOpenExpenses}
         >
           <View style={styles.gridCardTop}>
             <View>
-              <Text style={styles.gridCardLabel}>Expenses of Month</Text>
-              <Text style={[styles.gridCardNumber, { color: '#E11D48' }]}>{formatCurrency(monthlyExpense)}</Text>
+              <Text style={[styles.gridCardLabel, { color: theme.textSecondary }]}>Έξοδα Μήνα</Text>
+              <Text style={[styles.gridCardNumber, { color: theme.crimson }]}>{formatCurrency(monthlyExpense)}</Text>
             </View>
-            <View style={styles.expensesIconBadge}>
-              <ExpensesIcon size={16} color="#E11D48" />
+            <View style={[styles.expensesIconBadge, { backgroundColor: theme.crimsonBg, borderColor: theme.crimsonBorder }]}>
+              <ExpensesIcon size={16} color={theme.crimson} />
             </View>
           </View>
-          <Text style={styles.gridCardSub}>This Month</Text>
+          <Text style={[styles.gridCardSub, { color: theme.textMuted }]}>Τρέχων Μήνας</Text>
         </TouchableOpacity>
       </View>
 
-      {/* 4. Bento Grid - Row 2: Balance Total Wide Card (Requested: Balance Total) */}
+      {/* Bento Grid Row 2 — Συνολικό Υπόλοιπο */}
       <TouchableOpacity
-        style={styles.wideCard}
+        style={[styles.wideCard, { backgroundColor: theme.surface, borderColor: theme.hairline }]}
         activeOpacity={0.85}
         onPress={onOpenAccounts}
       >
         <View style={styles.wideCardLeft}>
-          <Text style={styles.gridCardLabel}>Balance Total</Text>
-          <Text style={styles.wideCardNumber}>{formatCurrency(totalBalance)}</Text>
-          <Text style={styles.gridCardSub}>{accountCount} Active Repositories</Text>
+          <Text style={[styles.gridCardLabel, { color: theme.textSecondary }]}>Συνολικό Υπόλοιπο</Text>
+          <Text style={[styles.wideCardNumber, { color: theme.textPrimary }]}>{formatCurrency(totalBalance)}</Text>
+          <Text style={[styles.gridCardSub, { color: theme.textMuted }]}>{accountCount} Ενεργοί Λογαριασμοί</Text>
         </View>
 
         <View style={styles.wideCardRight}>
-          <View style={styles.mintIconBadge}>
-            <AccountsIcon size={18} color="#059669" />
+          <View style={[styles.mintIconBadge, { backgroundColor: theme.emeraldBg, borderColor: theme.emeraldBorder }]}>
+            <AccountsIcon size={18} color={theme.emerald} />
           </View>
-          {/* Circular Donut Ring Indicator */}
-          <View style={styles.donutRing}>
+          <View style={[styles.donutRing, { borderColor: theme.emerald }]}>
             <View style={styles.donutRingInner}>
-              <Text style={styles.donutText}>100%</Text>
+              <Text style={[styles.donutText, { color: theme.emerald }]}>100%</Text>
             </View>
           </View>
         </View>
       </TouchableOpacity>
 
-      {/* (Row 3: Focus Time and Completed has been deleted as requested!) */}
-
-      {/* 5. Upcoming Meeting / Bill Strip Card */}
+      {/* Upcoming Bill */}
       {upcomingBill && (
         <TouchableOpacity
-          style={styles.upcomingCard}
+          style={[styles.upcomingCard, { backgroundColor: theme.surface, borderColor: theme.hairline }]}
           activeOpacity={0.85}
           onPress={onOpenCalendar || onOpenAccounts}
         >
-          <View style={styles.amberIconBadge}>
+          <View style={[styles.amberIconBadge, { backgroundColor: theme.track, borderColor: theme.hairline }]}>
             <Text style={styles.amberGlyph}>👥</Text>
           </View>
 
           <View style={styles.upcomingCenter}>
-            <Text style={styles.upcomingLabel}>Upcoming</Text>
-            <Text style={styles.upcomingTitle} numberOfLines={1}>
+            <Text style={[styles.upcomingLabel, { color: theme.textMuted }]}>ΕΠΟΜΕΝΗ ΠΛΗΡΩΜΗ</Text>
+            <Text style={[styles.upcomingTitle, { color: theme.textPrimary }]} numberOfLines={1}>
               {upcomingBill.description}
             </Text>
-            <Text style={styles.upcomingTime}>
+            <Text style={[styles.upcomingTime, { color: theme.textSecondary }]}>
               {upcomingBill.dueNotice} • €{upcomingBill.amount.toFixed(2)}
             </Text>
           </View>
 
-          <View style={styles.chevronButton}>
-            <ChevronRightIcon size={16} color="#6B7280" />
+          <View style={[styles.chevronButton, { backgroundColor: theme.track }]}>
+            <ChevronRightIcon size={16} color={theme.textSecondary} />
           </View>
         </TouchableOpacity>
       )}
 
       {/* Quick Action Button */}
       <TouchableOpacity
-        style={styles.primaryAddBtn}
+        style={[styles.primaryAddBtn, { backgroundColor: theme.buttonPrimaryBg }]}
         onPress={onAddTransaction}
         activeOpacity={0.88}
       >
-        <PlusIcon size={18} color="#FFFFFF" />
-        <Text style={styles.primaryAddBtnText}>Log New Transaction</Text>
+        <PlusIcon size={18} color={theme.buttonPrimaryText} />
+        <Text style={[styles.primaryAddBtnText, { color: theme.buttonPrimaryText }]}>Καταχώρηση Συναλλαγής</Text>
       </TouchableOpacity>
     </View>
   );
@@ -303,9 +290,7 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 16,
   },
-  // 1. Architectural Crisp White Structural Hero Card
   heroCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     minHeight: 185,
     marginBottom: 16,
@@ -314,7 +299,6 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 22,
     borderWidth: 1,
-    borderColor: '#E4E4E7',
     flexDirection: 'row',
   },
   heroLeftContent: {
@@ -331,7 +315,6 @@ const styles = StyleSheet.create({
   heroLabel: {
     fontFamily: fonts.bodyMedium,
     fontSize: 10.5,
-    color: '#71717A',
     fontWeight: '700',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
@@ -352,7 +335,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.heading,
     fontSize: 18,
     fontWeight: '900',
-    color: '#0A0A0A',
     letterSpacing: -0.3,
     lineHeight: 24,
     marginTop: 4,
@@ -361,7 +343,6 @@ const styles = StyleSheet.create({
   heroMetricsSub: {
     fontFamily: fonts.bodyMedium,
     fontSize: 11.5,
-    color: '#71717A',
     fontWeight: '600',
     marginBottom: 10,
   },
@@ -376,7 +357,6 @@ const styles = StyleSheet.create({
     width: 95,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#F4F4F5',
     overflow: 'hidden',
   },
   heroProgressBarFill: {
@@ -387,7 +367,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyBold,
     fontSize: 11.5,
     fontWeight: '700',
-    color: '#0A0A0A',
     marginLeft: 8,
   },
   heroVaultWrapper: {
@@ -399,8 +378,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-
-  // 3. Bento Grid Styles (Zero Puffy Shadows, 1px Hairline Borders)
   gridRow: {
     flexDirection: 'row',
     gap: 14,
@@ -408,11 +385,9 @@ const styles = StyleSheet.create({
   },
   gridCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E4E4E7',
     justifyContent: 'space-between',
   },
   gridCardTop: {
@@ -424,7 +399,6 @@ const styles = StyleSheet.create({
   gridCardLabel: {
     fontFamily: fonts.bodyMedium,
     fontSize: 12,
-    color: '#71717A',
     fontWeight: '600',
     marginBottom: 2,
   },
@@ -432,42 +406,34 @@ const styles = StyleSheet.create({
     fontFamily: fonts.heading,
     fontSize: 20,
     fontWeight: '900',
-    color: '#0A0A0A',
     letterSpacing: -0.4,
   },
   gridCardSub: {
     fontFamily: fonts.bodyLight,
     fontSize: 11,
-    color: '#A1A1AA',
     fontWeight: '500',
   },
   tasksIconBadge: {
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: '#F4F4F5',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E4E4E7',
   },
   expensesIconBadge: {
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: '#FFF1F2',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#FECDD3',
   },
   wideCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     padding: 18,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: '#E4E4E7',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -479,7 +445,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.heading,
     fontSize: 22,
     fontWeight: '900',
-    color: '#0A0A0A',
     letterSpacing: -0.4,
     marginVertical: 2,
   },
@@ -492,18 +457,15 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: '#ECFDF5',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#A7F3D0',
   },
   donutRing: {
     width: 42,
     height: 42,
     borderRadius: 21,
     borderWidth: 2,
-    borderColor: '#059669',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -515,15 +477,12 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyBold,
     fontSize: 10,
     fontWeight: '700',
-    color: '#059669',
   },
   upcomingCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#E4E4E7',
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -531,12 +490,10 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 10,
-    backgroundColor: '#F4F4F5',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
     borderWidth: 1,
-    borderColor: '#E4E4E7',
   },
   amberGlyph: {
     fontSize: 18,
@@ -549,7 +506,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyMedium,
     fontSize: 11,
     fontWeight: '600',
-    color: '#A1A1AA',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -557,30 +513,24 @@ const styles = StyleSheet.create({
     fontFamily: fonts.heading,
     fontSize: 15,
     fontWeight: '700',
-    color: '#0A0A0A',
     letterSpacing: -0.2,
     marginTop: 1,
   },
   upcomingTime: {
     fontFamily: fonts.bodyLight,
     fontSize: 12,
-    color: '#71717A',
     marginTop: 2,
   },
   chevronButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F4F4F5',
     alignItems: 'center',
     justifyContent: 'center',
   },
-
-  // 4. Primary Trigger Button (Pure Obsidian, Zero Puffy Shadows)
   primaryAddBtn: {
     height: 52,
     borderRadius: 14,
-    backgroundColor: '#0A0A0A',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -590,7 +540,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.heading,
     fontSize: 15,
     fontWeight: '700',
-    color: '#FFFFFF',
     letterSpacing: -0.2,
   },
 });

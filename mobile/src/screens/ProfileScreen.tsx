@@ -15,8 +15,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { authService } from '../services/authService';
 import { AppTopHeader } from '../components/AppTopHeader';
-import { colors } from '../theme/colors';
 import { fonts } from '../theme/typography';
+import { useTheme } from '../theme/ThemeContext';
 
 interface ProfileScreenProps {
   onBack: () => void;
@@ -43,6 +43,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   onSignOut,
   onProfileUpdated,
 }) => {
+  const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -179,10 +180,10 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     GLYPH_PRESETS.find((p) => p.id === avatarUri) || GLYPH_PRESETS[0];
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Top Header matching all screens */}
       <AppTopHeader
-        title="Profile & Settings"
+        title="Προφίλ & Ρυθμίσεις"
         showPulse
         onBackPress={onBack}
         avatarUrl={avatarUri}

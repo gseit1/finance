@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { colors } from '../theme/colors';
 import { Transaction } from '../types';
+import { useTheme } from '../theme/ThemeContext';
+import { fonts } from '../theme/typography';
 
 interface TransactionListProps {
   transactions: Transaction[];
@@ -14,10 +15,12 @@ export const TransactionList: React.FC<TransactionListProps> = ({
   onSelectTransaction,
   onSeeAll,
 }) => {
+  const { theme } = useTheme();
+
   const formatAmount = (tx: Transaction) => {
     const isIncome = tx.type === 'income';
     const prefix = isIncome ? '+' : '-';
-    return `${prefix}€${tx.amount.toLocaleString('en-US', {
+    return `${prefix}€${tx.amount.toLocaleString('el-GR', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}`;
@@ -26,7 +29,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
   const formatDate = (dateString: string) => {
     try {
       const d = new Date(dateString);
-      return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+      return d.toLocaleDateString('el-GR', { day: 'numeric', month: 'short' });
     } catch {
       return dateString;
     }
@@ -36,25 +39,25 @@ export const TransactionList: React.FC<TransactionListProps> = ({
     <View style={styles.sectionContainer}>
       {/* Section Header */}
       <View style={styles.headerRow}>
-        <Text style={styles.sectionTitle}>Recent Transactions</Text>
+        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Πρόσφατες Συναλλαγές</Text>
         {onSeeAll && (
           <TouchableOpacity onPress={onSeeAll} activeOpacity={0.7}>
-            <Text style={styles.seeAllText}>See All ›</Text>
+            <Text style={[styles.seeAllText, { color: theme.textPrimary }]}>Όλες ›</Text>
           </TouchableOpacity>
         )}
       </View>
 
       {transactions.length === 0 ? (
-        <View style={styles.emptyCard}>
-          <Text style={styles.emptyTitle}>No Transactions Yet</Text>
-          <Text style={styles.emptySubtext}>Your recent activity will appear here.</Text>
+        <View style={[styles.emptyCard, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
+          <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Δεν υπάρχουν συναλλαγές ακόμα</Text>
+          <Text style={[styles.emptySubtext, { color: theme.textSecondary }]}>Η πρόσφατη δραστηριότητα θα εμφανιστεί εδώ.</Text>
         </View>
       ) : (
-        <View style={styles.listCard}>
+        <View style={[styles.listCard, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
           {transactions.map((tx, index) => {
             const isIncome = tx.type === 'income';
             const isLast = index === transactions.length - 1;
-            const initialTag = (tx.category_name || tx.description || 'G')
+            const initialTag = (tx.category_name || tx.description || 'Γ')
               .trim()
               .slice(0, 1)
               .toUpperCase();
@@ -62,24 +65,24 @@ export const TransactionList: React.FC<TransactionListProps> = ({
             return (
               <TouchableOpacity
                 key={tx.id}
-                style={[styles.txRow, !isLast && styles.rowDivider]}
+                style={[styles.txRow, !isLast && [styles.rowDivider, { borderBottomColor: theme.hairlineFaint }]]}
                 activeOpacity={0.7}
                 onPress={() => onSelectTransaction?.(tx)}
               >
-                {/* Micro Category Icon Badge */}
+                {/* Category Icon Badge */}
                 <View
                   style={[
                     styles.categoryBadge,
                     {
-                      backgroundColor: isIncome ? '#ECFDF5' : '#FFF1F2',
-                      borderColor: isIncome ? '#A7F3D0' : '#FECDD3',
+                      backgroundColor: isIncome ? theme.emeraldBg : theme.crimsonBg,
+                      borderColor: isIncome ? theme.emeraldBorder : theme.crimsonBorder,
                     },
                   ]}
                 >
                   <Text
                     style={[
                       styles.categoryBadgeText,
-                      { color: isIncome ? '#059669' : '#E11D48' },
+                      { color: isIncome ? theme.emerald : theme.crimson },
                     ]}
                   >
                     {initialTag}
@@ -88,11 +91,11 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 
                 {/* Description & Sub-spec */}
                 <View style={styles.txDetails}>
-                  <Text style={styles.txDescription} numberOfLines={1}>
-                    {tx.description || 'Transaction'}
+                  <Text style={[styles.txDescription, { color: theme.textPrimary }]} numberOfLines={1}>
+                    {tx.description || 'Συναλλαγή'}
                   </Text>
-                  <Text style={styles.txMeta} numberOfLines={1}>
-                    {tx.category_name || 'General'} • {tx.account_name || 'Account'} • {formatDate(tx.date)}
+                  <Text style={[styles.txMeta, { color: theme.textSecondary }]} numberOfLines={1}>
+                    {tx.category_name || 'Γενικά'} • {tx.account_name || 'Λογαριασμός'} • {formatDate(tx.date)}
                   </Text>
                 </View>
 
@@ -100,7 +103,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                 <Text
                   style={[
                     styles.txAmount,
-                    isIncome ? styles.inflowAmount : styles.outflowAmount,
+                    { color: isIncome ? theme.emerald : theme.crimson },
                   ]}
                 >
                   {formatAmount(tx)}
@@ -127,41 +130,37 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: {
+    fontFamily: fonts.heading,
     fontSize: 18,
     fontWeight: '900',
-    color: '#0A0A0A',
     letterSpacing: -0.3,
   },
   seeAllText: {
+    fontFamily: fonts.bodyMedium,
     fontSize: 13,
     fontWeight: '600',
-    color: '#0A0A0A',
   },
   emptyCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     padding: 24,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E4E4E7',
   },
   emptyTitle: {
+    fontFamily: fonts.heading,
     fontSize: 14,
     fontWeight: '700',
-    color: '#0A0A0A',
   },
   emptySubtext: {
+    fontFamily: fonts.bodyLight,
     fontSize: 12,
-    color: '#71717A',
     marginTop: 4,
   },
   listCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: '#E4E4E7',
   },
   txRow: {
     flexDirection: 'row',
@@ -170,7 +169,6 @@ const styles = StyleSheet.create({
   },
   rowDivider: {
     borderBottomWidth: 1,
-    borderBottomColor: '#F4F4F5',
   },
   categoryBadge: {
     width: 36,
@@ -182,6 +180,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   categoryBadgeText: {
+    fontFamily: fonts.bodyBold,
     fontSize: 14,
     fontWeight: '800',
   },
@@ -190,25 +189,20 @@ const styles = StyleSheet.create({
     paddingRight: 8,
   },
   txDescription: {
+    fontFamily: fonts.heading,
     fontSize: 15,
     fontWeight: '700',
-    color: '#0A0A0A',
     letterSpacing: -0.2,
   },
   txMeta: {
+    fontFamily: fonts.bodyLight,
     fontSize: 12,
-    color: '#71717A',
     marginTop: 2,
   },
   txAmount: {
+    fontFamily: fonts.heading,
     fontSize: 15,
     fontWeight: '800',
     letterSpacing: -0.2,
-  },
-  inflowAmount: {
-    color: '#059669',
-  },
-  outflowAmount: {
-    color: '#E11D48',
   },
 });

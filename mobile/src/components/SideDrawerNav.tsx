@@ -21,6 +21,7 @@ import {
   UserIcon,
 } from './VectorIcons';
 import { fonts } from '../theme/typography';
+import { useTheme } from '../theme/ThemeContext';
 
 export type ScreenRoute =
   | 'home'
@@ -57,7 +58,7 @@ export const SideDrawerNav: React.FC<SideDrawerNavProps> = ({
   onClose,
   currentRoute,
   onNavigate,
-  userName = 'Bardia Adibi',
+  userName = 'Χρήστης',
   userEmail,
   avatarUrl,
   tasksCount = 0,
@@ -66,6 +67,8 @@ export const SideDrawerNav: React.FC<SideDrawerNavProps> = ({
   goalsCount = 0,
   onSignOut,
 }) => {
+  const { theme, isDark, toggleTheme } = useTheme();
+
   const isImageUri =
     avatarUrl &&
     (avatarUrl.startsWith('http') ||
@@ -85,47 +88,47 @@ export const SideDrawerNav: React.FC<SideDrawerNavProps> = ({
   }[] = [
     {
       route: 'home',
-      label: 'Home',
-      icon: (active) => <HomeIcon size={22} color={active ? '#0A0A0A' : '#27272A'} />,
+      label: 'Αρχική',
+      icon: (active) => <HomeIcon size={22} color={active ? theme.textPrimary : theme.textSecondary} />,
     },
     {
       route: 'tasks',
-      label: 'Tasks & Focus',
-      icon: (active) => <TasksListIcon size={22} color={active ? '#0A0A0A' : '#27272A'} />,
+      label: 'Εργασίες & Στόχοι',
+      icon: (active) => <TasksListIcon size={22} color={active ? theme.textPrimary : theme.textSecondary} />,
       badge: tasksCount > 0 ? tasksCount : undefined,
     },
     {
       route: 'calendar',
-      label: 'Calendar & Agenda',
-      icon: (active) => <CalendarIcon size={22} color={active ? '#0A0A0A' : '#27272A'} />,
+      label: 'Ημερολόγιο & Agenda',
+      icon: (active) => <CalendarIcon size={22} color={active ? theme.textPrimary : theme.textSecondary} />,
     },
     {
       route: 'accounts',
-      label: 'Accounts & Vault',
-      icon: (active) => <AccountsIcon size={22} color={active ? '#0A0A0A' : '#27272A'} />,
+      label: 'Λογαριασμοί & Θησαυροφυλάκιο',
+      icon: (active) => <AccountsIcon size={22} color={active ? theme.textPrimary : theme.textSecondary} />,
       badge: accountsCount > 0 ? accountsCount : undefined,
     },
     {
       route: 'transactions',
-      label: 'Transactions',
-      icon: (active) => <ExpensesIcon size={22} color={active ? '#0A0A0A' : '#27272A'} />,
+      label: 'Συναλλαγές',
+      icon: (active) => <ExpensesIcon size={22} color={active ? theme.textPrimary : theme.textSecondary} />,
     },
     {
       route: 'goals',
-      label: 'Financial Goals',
-      icon: (active) => <GoalsIcon size={22} color={active ? '#0A0A0A' : '#27272A'} />,
+      label: 'Οικονομικοί Στόχοι',
+      icon: (active) => <GoalsIcon size={22} color={active ? theme.textPrimary : theme.textSecondary} />,
       badge: '$10',
       isSpecialBadge: true,
     },
     {
       route: 'analytics',
-      label: 'Analytics',
-      icon: (active) => <BarChartIcon size={22} color={active ? '#0A0A0A' : '#27272A'} />,
+      label: 'Αναλύσεις',
+      icon: (active) => <BarChartIcon size={22} color={active ? theme.textPrimary : theme.textSecondary} />,
     },
     {
       route: 'profile',
-      label: 'Setting',
-      icon: (active) => <UserIcon size={22} color={active ? '#0A0A0A' : '#27272A'} />,
+      label: 'Ρυθμίσεις',
+      icon: (active) => <UserIcon size={22} color={active ? theme.textPrimary : theme.textSecondary} />,
     },
   ];
 
@@ -149,11 +152,11 @@ export const SideDrawerNav: React.FC<SideDrawerNavProps> = ({
         {/* Dimmed backdrop - tap to close */}
         <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
 
-        {/* Floating White Card matching Mockup */}
-        <View style={styles.drawerCard}>
+        {/* Floating Card */}
+        <View style={[styles.drawerCard, { backgroundColor: theme.surface }]}>
           {/* Top Profile Header */}
           <View style={styles.profileHeader}>
-            <View style={styles.avatarWrapper}>
+            <View style={[styles.avatarWrapper, { backgroundColor: theme.track }]}>
               {isImageUri ? (
                 <Image source={{ uri: avatarUrl! }} style={styles.avatarImg} />
               ) : (
@@ -165,18 +168,29 @@ export const SideDrawerNav: React.FC<SideDrawerNavProps> = ({
               )}
             </View>
 
-            <Text style={styles.profileName} numberOfLines={1}>
+            <Text style={[styles.profileName, { color: theme.textPrimary }]} numberOfLines={1}>
               {userName}
             </Text>
-            <Text style={styles.profileEmail} numberOfLines={1}>
+            <Text style={[styles.profileEmail, { color: theme.textMuted }]} numberOfLines={1}>
               {displayEmail}
             </Text>
           </View>
 
           {/* Hairline Divider */}
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: theme.hairline }]} />
 
-          {/* Navigation Links matching Mockup */}
+          {/* Theme Toggle Row */}
+          <TouchableOpacity
+            style={[styles.themeToggleRow, { borderBottomColor: theme.hairlineFaint }]}
+            onPress={toggleTheme}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.themeToggleLabel, { color: theme.textSecondary }]}>
+              {isDark ? '☀️  Φωτεινό Θέμα' : '🌙  Σκοτεινό Θέμα'}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Navigation Links */}
           <ScrollView
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.linksScrollContent}
@@ -186,7 +200,7 @@ export const SideDrawerNav: React.FC<SideDrawerNavProps> = ({
               return (
                 <TouchableOpacity
                   key={item.route}
-                  style={styles.navRow}
+                  style={[styles.navRow, { borderBottomColor: theme.hairlineFaint }]}
                   onPress={() => handleSelect(item.route)}
                   activeOpacity={0.65}
                 >
@@ -194,7 +208,7 @@ export const SideDrawerNav: React.FC<SideDrawerNavProps> = ({
                     {item.icon(isActive)}
                   </View>
 
-                  <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>
+                  <Text style={[styles.navLabel, { color: theme.textPrimary }, isActive && styles.navLabelActive]}>
                     {item.label}
                   </Text>
 
@@ -202,13 +216,13 @@ export const SideDrawerNav: React.FC<SideDrawerNavProps> = ({
                     <View
                       style={[
                         styles.badgePill,
-                        item.isSpecialBadge ? styles.specialBadgePill : styles.regularBadgePill,
+                        item.isSpecialBadge ? styles.specialBadgePill : [styles.regularBadgePill, { backgroundColor: theme.track }],
                       ]}
                     >
                       <Text
                         style={[
                           styles.badgeText,
-                          item.isSpecialBadge ? styles.specialBadgeText : styles.regularBadgeText,
+                          item.isSpecialBadge ? styles.specialBadgeText : [styles.regularBadgeText, { color: theme.textSecondary }],
                         ]}
                       >
                         {item.badge}
@@ -220,14 +234,14 @@ export const SideDrawerNav: React.FC<SideDrawerNavProps> = ({
             })}
           </ScrollView>
 
-          {/* Bottom "Sign out" Pill Button matching Mockup */}
+          {/* Bottom Sign Out Button */}
           <View style={styles.footerContainer}>
             <TouchableOpacity
-              style={styles.signOutBtn}
+              style={[styles.signOutBtn, { backgroundColor: theme.track }]}
               onPress={handleSignOut}
               activeOpacity={0.8}
             >
-              <Text style={styles.signOutText}>Sign out</Text>
+              <Text style={[styles.signOutText, { color: theme.textPrimary }]}>Αποσύνδεση</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -254,14 +268,13 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     marginVertical: 16,
     marginLeft: 10,
-    backgroundColor: '#FFFFFF',
     borderRadius: 36,
     overflow: 'hidden',
     justifyContent: 'space-between',
     elevation: 8,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.15,
     shadowRadius: 18,
   },
   profileHeader: {
@@ -273,7 +286,6 @@ const styles = StyleSheet.create({
     height: 76,
     borderRadius: 38,
     overflow: 'hidden',
-    backgroundColor: '#0A0A0A',
     marginBottom: 16,
   },
   avatarImg: {
@@ -285,21 +297,28 @@ const styles = StyleSheet.create({
     fontFamily: fonts.heading,
     fontSize: 24,
     fontWeight: '900',
-    color: '#0A0A0A',
     letterSpacing: -0.4,
   },
   profileEmail: {
     fontFamily: fonts.body,
     fontSize: 14,
-    color: '#9CA3AF',
     marginTop: 4,
   },
   divider: {
     height: 1,
-    backgroundColor: '#F0F0F2',
     marginHorizontal: 24,
     marginTop: 18,
-    marginBottom: 8,
+    marginBottom: 4,
+  },
+  themeToggleRow: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  themeToggleLabel: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 14,
+    fontWeight: '600',
   },
   linksScrollContent: {
     paddingHorizontal: 24,
@@ -321,7 +340,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyMedium,
     fontSize: 16,
     fontWeight: '600',
-    color: '#0A0A0A',
     flex: 1,
   },
   navLabelActive: {
@@ -334,9 +352,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  regularBadgePill: {
-    backgroundColor: '#F4F4F5',
-  },
+  regularBadgePill: {},
   specialBadgePill: {
     backgroundColor: '#FACC15',
     paddingHorizontal: 9,
@@ -347,9 +363,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
   },
-  regularBadgeText: {
-    color: '#71717A',
-  },
+  regularBadgeText: {},
   specialBadgeText: {
     color: '#0A0A0A',
     fontWeight: '800',
@@ -362,7 +376,6 @@ const styles = StyleSheet.create({
   signOutBtn: {
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -370,6 +383,5 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyMedium,
     fontSize: 15,
     fontWeight: '600',
-    color: '#0A0A0A',
   },
 });

@@ -8,8 +8,8 @@ import {
   Modal,
   TextInput,
 } from 'react-native';
-import { colors } from '../theme/colors';
 import { fonts } from '../theme/typography';
+import { useTheme } from '../theme/ThemeContext';
 import { Goal } from '../types';
 import { AddGoalModal } from '../components/AddGoalModal';
 import { AppTopHeader } from '../components/AppTopHeader';
@@ -36,6 +36,7 @@ export const GoalsScreen: React.FC<GoalsScreenProps> = ({
   onMenuPress,
   avatarUrl,
 }) => {
+  const { theme } = useTheme();
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [fundsModalVisible, setFundsModalVisible] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
@@ -71,10 +72,10 @@ export const GoalsScreen: React.FC<GoalsScreenProps> = ({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Top Header */}
       <AppTopHeader
-        title="Financial Goals"
+        title="Οικονομικοί Στόχοι"
         onMenuPress={onMenuPress}
         onProfilePress={onOpenProfile}
         avatarUrl={avatarUrl}

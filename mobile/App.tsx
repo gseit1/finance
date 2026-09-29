@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, ActivityIndicator, AppState, AppStateStatus } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 import { WelcomeScreen } from './src/screens/WelcomeScreen';
 import { AuthScreen } from './src/screens/AuthScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
@@ -53,6 +54,16 @@ const defaultTransactions: Transaction[] = [];
 const defaultGoals: Goal[] = [];
 
 type AppFlow = 'welcome' | 'auth' | 'app';
+
+// Thin wrapper that reads theme inside the ThemeProvider and applies background to the main container
+const AppContainerBg: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { theme } = useTheme();
+  return (
+    <View style={[styles.appContainer, { backgroundColor: theme.background }]}>
+      {children}
+    </View>
+  );
+};
 
 function App(): React.JSX.Element {
   const [flow, setFlow] = useState<AppFlow>('welcome');
@@ -1059,7 +1070,8 @@ function App(): React.JSX.Element {
 
   return (
     <SafeAreaProvider>
-      <View style={styles.appContainer}>
+      <ThemeProvider>
+      <AppContainerBg>
         {/* Flow 1: Welcome Onboarding Screen */}
         {flow === 'welcome' && (
           <WelcomeScreen
@@ -1267,7 +1279,8 @@ function App(): React.JSX.Element {
             />
           </View>
         )}
-      </View>
+      </AppContainerBg>
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }

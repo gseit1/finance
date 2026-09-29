@@ -7,8 +7,8 @@ import {
   TouchableOpacity,
   Dimensions,
 } from 'react-native';
-import { colors } from '../theme/colors';
 import { fonts } from '../theme/typography';
+import { useTheme } from '../theme/ThemeContext';
 import { Transaction, Account, Budget, Task, Goal } from '../types';
 import { AppTopHeader } from '../components/AppTopHeader';
 import {
@@ -47,6 +47,7 @@ export const AnalyticsScreen: React.FC<AnalyticsScreenProps> = ({
   onOpenTransactions,
   onOpenGoals,
 }) => {
+  const { theme } = useTheme();
   const [timeWindow, setTimeWindow] = useState<TimeWindow>('all');
   const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null);
 
@@ -232,10 +233,10 @@ export const AnalyticsScreen: React.FC<AnalyticsScreenProps> = ({
   const expensePercent = totalFlow > 0 ? 100 - incomePercent : 50;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Top Header */}
       <AppTopHeader
-        title="Analytics & Insights"
+        title="Αναλύσεις & Κατανοήσεις"
         onMenuPress={onMenuPress}
         onProfilePress={onOpenProfile}
         avatarUrl={avatarUrl}
@@ -249,10 +250,10 @@ export const AnalyticsScreen: React.FC<AnalyticsScreenProps> = ({
         <View style={styles.segmentedControl}>
           {(
             [
-              { key: 'all', label: 'All Time' },
-              { key: 'month', label: 'This Month' },
-              { key: '30d', label: 'Last 30 Days' },
-              { key: '7d', label: 'Last 7 Days' },
+              { key: 'all', label: 'Όλες' },
+              { key: 'month', label: 'Τρέχων Μήνας' },
+              { key: '30d', label: 'Τελ. 30 μέρες' },
+              { key: '7d', label: 'Τελ. 7 μέρες' },
             ] as const
           ).map((seg) => {
             const isActive = timeWindow === seg.key;

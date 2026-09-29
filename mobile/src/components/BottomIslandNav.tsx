@@ -15,6 +15,7 @@ import {
   NavbarAnalyticsIcon,
 } from './VectorIcons';
 import { fonts } from '../theme/typography';
+import { useTheme } from '../theme/ThemeContext';
 
 export type NavTab =
   | 'home'
@@ -36,6 +37,8 @@ export const BottomIslandNav: React.FC<BottomIslandNavProps> = ({
   currentTab,
   onTabChange,
 }) => {
+  const { theme } = useTheme();
+
   const triggerHaptic = () => {
     try {
       if (Platform.OS === 'ios') {
@@ -51,8 +54,6 @@ export const BottomIslandNav: React.FC<BottomIslandNavProps> = ({
     onTabChange(tab);
   };
 
-  // The 5 requested tabs matching user's reference mockup:
-  // home, transactions, accounts, goals, analytics
   const tabs: {
     key: NavTab;
     label: string;
@@ -60,44 +61,44 @@ export const BottomIslandNav: React.FC<BottomIslandNavProps> = ({
   }[] = [
     {
       key: 'home',
-      label: 'Home',
+      label: 'Αρχική',
       icon: (active) => (
-        <NavbarHomeIcon color={active ? '#FFFFFF' : '#71717A'} size={21} />
+        <NavbarHomeIcon color={active ? '#FFFFFF' : theme.navInactiveIcon} size={21} />
       ),
     },
     {
       key: 'transactions',
-      label: 'Transactions',
+      label: 'Συναλλαγές',
       icon: (active) => (
-        <NavbarReceiptIcon color={active ? '#FFFFFF' : '#71717A'} size={21} />
+        <NavbarReceiptIcon color={active ? '#FFFFFF' : theme.navInactiveIcon} size={21} />
       ),
     },
     {
       key: 'accounts',
-      label: 'Accounts',
+      label: 'Λογαριασμοί',
       icon: (active) => (
-        <NavbarCardIcon color={active ? '#FFFFFF' : '#71717A'} size={21} />
+        <NavbarCardIcon color={active ? '#FFFFFF' : theme.navInactiveIcon} size={21} />
       ),
     },
     {
       key: 'goals',
-      label: 'Goals',
+      label: 'Στόχοι',
       icon: (active) => (
-        <NavbarGoalsIcon color={active ? '#FFFFFF' : '#71717A'} size={20} />
+        <NavbarGoalsIcon color={active ? '#FFFFFF' : theme.navInactiveIcon} size={20} />
       ),
     },
     {
       key: 'analytics',
-      label: 'Analytics',
+      label: 'Αναλύσεις',
       icon: (active) => (
-        <NavbarAnalyticsIcon color={active ? '#FFFFFF' : '#71717A'} size={20} />
+        <NavbarAnalyticsIcon color={active ? '#FFFFFF' : theme.navInactiveIcon} size={20} />
       ),
     },
   ];
 
   return (
     <View style={styles.dockWrapper} pointerEvents="box-none">
-      <View style={styles.dockContainer}>
+      <View style={[styles.dockContainer, { backgroundColor: theme.navBg, borderColor: theme.navBorder }]}>
         {tabs.map((tab) => {
           const isActive = currentTab === tab.key;
 
@@ -105,12 +106,12 @@ export const BottomIslandNav: React.FC<BottomIslandNavProps> = ({
             return (
               <TouchableOpacity
                 key={tab.key}
-                style={styles.activePill}
+                style={[styles.activePill, { backgroundColor: theme.navActivePill, borderColor: theme.navActivePillBorder }]}
                 onPress={() => handleSelectTab(tab.key)}
                 activeOpacity={0.88}
               >
                 {tab.icon(true)}
-                <Text style={styles.activeLabel}>{tab.label}</Text>
+                <Text style={[styles.activeLabel, { color: theme.navActiveText }]}>{tab.label}</Text>
               </TouchableOpacity>
             );
           }
@@ -146,9 +147,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 420,
     borderRadius: 31,
-    backgroundColor: '#0A0A0A',
     borderWidth: 1,
-    borderColor: '#27272A',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -158,17 +157,14 @@ const styles = StyleSheet.create({
   activePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#27272A',
     borderRadius: 22,
     paddingHorizontal: 16,
     paddingVertical: 9,
     gap: 8,
     borderWidth: 1,
-    borderColor: '#3F3F46',
   },
   activeLabel: {
     fontFamily: fonts.bodyMedium,
-    color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '700',
     letterSpacing: -0.2,
