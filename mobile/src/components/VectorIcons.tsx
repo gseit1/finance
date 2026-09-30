@@ -758,6 +758,160 @@ export const NavbarAnalyticsIcon: React.FC<IconProps> = ({ color = '#A1A1AA', si
   );
 };
 
+// Mail Icon (Envelope)
+export const MailIcon: React.FC<IconProps> = ({ color = '#71717A', size = 18 }) => {
+  const width = size;
+  const height = size * 0.75;
+  return (
+    <View style={{ width, height, borderWidth: 1.5, borderColor: color, borderRadius: 4, position: 'relative', overflow: 'hidden', alignItems: 'center' }}>
+      <View style={{
+        position: 'absolute',
+        top: -height * 0.35,
+        width: width * 0.72,
+        height: width * 0.72,
+        borderWidth: 1.5,
+        borderColor: color,
+        transform: [{ rotate: '45deg' }],
+      }} />
+    </View>
+  );
+};
+
+// Lock Icon (Padlock)
+export const LockIcon: React.FC<IconProps> = ({ color = '#71717A', size = 18 }) => {
+  const bodyWidth = size * 0.85;
+  const bodyHeight = size * 0.65;
+  const shackleWidth = size * 0.52;
+  const shackleHeight = size * 0.45;
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'flex-end', position: 'relative' }}>
+      {/* Shackle */}
+      <View style={{
+        position: 'absolute',
+        top: 1,
+        width: shackleWidth,
+        height: shackleHeight,
+        borderTopLeftRadius: shackleWidth / 2,
+        borderTopRightRadius: shackleWidth / 2,
+        borderWidth: 1.6,
+        borderColor: color,
+        borderBottomWidth: 0,
+      }} />
+      {/* Body */}
+      <View style={{
+        width: bodyWidth,
+        height: bodyHeight,
+        borderRadius: 4,
+        borderWidth: 1.6,
+        borderColor: color,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <View style={{ width: 2.2, height: 4, backgroundColor: color, borderRadius: 1 }} />
+      </View>
+    </View>
+  );
+};
+
+// Eye Icon (Visible)
+export const EyeIcon: React.FC<IconProps> = ({ color = '#71717A', size = 18 }) => {
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      <View style={{
+        width: size * 0.85,
+        height: size * 0.55,
+        borderRadius: size * 0.4,
+        borderWidth: 1.5,
+        borderColor: color,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <View style={{ width: size * 0.24, height: size * 0.24, borderRadius: size * 0.12, backgroundColor: color }} />
+      </View>
+    </View>
+  );
+};
+
+// Eye Off Icon (Hidden)
+export const EyeOffIcon: React.FC<IconProps> = ({ color = '#71717A', size = 18 }) => {
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+      <View style={{
+        width: size * 0.85,
+        height: size * 0.55,
+        borderRadius: size * 0.4,
+        borderWidth: 1.5,
+        borderColor: color,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <View style={{ width: size * 0.22, height: size * 0.22, borderRadius: size * 0.11, backgroundColor: color }} />
+      </View>
+      <View style={{
+        position: 'absolute',
+        width: size * 0.95,
+        height: 1.6,
+        backgroundColor: color,
+        transform: [{ rotate: '-45deg' }],
+      }} />
+    </View>
+  );
+};
+
+// Checkbox Icon
+export const CheckboxIcon: React.FC<{ checked: boolean; color?: string; size?: number }> = ({
+  checked,
+  color = '#E11D74',
+  size = 18,
+}) => {
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: 4,
+        borderWidth: 1.5,
+        borderColor: checked ? color : '#A1A1AA',
+        backgroundColor: checked ? color : 'transparent',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      {checked && (
+        <View
+          style={{
+            width: size * 0.5,
+            height: size * 0.28,
+            borderLeftWidth: 1.8,
+            borderBottomWidth: 1.8,
+            borderColor: '#FFFFFF',
+            transform: [{ rotate: '-45deg' }, { translateY: -1 }],
+          }}
+        />
+      )}
+    </View>
+  );
+};
+
+// Arrow Left Icon
+export const ArrowLeftIcon: React.FC<IconProps> = ({ color = '#18181B', size = 18 }) => {
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      <View
+        style={{
+          width: size * 0.45,
+          height: size * 0.45,
+          borderLeftWidth: 2,
+          borderTopWidth: 2,
+          borderColor: color,
+          transform: [{ rotate: '-45deg' }],
+          marginLeft: size * 0.1,
+        }}
+      />
+    </View>
+  );
+};
+
 const styles = StyleSheet.create({
   center: {
     alignItems: 'center',
@@ -788,3 +942,4 @@ const styles = StyleSheet.create({
     backgroundColor: '#10B981',
   },
 });
+

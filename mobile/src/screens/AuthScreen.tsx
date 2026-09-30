@@ -7,15 +7,24 @@ import {
   StyleSheet,
   StatusBar,
   ScrollView,
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Image,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { authService } from '../services/authService';
 import { fonts } from '../theme/typography';
+import { useTheme } from '../theme/ThemeContext';
 import { KineticSpinner } from '../components/KineticSpinner';
+import { KineticPressable } from '../components/KineticPressable';
+import {
+  MailIcon,
+  LockIcon,
+  EyeIcon,
+  EyeOffIcon,
+  CheckboxIcon,
+  ArrowLeftIcon,
+} from '../components/VectorIcons';
 
 interface AuthScreenProps {
   initialMode?: 'signin' | 'signup';
@@ -29,230 +38,306 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
   onBackToWelcome,
 }) => {
   const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
+
   const [mode, setMode] = useState<'signin' | 'signup'>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [agreeTerms, setAgreeTerms] = useState(true);
+  const [keepLoggedIn, setKeepLoggedIn] = useState(true);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
 
   const handleAuth = async () => {
     if (!email.trim() || !password.trim()) {
-      setErrorMessage('Please enter your email and master key.');
+      setErrorMessage('Παρακαλώ συμπληρώστε το email και τον κωδικό πρόσβασης.');
       return;
+    }
+
+    if (mode === 'signup') {
+      if (password !== confirmPassword) {
+        setErrorMessage('Οι κωδικοί πρόσβασης δεν ταιριάζουν.');
+        return;
+      }
+      if (!agreeTerms) {
+        setErrorMessage('Πρέπει να συμφωνήσετε με τους Όρους & Προϋποθέσεις.');
+        return;
+      }
     }
 
     setLoading(true);
     setErrorMessage('');
-    setSuccessMessage('');
 
     try {
       if (mode === 'signin') {
         const result = await authService.signIn(email, password);
         if (!result.success) {
-          setErrorMessage(result.error || 'Authentication failed. Please check credentials.');
+          setErrorMessage(result.error || 'Η σύνδεση απέτυχε. Ελέγξτε τα στοιχεία σας.');
           setLoading(false);
           return;
         }
-        setSuccessMessage('Access granted. Unlocking ledger...');
       } else {
         const result = await authService.signUp(email, password);
         if (!result.success) {
-          setErrorMessage(result.error || 'Registration failed.');
+          setErrorMessage(result.error || 'Η εγγραφή απέτυχε.');
           setLoading(false);
           return;
         }
-        setSuccessMessage(result.message || 'Vault initialized. Unlocking ledger...');
       }
 
-      // Smooth transition to main app flow
+      // Smooth transition to app flow
       setTimeout(() => {
         setLoading(false);
         onAuthenticated();
-      }, 500);
+      }, 400);
     } catch (err: any) {
-      setErrorMessage(err.message || 'Authentication error.');
+      setErrorMessage(err.message || 'Σφάλμα ταυτοποίησης.');
       setLoading(false);
     }
   };
 
+  const handleForgotPassword = () => {
+    Alert.alert(
+      'Επαναφορά Κωδικού',
+      'Στείλαμε οδηγίες επαναφοράς στο email σας εφόσον υπάρχει καταχωρημένος λογαριασμός.',
+      [{ text: 'Εντάξει' }]
+    );
+  };
+
+  const isSignUp = mode === 'signup';
+
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+    <View style={[styles.container, { backgroundColor: '#F8F8F6' }]}>
+      <StatusBar barStyle="dark-content" />
 
       <KeyboardAvoidingView
         style={styles.keyboardAvoid}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <View
-          style={[
-            styles.contentContainer,
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={[
+            styles.scrollContent,
             {
-              paddingTop: Math.max(insets.top + 8, 48),
-              paddingBottom: Math.max(insets.bottom + 12, 28),
+              paddingTop: Math.max(insets.top + 12, 36),
+              paddingBottom: Math.max(insets.bottom + 20, 36),
             },
           ]}
         >
-          {/* Top Bar: Clean isolated back button, perfectly padded below notch/camera */}
+          {/* Top Bar: Circular Back Button */}
           <View style={styles.topBar}>
             <TouchableOpacity
               onPress={onBackToWelcome}
-              hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
-              style={styles.backButton}
-              activeOpacity={0.7}
+              style={styles.circularBackButton}
+              activeOpacity={0.75}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
-              <Text style={styles.backArrow}>←</Text>
+              <ArrowLeftIcon size={18} color="#18181B" />
             </TouchableOpacity>
           </View>
 
-          {/* Upper / Middle Form Block */}
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            bounces={false}
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={styles.scrollBlock}
-          >
-            {/* Brand Logo Showcase */}
-            <View style={styles.brandLogoRow}>
-              <View style={styles.brandLogoFrame}>
-                <Image
-                  source={require('../assets/finance-logo.png')}
-                  style={styles.brandLogoImage}
-                  resizeMode="contain"
+          {/* Screen Title & Subtitle (Mockup screens 2 & 3) */}
+          <View style={styles.titleSection}>
+            <Text style={styles.titleText}>
+              {isSignUp ? 'Δημιουργία λογαριασμού' : 'Σύνδεση λογαριασμού'}
+            </Text>
+            <Text style={styles.subtitleText}>
+              {isSignUp ? 'Κάντε εγγραφή για να συνεχίσετε' : 'Καλώς ήρθατε ξανά!'}
+            </Text>
+          </View>
+
+          {/* Error Banner */}
+          {errorMessage ? (
+            <View style={styles.errorBanner}>
+              <Text style={styles.errorBannerText}>{errorMessage}</Text>
+            </View>
+          ) : null}
+
+          {/* Form Fields Container */}
+          <View style={styles.formContainer}>
+            {/* Field: Email */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Email</Text>
+              <View style={styles.inputBox}>
+                <View style={styles.inputLeadingIcon}>
+                  <MailIcon size={18} color="#71717A" />
+                </View>
+                <TextInput
+                  style={styles.textInput}
+                  value={email}
+                  onChangeText={(val) => {
+                    setEmail(val);
+                    if (errorMessage) setErrorMessage('');
+                  }}
+                  placeholder="example@gmail.com"
+                  placeholderTextColor="#A1A1AA"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  editable={!loading}
                 />
               </View>
             </View>
 
-            {/* Flow Control: Segmented hairline pill switch */}
-            <View style={styles.segmentedContainer}>
-              <TouchableOpacity
-                style={[styles.segment, mode === 'signin' && styles.activeSegment]}
-                onPress={() => {
-                  setMode('signin');
-                  setErrorMessage('');
-                  setSuccessMessage('');
-                }}
-                activeOpacity={0.8}
-              >
-                <Text
-                  style={[
-                    styles.segmentText,
-                    mode === 'signin' ? styles.activeSegmentText : styles.inactiveSegmentText,
-                  ]}
-                >
-                  Sign In
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.segment, mode === 'signup' && styles.activeSegment]}
-                onPress={() => {
-                  setMode('signup');
-                  setErrorMessage('');
-                  setSuccessMessage('');
-                }}
-                activeOpacity={0.8}
-              >
-                <Text
-                  style={[
-                    styles.segmentText,
-                    mode === 'signup' ? styles.activeSegmentText : styles.inactiveSegmentText,
-                  ]}
-                >
-                  Create Account
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Dynamic Header */}
-            <View style={styles.headerBlock}>
-              <Text style={styles.headerTitle}>
-                {mode === 'signin' ? 'Enter your vault.' : 'Initialize ledger.'}
-              </Text>
-              <Text style={styles.headerSubtitle}>
-                Authenticate using your registered email and secure master key.
-              </Text>
-            </View>
-
-            {/* Field 1: Email */}
-            <View style={styles.fieldContainer}>
-              <Text style={styles.fieldLabel}>LEDGER IDENTITY (EMAIL)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="operator@financial-kernel.com"
-                placeholderTextColor="#52525B"
-                autoCapitalize="none"
-                keyboardType="email-address"
-                value={email}
-                onChangeText={(t) => {
-                  setEmail(t);
-                  if (errorMessage) setErrorMessage('');
-                }}
-              />
-            </View>
-
-            {/* Field 2: Master Key / Password */}
-            <View style={styles.fieldContainer}>
-              <View style={styles.passwordLabelRow}>
-                <Text style={styles.fieldLabel}>MASTER KEY (PASSWORD)</Text>
-                {mode === 'signin' && (
-                  <TouchableOpacity activeOpacity={0.7}>
-                    <Text style={styles.forgotText}>Forgot key?</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-
-              <View style={styles.passwordInputRow}>
+            {/* Field: Password */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Κωδικός πρόσβασης</Text>
+              <View style={styles.inputBox}>
+                <View style={styles.inputLeadingIcon}>
+                  <LockIcon size={18} color="#71717A" />
+                </View>
                 <TextInput
-                  style={[styles.input, { flex: 1, marginBottom: 0 }]}
-                  placeholder="••••••••••••"
-                  placeholderTextColor="#52525B"
-                  secureTextEntry={!showPassword}
+                  style={styles.textInput}
                   value={password}
-                  onChangeText={(t) => {
-                    setPassword(t);
+                  onChangeText={(val) => {
+                    setPassword(val);
                     if (errorMessage) setErrorMessage('');
                   }}
+                  placeholder={isSignUp ? 'Δημιουργήστε κωδικό' : 'Εισάγετε τον κωδικό σας'}
+                  placeholderTextColor="#A1A1AA"
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  editable={!loading}
                 />
                 <TouchableOpacity
                   onPress={() => setShowPassword(!showPassword)}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  style={styles.eyeToggleBtn}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  <Text style={styles.revealText}>
-                    {showPassword ? 'HIDE' : 'SHOW'}
-                  </Text>
+                  {showPassword ? (
+                    <EyeIcon size={18} color="#71717A" />
+                  ) : (
+                    <EyeOffIcon size={18} color="#71717A" />
+                  )}
                 </TouchableOpacity>
               </View>
             </View>
 
-            {/* Error / Success Feedback */}
-            {errorMessage ? (
-              <Text style={styles.errorText}>{errorMessage}</Text>
+            {/* Field: Confirm Password (Only for Sign Up) */}
+            {isSignUp ? (
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Επιβεβαίωση κωδικού</Text>
+                <View style={styles.inputBox}>
+                  <View style={styles.inputLeadingIcon}>
+                    <LockIcon size={18} color="#71717A" />
+                  </View>
+                  <TextInput
+                    style={styles.textInput}
+                    value={confirmPassword}
+                    onChangeText={(val) => {
+                      setConfirmPassword(val);
+                      if (errorMessage) setErrorMessage('');
+                    }}
+                    placeholder="Επανεισάγετε τον κωδικό"
+                    placeholderTextColor="#A1A1AA"
+                    secureTextEntry={!showConfirmPassword}
+                    autoCapitalize="none"
+                    editable={!loading}
+                  />
+                  <TouchableOpacity
+                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                    style={styles.eyeToggleBtn}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    {showConfirmPassword ? (
+                      <EyeIcon size={18} color="#71717A" />
+                    ) : (
+                      <EyeOffIcon size={18} color="#71717A" />
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
             ) : null}
-            {successMessage ? (
-              <Text style={styles.successText}>{successMessage}</Text>
-            ) : null}
-          </ScrollView>
 
-          {/* Bottom Pinned Block: Thumb-Reachable Primary CTA */}
-          <View style={styles.bottomPinnedBlock}>
-            <TouchableOpacity
-              style={styles.unlockButton}
+            {/* Checkbox Rows (Mockup screens 2 & 3) */}
+            {isSignUp ? (
+              // Sign Up: Terms & Conditions Checkbox
+              <TouchableOpacity
+                style={styles.checkboxRow}
+                onPress={() => setAgreeTerms(!agreeTerms)}
+                activeOpacity={0.8}
+              >
+                <CheckboxIcon checked={agreeTerms} color={theme.brandPink} size={19} />
+                <Text style={styles.checkboxLabelText}>
+                  Συμφωνώ με τους <Text style={styles.boldUnderline}>Όρους & Προϋποθέσεις</Text>
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              // Sign In: Keep me logged in & Forgot password row
+              <View style={styles.rememberForgotRow}>
+                <TouchableOpacity
+                  style={styles.checkboxRowInline}
+                  onPress={() => setKeepLoggedIn(!keepLoggedIn)}
+                  activeOpacity={0.8}
+                >
+                  <CheckboxIcon checked={keepLoggedIn} color={theme.brandPink} size={18} />
+                  <Text style={styles.checkboxLabelText}>Να παραμείνω συνδεδεμένος</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={handleForgotPassword}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={styles.forgotPasswordText}>Ξεχάσατε τον κωδικό;</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Primary Action Button */}
+            <KineticPressable
+              style={[styles.primaryButton, { backgroundColor: theme.brandPink }]}
               onPress={handleAuth}
-              activeOpacity={0.88}
               disabled={loading}
             >
               {loading ? (
-                <KineticSpinner size="small" color="#08080A" />
+                <KineticSpinner size="small" color="#FFFFFF" />
               ) : (
-                <Text style={styles.unlockButtonText}>
-                  {mode === 'signin' ? 'UNLOCK LEDGER' : 'INITIALIZE VAULT'}
+                <Text style={styles.primaryButtonText}>
+                  {isSignUp ? 'Δημιουργία λογαριασμού' : 'Σύνδεση'}
                 </Text>
               )}
-            </TouchableOpacity>
+            </KineticPressable>
           </View>
-        </View>
+
+          {/* Bottom Switch Link: Already have an account / Don't have an account */}
+          <View style={styles.bottomSwitchBlock}>
+            {isSignUp ? (
+              <TouchableOpacity
+                style={styles.switchLink}
+                onPress={() => {
+                  setMode('signin');
+                  setErrorMessage('');
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.switchLinkText}>
+                  Έχετε ήδη λογαριασμό; <Text style={styles.switchHighlight}>Σύνδεση</Text>
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={styles.switchLink}
+                onPress={() => {
+                  setMode('signup');
+                  setErrorMessage('');
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.switchLinkText}>
+                  Δεν έχετε λογαριασμό; <Text style={styles.switchHighlight}>Εγγραφή</Text>
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </View>
   );
@@ -261,257 +346,174 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F8',
   },
   keyboardAvoid: {
     flex: 1,
   },
-  contentContainer: {
-    flex: 1,
-    justifyContent: 'space-between',
+  scrollContent: {
+    flexGrow: 1,
     paddingHorizontal: 24,
+    justifyContent: 'space-between',
   },
   topBar: {
-    height: 44,
-    justifyContent: 'center',
-    marginBottom: 8,
+    marginBottom: 20,
+    alignItems: 'flex-start',
   },
-  backButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
+  circularBackButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E4E4E7',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  backArrow: {
-    fontSize: 18,
-    color: '#0A0A0A',
-    fontWeight: '700',
-    marginTop: -2,
+  titleSection: {
+    marginBottom: 24,
   },
-  scrollBlock: {
-    paddingTop: 4,
-    paddingBottom: 16,
-  },
-  brandLogoRow: {
-    alignItems: 'center',
-    marginBottom: 16,
-    marginTop: 6,
-  },
-  brandLogoFrame: {
-    width: 82,
-    height: 82,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E4E4E7',
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  brandLogoImage: {
-    width: 76,
-    height: 76,
-    borderRadius: 16,
-  },
-  segmentedContainer: {
-    flexDirection: 'row',
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: '#F4F4F5',
-    padding: 3,
-    borderWidth: 1,
-    borderColor: '#E4E4E7',
-    marginBottom: 20,
-  },
-  segment: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 11,
-  },
-  activeSegment: {
-    backgroundColor: '#0A0A0A',
-  },
-  segmentText: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 13,
-    letterSpacing: -0.2,
-  },
-  activeSegmentText: {
-    fontFamily: fonts.bodyBold,
-    color: '#FFFFFF',
-    fontWeight: '700',
-  },
-  inactiveSegmentText: {
-    color: '#71717A',
-    fontWeight: '500',
-  },
-  headerBlock: {
-    marginBottom: 20,
-  },
-  headerTitle: {
+  titleText: {
     fontFamily: fonts.heading,
-    fontSize: 26,
+    fontSize: 30,
     fontWeight: '900',
-    color: '#0A0A0A',
-    letterSpacing: -0.6,
+    color: '#18181B',
+    letterSpacing: -0.8,
     marginBottom: 6,
   },
-  headerSubtitle: {
-    fontFamily: fonts.bodyLight,
-    fontSize: 13,
+  subtitleText: {
+    fontFamily: fonts.body,
+    fontSize: 15,
     color: '#71717A',
-    lineHeight: 18,
     letterSpacing: -0.2,
   },
-  biometricButton: {
-    height: 50,
-    borderRadius: 14,
-    backgroundColor: '#FFFFFF',
+  errorBanner: {
+    backgroundColor: '#FFF1F2',
     borderWidth: 1,
-    borderColor: '#E4E4E7',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
+    borderColor: '#FECDD3',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     marginBottom: 16,
   },
-  biometricGlyph: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: '#0A0A0A',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  fingerprintArcOuter: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    borderWidth: 1.5,
-    borderColor: '#0A0A0A',
-  },
-  fingerprintArcInner: {
-    position: 'absolute',
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#059669',
-  },
-  biometricText: {
-    fontFamily: fonts.bodyBold,
-    color: '#0A0A0A',
+  errorBannerText: {
+    fontFamily: fonts.bodyMedium,
     fontSize: 13,
+    color: '#E11D48',
+  },
+  formContainer: {
+    gap: 16,
+  },
+  inputGroup: {
+    gap: 6,
+  },
+  inputLabel: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13.5,
+    color: '#3F3F46',
     fontWeight: '700',
   },
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-    gap: 12,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#E4E4E7',
-  },
-  dividerText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 10,
-    letterSpacing: 1,
-    color: '#71717A',
-    fontWeight: '700',
-    textTransform: 'uppercase',
-  },
-  fieldContainer: {
-    minHeight: 58,
+  inputBox: {
+    height: 52,
     borderRadius: 14,
     backgroundColor: '#FFFFFF',
-    borderWidth: 1,
+    borderWidth: 1.2,
     borderColor: '#E4E4E7',
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    marginBottom: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+  },
+  inputLeadingIcon: {
+    marginRight: 10,
+    alignItems: 'center',
     justifyContent: 'center',
   },
-  fieldLabel: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 10,
-    letterSpacing: 0.5,
-    color: '#71717A',
-    fontWeight: '700',
-    marginBottom: 3,
-    textTransform: 'uppercase',
+  textInput: {
+    flex: 1,
+    fontFamily: fonts.body,
+    fontSize: 14.5,
+    color: '#18181B',
+    paddingVertical: 0,
   },
-  input: {
+  eyeToggleBtn: {
+    padding: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 4,
+    marginBottom: 6,
+  },
+  checkboxRowInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  rememberForgotRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 2,
+    marginBottom: 8,
+  },
+  checkboxLabelText: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: '#52525B',
+  },
+  boldUnderline: {
+    fontFamily: fonts.bodyBold,
+    fontWeight: '700',
+    color: '#18181B',
+  },
+  forgotPasswordText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12.5,
+    color: '#71717A',
+    fontWeight: '600',
+  },
+  primaryButton: {
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+    shadowColor: '#E11D74',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  primaryButtonText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 15.5,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -0.2,
+  },
+  bottomSwitchBlock: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 32,
+  },
+  switchLink: {
+    paddingVertical: 10,
+  },
+  switchLinkText: {
     fontFamily: fonts.body,
     fontSize: 14,
-    color: '#0A0A0A',
-    padding: 0,
-    fontWeight: '500',
+    color: '#71717A',
   },
-  passwordLabelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 3,
-  },
-  forgotText: {
+  switchHighlight: {
     fontFamily: fonts.bodyBold,
-    fontSize: 11,
-    color: '#0A0A0A',
-    fontWeight: '600',
-  },
-  passwordInputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  revealText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 11,
-    letterSpacing: 0.5,
-    color: '#0A0A0A',
-    fontWeight: '700',
-    paddingLeft: 10,
-  },
-  errorText: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 12,
-    color: '#E11D48',
-    marginTop: 4,
-    marginBottom: 8,
-    fontWeight: '600',
-  },
-  successText: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 12,
-    color: '#059669',
-    marginTop: 4,
-    marginBottom: 8,
-    fontWeight: '600',
-  },
-  bottomPinnedBlock: {
-    paddingTop: 12,
-    paddingBottom: 4,
-  },
-  unlockButton: {
-    height: 54,
-    borderRadius: 14,
-    backgroundColor: '#0A0A0A',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  unlockButtonText: {
-    fontFamily: fonts.bodyBold,
-    color: '#FFFFFF',
-    fontSize: 15,
+    color: '#18181B',
     fontWeight: '800',
-    letterSpacing: 0.2,
   },
 });

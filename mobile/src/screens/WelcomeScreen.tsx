@@ -1,14 +1,20 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
-  SafeAreaView,
   View,
   Text,
-  TouchableOpacity,
   StyleSheet,
   StatusBar,
+  Animated,
+  Easing,
+  Dimensions,
 } from 'react-native';
-import { TitaniumCardVisual } from '../components/TitaniumCardVisual';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fonts } from '../theme/typography';
+import { useTheme } from '../theme/ThemeContext';
+import { KineticPressable } from '../components/KineticPressable';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const piggyImg = require('../assets/piggy.png');
 
 interface WelcomeScreenProps {
   onGetStarted: () => void;
@@ -19,113 +25,164 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   onGetStarted,
   onSignIn,
 }) => {
+  const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
+
+  // Gentle anti-gravity floating animation for the big piggy bank
+  const floatAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const floatLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatAnim, {
+          toValue: 1,
+          duration: 2800,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(floatAnim, {
+          toValue: 0,
+          duration: 2800,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    floatLoop.start();
+    return () => floatLoop.stop();
+  }, [floatAnim]);
+
+  const translateY = floatAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -10],
+  });
+
+  const rotate = floatAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: ['0deg', '-1deg', '0deg'],
+  });
+
+  // Responsive image dimensions (large and prominent as requested)
+  const piggyWidth = Math.min(SCREEN_WIDTH - 32, 370);
+  const piggyHeight = Math.round(piggyWidth * 0.585); // 1.71 : 1 aspect ratio
+
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={[styles.container, { backgroundColor: '#F8F8F6' }]}>
       <StatusBar barStyle="dark-content" />
 
-      {/* Centerpiece: Dynamic Perspective Visual Card */}
-      <View style={styles.centerpieceContainer}>
-        <TitaniumCardVisual />
+      {/* Top Header Block (Greek only) */}
+      <View style={[styles.headerBlock, { paddingTop: Math.max(insets.top + 16, 44) }]}>
+        <Text style={styles.titleText}>Καλώς ήρθατε</Text>
+        <Text style={styles.subtitleText}>Συνδεθείτε ή εγγραφείτε για να συνεχίσετε</Text>
       </View>
 
-      {/* Lower Third: Headline, Narrative & Tactile Action Deck */}
-      <View style={styles.contentDeck}>
-        <View style={styles.copyBlock}>
-          <Text style={styles.headline}>Precision control over every dollar.</Text>
-          <Text style={styles.narrative}>
-            Real-time ledger dispatch, automated liquidity limits, and sub-second asset tracking.
-          </Text>
-        </View>
-
-        {/* Action Deck */}
-        <View style={styles.actionDeck}>
-          <TouchableOpacity
-            style={styles.primaryCta}
-            onPress={onGetStarted}
-            activeOpacity={0.88}
-          >
-            <Text style={styles.primaryCtaText}>Get Started →</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.secondaryLink}
-            onPress={onSignIn}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.secondaryLinkText}>
-              Already have an account? <Text style={styles.obsidianHighlight}>Sign In</Text>
-            </Text>
-          </TouchableOpacity>
-        </View>
+      {/* Centerpiece Hero: Large 3D Piggy Bank with kinetic floating float */}
+      <View style={styles.heroCenterpiece}>
+        <Animated.Image
+          source={piggyImg}
+          style={[
+            styles.piggyHeroImage,
+            {
+              width: piggyWidth,
+              height: piggyHeight,
+              transform: [{ translateY }, { rotate }],
+            },
+          ]}
+          resizeMode="contain"
+        />
       </View>
-    </SafeAreaView>
+
+      {/* Lower Action Deck (Greek only, no guest link) */}
+      <View style={[styles.bottomDeck, { paddingBottom: Math.max(insets.bottom + 20, 36) }]}>
+        {/* Primary CTA: Δημιουργία λογαριασμού */}
+        <KineticPressable
+          style={[styles.primaryButton, { backgroundColor: theme.brandPink }]}
+          onPress={onGetStarted}
+        >
+          <Text style={styles.primaryButtonText}>Δημιουργία λογαριασμού</Text>
+        </KineticPressable>
+
+        {/* Secondary CTA: Έχω ήδη λογαριασμό */}
+        <KineticPressable
+          style={styles.secondaryButton}
+          onPress={onSignIn}
+        >
+          <Text style={styles.secondaryButtonText}>Έχω ήδη λογαριασμό</Text>
+        </KineticPressable>
+      </View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F8',
     justifyContent: 'space-between',
   },
-  centerpieceContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  contentDeck: {
+  headerBlock: {
     paddingHorizontal: 24,
-    paddingBottom: 40,
   },
-  copyBlock: {
-    marginBottom: 28,
-  },
-  headline: {
+  titleText: {
     fontFamily: fonts.heading,
-    fontSize: 32,
+    fontSize: 34,
     fontWeight: '900',
-    color: '#0A0A0A',
-    lineHeight: 38,
+    color: '#18181B',
     letterSpacing: -0.8,
-    marginBottom: 10,
+    marginBottom: 6,
   },
-  narrative: {
+  subtitleText: {
     fontFamily: fonts.body,
-    fontSize: 14,
+    fontSize: 15,
     color: '#71717A',
-    lineHeight: 22,
-    maxWidth: 320,
-    letterSpacing: -0.1,
+    letterSpacing: -0.2,
   },
-  actionDeck: {
-    gap: 8,
+  heroCenterpiece: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    marginVertical: 10,
   },
-  primaryCta: {
+  piggyHeroImage: {
+    alignSelf: 'center',
+  },
+  bottomDeck: {
+    paddingHorizontal: 24,
+    gap: 12,
+  },
+  primaryButton: {
     height: 56,
-    borderRadius: 16,
-    backgroundColor: '#0A0A0A',
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#E11D74',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  primaryButtonText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 15.5,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -0.2,
+  },
+  secondaryButton: {
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.2,
+    borderColor: '#E4E4E7',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  primaryCtaText: {
+  secondaryButtonText: {
     fontFamily: fonts.bodyBold,
-    color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 15.5,
     fontWeight: '800',
-    letterSpacing: 0.2,
-  },
-  secondaryLink: {
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  secondaryLinkText: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 13,
-    color: '#71717A',
-    fontWeight: '500',
-  },
-  obsidianHighlight: {
-    color: '#0A0A0A',
-    fontWeight: '700',
+    color: '#18181B',
+    letterSpacing: -0.2,
   },
 });
