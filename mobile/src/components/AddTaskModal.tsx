@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Task, TaskPriority } from '../types';
 import { fonts } from '../theme/typography';
+import { useTheme } from '../theme/ThemeContext';
 
 interface AddTaskModalProps {
   visible: boolean;
@@ -20,9 +21,13 @@ interface AddTaskModalProps {
   initialDate?: string;
 }
 
-const CATEGORIES = ['Design', 'Finance', 'Work', 'DevOps', 'Personal'];
-const PRIORITIES: TaskPriority[] = ['low', 'medium', 'high'];
-const PROGRESS_OPTIONS = [0, 25, 50, 70, 100];
+const CATEGORIES = ['Σχεδιασμός', 'Οικονομικά', 'Εργασία', 'Τεχνολογία', 'Προσωπικά'];
+const PRIORITIES: { key: TaskPriority; label: string }[] = [
+  { key: 'low', label: 'ΧΑΜΗΛΗ' },
+  { key: 'medium', label: 'ΜΕΣΗ' },
+  { key: 'high', label: 'ΥΨΗΛΗ' },
+];
+const PROGRESS_OPTIONS = [0, 25, 50, 75, 100];
 
 export const AddTaskModal: React.FC<AddTaskModalProps> = ({
   visible,
@@ -30,6 +35,8 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
   onSave,
   initialDate,
 }) => {
+  const { theme } = useTheme();
+
   const getTodayIso = () => {
     const d = new Date();
     const year = d.getFullYear();
@@ -40,7 +47,7 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('Design');
+  const [category, setCategory] = useState('Σχεδιασμός');
   const [priority, setPriority] = useState<TaskPriority>('medium');
   const [dueDate, setDueDate] = useState(initialDate || getTodayIso());
   const [progress, setProgress] = useState(0);
@@ -49,7 +56,7 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
     if (visible) {
       setTitle('');
       setDescription('');
-      setCategory('Design');
+      setCategory('Σχεδιασμός');
       setPriority('medium');
       setDueDate(initialDate || getTodayIso());
       setProgress(0);
@@ -79,35 +86,42 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
         style={styles.overlay}
       >
         <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
-        <View style={styles.sheet}>
+        <View style={[styles.sheet, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
           {/* Header Handle */}
-          <View style={styles.handleBar} />
+          <View style={[styles.handleBar, { backgroundColor: theme.hairline }]} />
 
           <View style={styles.headerRow}>
-            <Text style={styles.modalTitle}>New Task & Focus</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <Text style={styles.closeBtnText}>✕</Text>
+            <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>Νέα Εργασία</Text>
+            <TouchableOpacity onPress={onClose} style={[styles.closeBtn, { backgroundColor: theme.track }]}>
+              <Text style={[styles.closeBtnText, { color: theme.textSecondary }]}>✕</Text>
             </TouchableOpacity>
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
             {/* Title Input */}
-            <Text style={styles.inputLabel}>Task Title</Text>
+            <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>ΤΙΤΛΟΣ ΕΡΓΑΣΙΑΣ</Text>
             <TextInput
-              style={styles.textInput}
-              placeholder="e.g. Design New Landing Page"
-              placeholderTextColor="#9CA3AF"
+              style={[
+                styles.textInput,
+                { backgroundColor: theme.inputBg, borderColor: theme.hairline, color: theme.inputText },
+              ]}
+              placeholder="π.χ. Σχεδίαση Νέας Σελίδας"
+              placeholderTextColor={theme.inputPlaceholder}
               value={title}
               onChangeText={setTitle}
               autoFocus
             />
 
             {/* Description */}
-            <Text style={styles.inputLabel}>Description (Optional)</Text>
+            <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>ΠΕΡΙΓΡΑΦΗ (ΠΡΟΑΙΡΕΤΙΚΟ)</Text>
             <TextInput
-              style={[styles.textInput, styles.textArea]}
-              placeholder="Add key deliverables or notes..."
-              placeholderTextColor="#9CA3AF"
+              style={[
+                styles.textInput,
+                styles.textArea,
+                { backgroundColor: theme.inputBg, borderColor: theme.hairline, color: theme.inputText },
+              ]}
+              placeholder="Σημειώσεις ή βασικά παραδοτέα..."
+              placeholderTextColor={theme.inputPlaceholder}
               value={description}
               onChangeText={setDescription}
               multiline
@@ -115,26 +129,39 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
             />
 
             {/* Due Date (YYYY-MM-DD) */}
-            <Text style={styles.inputLabel}>Scheduled Date (YYYY-MM-DD)</Text>
+            <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>ΗΜΕΡΟΜΗΝΙΑ (ΕΕΕΕ-ΜΜ-ΗΗ)</Text>
             <TextInput
-              style={styles.textInput}
-              placeholder="2026-09-29"
-              placeholderTextColor="#9CA3AF"
+              style={[
+                styles.textInput,
+                { backgroundColor: theme.inputBg, borderColor: theme.hairline, color: theme.inputText },
+              ]}
+              placeholder="2026-09-30"
+              placeholderTextColor={theme.inputPlaceholder}
               value={dueDate}
               onChangeText={setDueDate}
             />
 
             {/* Category Chips */}
-            <Text style={styles.inputLabel}>Category</Text>
+            <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>ΚΑΤΗΓΟΡΙΑ</Text>
             <View style={styles.chipRow}>
               {CATEGORIES.map((cat) => (
                 <TouchableOpacity
                   key={cat}
-                  style={[styles.chip, category === cat && styles.activeChip]}
+                  style={[
+                    styles.chip,
+                    { backgroundColor: theme.track, borderColor: theme.hairline },
+                    category === cat && { backgroundColor: theme.brandPink, borderColor: theme.brandPink },
+                  ]}
                   onPress={() => setCategory(cat)}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.chipText, category === cat && styles.activeChipText]}>
+                  <Text
+                    style={[
+                      styles.chipText,
+                      { color: category === cat ? '#FFFFFF' : theme.textSecondary },
+                      category === cat && { fontWeight: '700' },
+                    ]}
+                  >
                     {cat}
                   </Text>
                 </TouchableOpacity>
@@ -142,28 +169,30 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
             </View>
 
             {/* Priority Selector */}
-            <Text style={styles.inputLabel}>Priority Level</Text>
+            <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>ΠΡΟΤΕΡΑΙΟΤΗΤΑ</Text>
             <View style={styles.chipRow}>
               {PRIORITIES.map((p) => {
-                const isActive = priority === p;
-                const pColor = p === 'high' ? '#E11D48' : p === 'medium' ? '#71717A' : '#059669';
+                const isActive = priority === p.key;
+                const pColor = p.key === 'high' ? theme.crimson : p.key === 'medium' ? theme.brandPink : theme.emerald;
                 return (
                   <TouchableOpacity
-                    key={p}
+                    key={p.key}
                     style={[
                       styles.chip,
+                      { backgroundColor: theme.track, borderColor: theme.hairline },
                       isActive && { backgroundColor: pColor, borderColor: pColor },
                     ]}
-                    onPress={() => setPriority(p)}
+                    onPress={() => setPriority(p.key)}
                     activeOpacity={0.7}
                   >
                     <Text
                       style={[
                         styles.chipText,
-                        isActive && { color: '#FFFFFF', fontWeight: '700' },
+                        { color: isActive ? '#FFFFFF' : theme.textSecondary },
+                        isActive && { fontWeight: '700' },
                       ]}
                     >
-                      {p.toUpperCase()}
+                      {p.label}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -171,14 +200,15 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
             </View>
 
             {/* Initial Progress Percentage */}
-            <Text style={styles.inputLabel}>Progress ({progress}%)</Text>
+            <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>ΠΡΟΟΔΟΣ ({progress}%)</Text>
             <View style={styles.progressRow}>
               {PROGRESS_OPTIONS.map((val) => (
                 <TouchableOpacity
                   key={val}
                   style={[
                     styles.progressBtn,
-                    progress === val && styles.activeProgressBtn,
+                    { backgroundColor: theme.track },
+                    progress === val && { backgroundColor: theme.brandPink },
                   ]}
                   onPress={() => setProgress(val)}
                   activeOpacity={0.7}
@@ -186,7 +216,8 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
                   <Text
                     style={[
                       styles.progressBtnText,
-                      progress === val && styles.activeProgressBtnText,
+                      { color: progress === val ? '#FFFFFF' : theme.textSecondary },
+                      progress === val && { fontWeight: '700' },
                     ]}
                   >
                     {val}%
@@ -197,12 +228,16 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 
             {/* Submit Button */}
             <TouchableOpacity
-              style={[styles.submitBtn, !title.trim() && styles.disabledSubmitBtn]}
+              style={[
+                styles.submitBtn,
+                { backgroundColor: theme.brandPink },
+                !title.trim() && { opacity: 0.5 },
+              ]}
               onPress={handleSubmit}
               disabled={!title.trim()}
               activeOpacity={0.88}
             >
-              <Text style={styles.submitBtnText}>Create Task</Text>
+              <Text style={styles.submitBtnText}>Δημιουργία Εργασίας</Text>
             </TouchableOpacity>
           </ScrollView>
         </View>
@@ -215,27 +250,25 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   backdrop: {
     ...StyleSheet.absoluteFill,
   },
   sheet: {
-    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingTop: 12,
-    paddingHorizontal: 22,
+    paddingHorizontal: 20,
     paddingBottom: Platform.OS === 'ios' ? 36 : 24,
-    maxHeight: '85%',
+    maxHeight: '88%',
     borderWidth: 1,
-    borderColor: '#E4E4E7',
+    borderBottomWidth: 0,
   },
   handleBar: {
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#E4E4E7',
     alignSelf: 'center',
     marginBottom: 16,
   },
@@ -248,46 +281,39 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontFamily: fonts.heading,
     fontSize: 20,
-    fontWeight: '800',
-    color: '#0A0A0A',
-    letterSpacing: -0.4,
+    fontWeight: '900',
+    letterSpacing: -0.3,
   },
   closeBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F4F4F5',
     alignItems: 'center',
     justifyContent: 'center',
   },
   closeBtnText: {
-    fontFamily: fonts.bodyBold,
     fontSize: 14,
     fontWeight: '700',
-    color: '#71717A',
   },
   scrollContent: {
-    paddingBottom: 20,
+    paddingBottom: 24,
   },
   inputLabel: {
     fontFamily: fonts.bodyBold,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
-    color: '#71717A',
+    letterSpacing: 0.4,
     marginBottom: 6,
     marginTop: 12,
     textTransform: 'uppercase',
   },
   textInput: {
     fontFamily: fonts.body,
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: '#E4E4E7',
-    borderRadius: 14,
-    paddingHorizontal: 16,
+    borderRadius: 12,
+    paddingHorizontal: 14,
     paddingVertical: 12,
-    fontSize: 15,
-    color: '#0A0A0A',
+    fontSize: 14,
+    borderWidth: 1,
   },
   textArea: {
     height: 64,
@@ -297,69 +323,48 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
+    marginTop: 2,
   },
   chip: {
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#F4F4F5',
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E4E4E7',
-  },
-  activeChip: {
-    backgroundColor: '#0A0A0A',
-    borderColor: '#0A0A0A',
   },
   chipText: {
     fontFamily: fonts.bodyMedium,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
-    color: '#71717A',
-  },
-  activeChipText: {
-    color: '#FFFFFF',
   },
   progressRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     gap: 8,
+    marginTop: 4,
   },
   progressBtn: {
     flex: 1,
-    paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: '#F4F4F5',
+    paddingVertical: 8,
+    borderRadius: 10,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E4E4E7',
-  },
-  activeProgressBtn: {
-    backgroundColor: '#0A0A0A',
-    borderColor: '#0A0A0A',
+    justifyContent: 'center',
   },
   progressBtnText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#71717A',
-  },
-  activeProgressBtnText: {
-    color: '#FFFFFF',
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    fontWeight: '600',
   },
   submitBtn: {
-    marginTop: 22,
-    backgroundColor: '#0A0A0A',
-    borderRadius: 14,
     paddingVertical: 15,
+    borderRadius: 14,
     alignItems: 'center',
-  },
-  disabledSubmitBtn: {
-    backgroundColor: '#E4E4E7',
+    marginTop: 24,
+    marginBottom: 12,
   },
   submitBtnText: {
     fontFamily: fonts.bodyBold,
     fontSize: 15,
     fontWeight: '700',
     color: '#FFFFFF',
+    letterSpacing: -0.2,
   },
 });

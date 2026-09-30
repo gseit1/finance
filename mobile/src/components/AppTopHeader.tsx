@@ -61,31 +61,14 @@ export const AppTopHeader: React.FC<AppTopHeaderProps> = ({
     }
   };
 
-  // Right side: prefer rightAction prop, else show theme toggle + avatar
+  // Right side: prefer rightAction prop alone without crowding, else single avatar or theme toggle
   const rightContent = rightAction ? (
     <View style={styles.rightGroup}>
       {rightAction}
-      <TouchableOpacity
-        style={[styles.iconButton, { backgroundColor: theme.iconButtonBg, borderColor: theme.iconButtonBorder }]}
-        onPress={toggleTheme}
-        activeOpacity={0.7}
-      >
-        <Text style={[styles.themeToggleIcon]}>{isDark ? '☀️' : '🌙'}</Text>
-      </TouchableOpacity>
     </View>
   ) : (
     <View style={styles.rightGroup}>
-      {/* Theme toggle */}
-      <TouchableOpacity
-        style={[styles.iconButton, { backgroundColor: theme.iconButtonBg, borderColor: theme.iconButtonBorder }]}
-        onPress={toggleTheme}
-        activeOpacity={0.7}
-      >
-        <Text style={styles.themeToggleIcon}>{isDark ? '☀️' : '🌙'}</Text>
-      </TouchableOpacity>
-
-      {/* Profile avatar */}
-      {onProfilePress && (
+      {onProfilePress ? (
         <TouchableOpacity
           style={[styles.avatarButton, { backgroundColor: theme.iconButtonBg, borderColor: theme.iconButtonBorder }]}
           onPress={onProfilePress}
@@ -100,6 +83,14 @@ export const AppTopHeader: React.FC<AppTopHeaderProps> = ({
               <UserIcon size={16} color={theme.iconButtonColor} />
             </View>
           )}
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          style={[styles.iconButton, { backgroundColor: theme.iconButtonBg, borderColor: theme.iconButtonBorder }]}
+          onPress={toggleTheme}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.themeToggleIcon}>{isDark ? '☀️' : '🌙'}</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -130,10 +121,15 @@ export const AppTopHeader: React.FC<AppTopHeaderProps> = ({
           </TouchableOpacity>
         )}
 
-        {/* Center: Page Title or Welcome Text */}
+        {/* Center: Page Title with responsive scaling and safe spacing */}
         {title ? (
           <View style={styles.titleContainer}>
-            <Text style={[styles.titleText, { color: theme.textPrimary }]} numberOfLines={1} ellipsizeMode="tail">
+            <Text
+              style={[styles.titleText, { color: theme.textPrimary }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
+            >
               {title}
             </Text>
           </View>
@@ -156,11 +152,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
   },
   iconButton: {
-    width: 42,
-    height: 42,
+    width: 40,
+    height: 40,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
@@ -178,36 +174,41 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    marginHorizontal: 12,
+    paddingHorizontal: 4,
+    minWidth: 0,
   },
   titleText: {
     fontFamily: fonts.heading,
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '900',
     letterSpacing: -0.3,
+    textAlign: 'center',
   },
   rightGroup: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'flex-end',
+    minWidth: 40,
   },
   avatarButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
     borderWidth: 1,
   },
   avatarImage: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
   avatarFallback: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -44,13 +44,13 @@ export const lightTheme = {
   crimsonBg: '#FFF1F2',
   crimsonBorder: '#FECDD3',
 
-  // Bottom Nav
-  navBg: '#0A0A0A',
-  navBorder: '#27272A',
-  navActivePill: '#27272A',
-  navActivePillBorder: '#3F3F46',
+  // Bottom Nav (Signature Brand Pink)
+  navBg: '#E11D74',
+  navBorder: 'rgba(255, 255, 255, 0.20)',
+  navActivePill: 'rgba(255, 255, 255, 0.24)',
+  navActivePillBorder: 'rgba(255, 255, 255, 0.40)',
   navActiveText: '#FFFFFF',
-  navInactiveIcon: '#71717A',
+  navInactiveIcon: 'rgba(255, 255, 255, 0.75)',
 
   // Input
   inputBg: '#FFFFFF',
@@ -109,12 +109,12 @@ export const darkTheme: typeof lightTheme = {
   crimsonBg: '#1A0C12',
   crimsonBorder: '#4C0519',
 
-  navBg: '#18181B',
-  navBorder: '#27272A',
-  navActivePill: '#27272A',
-  navActivePillBorder: '#3F3F46',
+  navBg: '#E11D74',
+  navBorder: 'rgba(255, 255, 255, 0.20)',
+  navActivePill: 'rgba(255, 255, 255, 0.24)',
+  navActivePillBorder: 'rgba(255, 255, 255, 0.40)',
   navActiveText: '#FFFFFF',
-  navInactiveIcon: '#71717A',
+  navInactiveIcon: 'rgba(255, 255, 255, 0.75)',
 
   inputBg: '#18181B',
   inputBorder: '#3F3F46',

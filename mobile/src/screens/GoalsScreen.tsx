@@ -14,7 +14,6 @@ import { Goal } from '../types';
 import { AddGoalModal } from '../components/AddGoalModal';
 import { AppTopHeader } from '../components/AppTopHeader';
 import {
-  GoalsIcon,
   PlusIcon,
   CheckIcon,
 } from '../components/VectorIcons';
@@ -28,6 +27,8 @@ interface GoalsScreenProps {
   avatarUrl?: string | null;
 }
 
+type GoalFilter = 'all' | 'active' | 'completed';
+
 export const GoalsScreen: React.FC<GoalsScreenProps> = ({
   goals = [],
   onAddGoal,
@@ -37,6 +38,7 @@ export const GoalsScreen: React.FC<GoalsScreenProps> = ({
   avatarUrl,
 }) => {
   const { theme } = useTheme();
+  const [filter, setFilter] = useState<GoalFilter>('all');
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [fundsModalVisible, setFundsModalVisible] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
@@ -51,15 +53,30 @@ export const GoalsScreen: React.FC<GoalsScreenProps> = ({
       totalSaved += Number(g.current_amount) || 0;
     });
     const overallProgress = totalTarget > 0 ? Math.min(100, Math.round((totalSaved / totalTarget) * 100)) : 0;
-    const completedCount = goals.filter((g) => g.is_completed || g.current_amount >= g.target_amount).length;
+    const completedCount = goals.filter((g) => g.is_completed || (Number(g.current_amount) || 0) >= (Number(g.target_amount) || 1)).length;
+    const activeCount = goals.length - completedCount;
 
     return {
       totalTarget,
       totalSaved,
       overallProgress,
       completedCount,
+      activeCount,
     };
   }, [goals]);
+
+  // Filtered goals
+  const filteredGoals = useMemo(() => {
+    return goals.filter((g) => {
+      const current = Number(g.current_amount) || 0;
+      const target = Number(g.target_amount) || 1;
+      const isDone = g.is_completed || current >= target;
+
+      if (filter === 'active') return !isDone;
+      if (filter === 'completed') return isDone;
+      return true;
+    });
+  }, [goals, filter]);
 
   const handleDeposit = () => {
     const amount = parseFloat(depositAmount);
@@ -71,9 +88,20 @@ export const GoalsScreen: React.FC<GoalsScreenProps> = ({
     setSelectedGoal(null);
   };
 
+  const openDepositModal = (goal: Goal) => {
+    setSelectedGoal(goal);
+    setDepositAmount('');
+    setFundsModalVisible(true);
+  };
+
+  const depositPresets = [10, 25, 50, 100];
+  const remainingForSelected = selectedGoal
+    ? Math.max(0, (Number(selectedGoal.target_amount) || 0) - (Number(selectedGoal.current_amount) || 0))
+    : 0;
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* Top Header */}
+      {/* Responsive Header with clear breathing room */}
       <AppTopHeader
         title="Οικονομικοί Στόχοι"
         onMenuPress={onMenuPress}
@@ -81,133 +109,248 @@ export const GoalsScreen: React.FC<GoalsScreenProps> = ({
         avatarUrl={avatarUrl}
         rightAction={
           <TouchableOpacity
-            style={[styles.headerAddBtn, { backgroundColor: theme.buttonPrimaryBg }]}
+            style={[styles.headerAddBtn, { backgroundColor: theme.brandPink }]}
             onPress={() => setCreateModalVisible(true)}
             activeOpacity={0.85}
+            accessibilityLabel="Προσθήκη νέου στόχου"
           >
-            <PlusIcon size={16} color={theme.buttonPrimaryText} />
+            <PlusIcon size={16} color="#FFFFFF" />
           </TouchableOpacity>
         }
       />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* Compact goals summary bar */}
-        <View style={[styles.summaryBar, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
-          <View style={styles.summaryCol}>
-            <Text style={[styles.summaryLabel, { color: theme.textMuted }]}>Στόχοι</Text>
-            <Text style={[styles.summaryValue, { color: theme.textPrimary }]}>{goals.length}</Text>
+        {/* Pure Pink Background Hero Section (Matches Home & Transactions) */}
+        <View style={[styles.heroCanvas, { backgroundColor: theme.brandPink }]}>
+          <View style={styles.heroTopRow}>
+            <Text style={styles.heroKicker}>ΣΥΝΟΛΙΚΕΣ ΑΠΟΤΑΜΙΕΥΣΕΙΣ</Text>
+            <View style={styles.heroBadge}>
+              <View style={styles.pulseDot} />
+              <Text style={styles.heroBadgeText}>
+                {summary.completedCount}/{goals.length} ΟΛΟΚΛΗΡΩΘΗΚΑΝ
+              </Text>
+            </View>
           </View>
-          <View style={[styles.summaryDivider, { backgroundColor: theme.hairline }]} />
-          <View style={styles.summaryCol}>
-            <Text style={[styles.summaryLabel, { color: theme.textMuted }]}>Αποταμιευμένα</Text>
-            <Text style={[styles.summaryValue, { color: theme.emerald }]}>
-              €{summary.totalSaved.toLocaleString('el-GR', { minimumFractionDigits: 0 })}
+
+          {/* Large Hero Amount & Target */}
+          <View style={styles.heroMainRow}>
+            <Text style={styles.heroBigAmount} numberOfLines={1} adjustsFontSizeToFit>
+              €{summary.totalSaved.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </Text>
+            <Text style={styles.heroSubText}>
+              από στόχο €{summary.totalTarget.toLocaleString('el-GR', { minimumFractionDigits: 0 })} ({summary.overallProgress}%)
             </Text>
           </View>
-          <View style={[styles.summaryDivider, { backgroundColor: theme.hairline }]} />
-          <View style={styles.summaryCol}>
-            <Text style={[styles.summaryLabel, { color: theme.textMuted }]}>Πρόοδος</Text>
-            <Text style={[styles.summaryValue, { color: theme.textPrimary }]}>{summary.overallProgress}%</Text>
+
+          {/* Hero Sub-Metrics Strip */}
+          <View style={styles.heroMetricsStrip}>
+            <View style={styles.heroMetricCol}>
+              <Text style={styles.heroMetricLabel}>ΕΝΕΡΓΟΙ</Text>
+              <Text style={styles.heroMetricValue}>{summary.activeCount}</Text>
+            </View>
+            <View style={styles.heroMetricDivider} />
+            <View style={styles.heroMetricCol}>
+              <Text style={styles.heroMetricLabel}>ΟΛΟΚΛΗΡΩΜΕΝΟΙ</Text>
+              <Text style={styles.heroMetricValueMint}>{summary.completedCount}</Text>
+            </View>
+            <View style={styles.heroMetricDivider} />
+            <View style={styles.heroMetricCol}>
+              <Text style={styles.heroMetricLabel}>ΠΡΟΟΔΟΣ</Text>
+              <Text style={styles.heroMetricValue}>{summary.overallProgress}%</Text>
+            </View>
           </View>
         </View>
 
-        {/* Goals List */}
-        <View style={styles.goalsContainer}>
-          <Text style={[styles.sectionHeader, { color: theme.textMuted }]}>ΕΝΕΡΓΟΙ ΣΤΟΧΟΙ ({goals.length})</Text>
+        {/* Lightweight Filter Pills (No heavy boxed outer containers) */}
+        <View style={styles.filterPillsRow}>
+          <TouchableOpacity
+            style={[
+              styles.filterPill,
+              filter === 'all'
+                ? { backgroundColor: theme.brandPink }
+                : { backgroundColor: theme.surface },
+            ]}
+            onPress={() => setFilter('all')}
+            activeOpacity={0.8}
+          >
+            <Text
+              style={[
+                styles.filterPillText,
+                { color: filter === 'all' ? '#FFFFFF' : theme.textSecondary },
+              ]}
+            >
+              Όλοι ({goals.length})
+            </Text>
+          </TouchableOpacity>
 
-          {goals.length === 0 ? (
-          <View style={[styles.emptyContainer, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
-              <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Δεν έχετε ορίσει στόχους</Text>
-              <Text style={[styles.emptySubtext, { color: theme.textSecondary }]}>
-                Ορίστε στόχους αποταμίευσης: Έκτακτο Ταμείο, Διακοπές, Εξοπλισμό.
+          <TouchableOpacity
+            style={[
+              styles.filterPill,
+              filter === 'active'
+                ? { backgroundColor: theme.brandPink }
+                : { backgroundColor: theme.surface },
+            ]}
+            onPress={() => setFilter('active')}
+            activeOpacity={0.8}
+          >
+            <Text
+              style={[
+                styles.filterPillText,
+                { color: filter === 'active' ? '#FFFFFF' : theme.textSecondary },
+              ]}
+            >
+              Σε εξέλιξη ({summary.activeCount})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.filterPill,
+              filter === 'completed'
+                ? { backgroundColor: theme.brandPink }
+                : { backgroundColor: theme.surface },
+            ]}
+            onPress={() => setFilter('completed')}
+            activeOpacity={0.8}
+          >
+            <Text
+              style={[
+                styles.filterPillText,
+                { color: filter === 'completed' ? '#FFFFFF' : theme.textSecondary },
+              ]}
+            >
+              Ολοκληρωμένοι ({summary.completedCount})
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Fluid Goal Items (Clean, minimal box styling, generous breathing space) */}
+        <View style={styles.goalsContainer}>
+          {filteredGoals.length === 0 ? (
+            <View style={[styles.emptyContainer, { backgroundColor: theme.surface }]}>
+              <Text style={styles.emptyEmoji}>{filter === 'completed' ? '🏆' : '🎯'}</Text>
+              <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>
+                {filter === 'completed'
+                  ? 'Κανένας ολοκληρωμένος στόχος ακόμη'
+                  : filter === 'active'
+                  ? 'Δεν υπάρχουν ενεργοί στόχοι'
+                  : 'Δεν έχετε ορίσει στόχους'}
               </Text>
-              <TouchableOpacity
-                style={[styles.emptyAddBtn, { backgroundColor: theme.buttonPrimaryBg }]}
-                onPress={() => setCreateModalVisible(true)}
-                activeOpacity={0.85}
-              >
-                <Text style={[styles.emptyAddBtnText, { color: theme.buttonPrimaryText }]}>+ Νέος Στόχος</Text>
-              </TouchableOpacity>
+              <Text style={[styles.emptySubtext, { color: theme.textSecondary }]}>
+                {filter === 'completed'
+                  ? 'Συνεχίστε τις αποταμιεύσεις σας για να ολοκληρώσετε τους στόχους σας!'
+                  : 'Ορίστε στόχους αποταμίευσης: Έκτακτο Ταμείο, Διακοπές, Εξοπλισμό κ.ά.'}
+              </Text>
+              {filter !== 'completed' && (
+                <TouchableOpacity
+                  style={[styles.emptyAddBtn, { backgroundColor: theme.brandPink }]}
+                  onPress={() => setCreateModalVisible(true)}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.emptyAddBtnText}>+ Νέος Στόχος</Text>
+                </TouchableOpacity>
+              )}
             </View>
           ) : (
-            goals.map((g) => {
+            filteredGoals.map((g) => {
               const current = Number(g.current_amount) || 0;
               const target = Number(g.target_amount) || 1;
               const progress = Math.min(100, Math.round((current / target) * 100));
               const isCompleted = g.is_completed || current >= target;
+              const remaining = Math.max(0, target - current);
 
               return (
-                <View key={g.id} style={[styles.goalCard, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
-                  <View style={styles.goalCardTop}>
+                <View
+                  key={g.id}
+                  style={[
+                    styles.goalItem,
+                    { backgroundColor: theme.surface },
+                  ]}
+                >
+                  {/* Top: Icon, Goal Name, Date & Contextual Action */}
+                  <View style={styles.goalItemHeader}>
                     <View style={styles.goalIconTitle}>
                       <View
                         style={[
-                          styles.goalIconBadge,
-                          { backgroundColor: g.color ? `${g.color}20` : '#F4F4F5' },
+                          styles.goalIconCircle,
+                          { backgroundColor: g.color ? `${g.color}18` : theme.track },
                         ]}
                       >
                         <Text style={styles.goalIconEmoji}>{g.icon || '🎯'}</Text>
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Text style={[styles.goalName, { color: theme.textPrimary }]} numberOfLines={1}>
+                        <Text style={[styles.goalTitleText, { color: theme.textPrimary }]} numberOfLines={1}>
                           {g.name}
                         </Text>
-                        <Text style={[styles.goalDate, { color: theme.textMuted }]}>
-                          {g.target_date ? `Στόχος: ${g.target_date}` : 'Συνεχής στόχος'}
+                        <Text style={[styles.goalDateText, { color: theme.textMuted }]}>
+                          {g.target_date ? `Έως: ${g.target_date}` : 'Συνεχής στόχος'}
                         </Text>
                       </View>
                     </View>
 
                     {isCompleted ? (
-                      <View style={[styles.completedBadge, { backgroundColor: theme.emerald }]}>
-                        <CheckIcon size={12} color="#FFFFFF" />
-                        <Text style={styles.completedBadgeText}>ΟΛΟΚΛΗΡΩΘΗΚΕ</Text>
+                      <View style={[styles.completedPill, { backgroundColor: theme.emeraldBg }]}>
+                        <CheckIcon size={12} color={theme.emerald} />
+                        <Text style={[styles.completedPillText, { color: theme.emerald }]}>Ολοκληρώθηκε</Text>
                       </View>
                     ) : (
                       <TouchableOpacity
-                        style={[styles.addFundsBtn, { backgroundColor: theme.track, borderColor: theme.hairline }]}
-                        onPress={() => {
-                          setSelectedGoal(g);
-                          setFundsModalVisible(true);
-                        }}
-                        activeOpacity={0.8}
+                        style={[styles.depositPillBtn, { backgroundColor: theme.brandPink }]}
+                        onPress={() => openDepositModal(g)}
+                        activeOpacity={0.85}
                       >
-                        <PlusIcon size={12} color={theme.textPrimary} />
-                        <Text style={[styles.addFundsBtnText, { color: theme.textPrimary }]}>Κατάθεση</Text>
+                        <PlusIcon size={12} color="#FFFFFF" />
+                        <Text style={styles.depositPillBtnText}>Κατάθεση</Text>
                       </TouchableOpacity>
                     )}
                   </View>
 
-                  {/* Amounts */}
+                  {/* Amounts Row */}
                   <View style={styles.amountsRow}>
-                    <Text style={[styles.currentAmountText, { color: theme.textPrimary }]}>
-                      €{current.toLocaleString('el-GR', { minimumFractionDigits: 2 })}
+                    <View style={styles.amountsLeft}>
+                      <Text style={[styles.currentSavedText, { color: theme.textPrimary }]}>
+                        €{current.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </Text>
+                      <Text style={[styles.targetSavedText, { color: theme.textMuted }]}>
+                        / €{target.toLocaleString('el-GR', { minimumFractionDigits: 0 })}
+                      </Text>
+                    </View>
+                    <Text
+                      style={[
+                        styles.percentText,
+                        { color: isCompleted ? theme.emerald : theme.textPrimary },
+                      ]}
+                    >
+                      {progress}%
                     </Text>
-                    <Text style={[styles.targetAmountText, { color: theme.textMuted }]}>
-                      από €{target.toLocaleString('el-GR', { minimumFractionDigits: 2 })}
-                    </Text>
-                    <Text style={[styles.progressPercentText, { color: theme.textSecondary }]}>{progress}%</Text>
                   </View>
 
-                  {/* Progress Bar */}
-                  <View style={[styles.progressBarTrack, { backgroundColor: theme.track }]}>
+                  {/* Clean Borderless Progress Bar */}
+                  <View style={[styles.progressTrack, { backgroundColor: theme.track }]}>
                     <View
                       style={[
-                        styles.progressBarFill,
+                        styles.progressFill,
                         {
                           width: `${progress}%`,
-                          backgroundColor: isCompleted ? theme.emerald : theme.textPrimary,
+                          backgroundColor: isCompleted ? theme.emerald : theme.brandPink,
                         },
                       ]}
                     />
                   </View>
+
+                  {/* Subtext info */}
+                  {!isCompleted && remaining > 0 && (
+                    <Text style={[styles.remainingHint, { color: theme.textMuted }]}>
+                      Υπολείπονται €{remaining.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </Text>
+                  )}
                 </View>
               );
             })
           )}
         </View>
 
-        <View style={{ height: 90 }} />
+        <View style={{ height: 96 }} />
       </ScrollView>
 
       {/* Add Goal Modal */}
@@ -225,36 +368,93 @@ export const GoalsScreen: React.FC<GoalsScreenProps> = ({
         onRequestClose={() => setFundsModalVisible(false)}
       >
         <View style={styles.depositModalOverlay}>
-          <View style={styles.depositModalCard}>
+          <View style={[styles.depositModalCard, { backgroundColor: theme.surface }]}>
             <Text style={[styles.depositModalTitle, { color: theme.textPrimary }]}>Κατάθεση σε Στόχο</Text>
-            <Text style={styles.depositModalSub}>
+            <Text style={[styles.depositModalSub, { color: theme.textSecondary }]} numberOfLines={1}>
               {selectedGoal?.name}
             </Text>
 
-            <TextInput
-              style={styles.depositInput}
-              placeholder="Ποσό σε EUR (€)"
-              placeholderTextColor={theme.inputPlaceholder}
-              keyboardType="decimal-pad"
-              value={depositAmount}
-              onChangeText={setDepositAmount}
-              autoFocus
-            />
+            {/* Quick Presets */}
+            <View style={styles.presetChipsRow}>
+              {depositPresets.map((val) => (
+                <TouchableOpacity
+                  key={val}
+                  style={[
+                    styles.presetChip,
+                    { backgroundColor: theme.track },
+                    depositAmount === String(val) && { backgroundColor: theme.brandPink },
+                  ]}
+                  onPress={() => setDepositAmount(String(val))}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={[
+                      styles.presetChipText,
+                      { color: depositAmount === String(val) ? '#FFFFFF' : theme.textPrimary },
+                    ]}
+                  >
+                    +€{val}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+              {remainingForSelected > 0 && remainingForSelected <= 1000 && (
+                <TouchableOpacity
+                  style={[
+                    styles.presetChip,
+                    { backgroundColor: theme.emeraldBg },
+                    depositAmount === String(remainingForSelected) && { backgroundColor: theme.emerald },
+                  ]}
+                  onPress={() => setDepositAmount(String(remainingForSelected))}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={[
+                      styles.presetChipText,
+                      { color: depositAmount === String(remainingForSelected) ? '#FFFFFF' : theme.emerald },
+                    ]}
+                  >
+                    Υπόλοιπο
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
 
+            {/* Amount input */}
+            <View style={[styles.depositInputWrapper, { backgroundColor: theme.inputBg, borderColor: theme.hairline }]}>
+              <Text style={[styles.depositCurrency, { color: theme.textSecondary }]}>€</Text>
+              <TextInput
+                style={[styles.depositInput, { color: theme.inputText }]}
+                placeholder="0.00"
+                placeholderTextColor={theme.inputPlaceholder}
+                keyboardType="decimal-pad"
+                value={depositAmount}
+                onChangeText={setDepositAmount}
+                autoFocus
+              />
+            </View>
+
+            {/* Actions */}
             <View style={styles.depositModalButtons}>
               <TouchableOpacity
-                style={styles.depositCancelBtn}
+                style={[styles.depositCancelBtn, { backgroundColor: theme.track }]}
                 onPress={() => {
                   setDepositAmount('');
                   setFundsModalVisible(false);
                 }}
+                activeOpacity={0.8}
               >
-                <Text style={styles.depositCancelText}>Áκυρο</Text>
+                <Text style={[styles.depositCancelText, { color: theme.textSecondary }]}>Άκυρο</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.depositConfirmBtn}
+                style={[
+                  styles.depositConfirmBtn,
+                  { backgroundColor: theme.brandPink },
+                  (!depositAmount || parseFloat(depositAmount) <= 0) && { opacity: 0.5 },
+                ]}
                 onPress={handleDeposit}
+                disabled={!depositAmount || parseFloat(depositAmount) <= 0}
+                activeOpacity={0.85}
               >
                 <Text style={styles.depositConfirmText}>Επιβεβαίωση</Text>
               </TouchableOpacity>
@@ -269,109 +469,145 @@ export const GoalsScreen: React.FC<GoalsScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F8',
   },
   headerAddBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 11,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   scrollContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 24,
   },
-  // ─── Compact summary bar ───
-  summaryBar: {
+
+  // ─── Pure Pink Hero Section (Clean canvas, borderless) ───
+  heroCanvas: {
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 16,
+    overflow: 'hidden',
+  },
+  heroTopRow: {
     flexDirection: 'row',
-    borderRadius: 14,
-    borderWidth: 1,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    marginBottom: 20,
-  },
-  summaryCol: {
-    flex: 1,
+    justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 8,
   },
-  summaryDivider: {
-    width: 1,
-    height: 32,
-    marginHorizontal: 4,
-  },
-  summaryLabel: {
-    fontFamily: fonts.bodyMedium,
+  heroKicker: {
+    fontFamily: fonts.bodyBold,
     fontSize: 10,
+    letterSpacing: 1,
+    color: 'rgba(255, 255, 255, 0.85)',
     fontWeight: '700',
     textTransform: 'uppercase',
+  },
+  heroBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.20)',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    gap: 5,
+  },
+  pulseDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#A7F3D0',
+  },
+  heroBadgeText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#FFFFFF',
     letterSpacing: 0.4,
-    marginBottom: 3,
   },
-  summaryValue: {
+  heroMainRow: {
+    marginBottom: 16,
+  },
+  heroBigAmount: {
     fontFamily: fonts.heading,
-    fontSize: 15,
+    fontSize: 32,
     fontWeight: '900',
-    letterSpacing: -0.3,
+    color: '#FFFFFF',
+    letterSpacing: -1,
   },
-  statCard: {
-    flex: 1,
-    borderRadius: 16,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#E4E4E7',
-  },
-  lavenderCard: {
-    backgroundColor: '#F4F4F5',
-  },
-  mintCard: {
-    backgroundColor: '#ECFDF5',
-    borderColor: '#A7F3D0',
-  },
-  peachCard: {
-    backgroundColor: '#F4F4F5',
-  },
-  statLabel: {
+  heroSubText: {
     fontFamily: fonts.bodyMedium,
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#71717A',
-    marginBottom: 4,
-  },
-  statValue: {
-    fontFamily: fonts.heading,
-    fontSize: 16,
-    fontWeight: '900',
-    color: '#0A0A0A',
-    letterSpacing: -0.3,
-  },
-  statSub: {
-    fontFamily: fonts.bodyLight,
-    fontSize: 11,
-    color: '#A1A1AA',
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.90)',
     marginTop: 2,
     fontWeight: '500',
   },
-  goalsContainer: {
-    gap: 14,
+  heroMetricsStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.22)',
+    paddingTop: 12,
   },
-  sectionHeader: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 11,
+  heroMetricCol: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  heroMetricDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
+  },
+  heroMetricLabel: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 10,
+    color: 'rgba(255, 255, 255, 0.78)',
     fontWeight: '700',
-    color: '#71717A',
-    letterSpacing: 0.6,
-    marginBottom: 4,
+    letterSpacing: 0.4,
+    marginBottom: 2,
   },
-  goalCard: {
-    backgroundColor: '#FFFFFF',
+  heroMetricValue: {
+    fontFamily: fonts.heading,
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  heroMetricValueMint: {
+    fontFamily: fonts.heading,
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#A7F3D0',
+  },
+
+  // ─── Filter Pills (Fluid, no rigid box container) ───
+  filterPillsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
+  },
+  filterPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterPillText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+
+  // ─── Goals Container & Fluid Items (Reduced box styles) ───
+  goalsContainer: {
+    gap: 12,
+  },
+  goalItem: {
     borderRadius: 16,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: '#E4E4E7',
+    padding: 16,
   },
-  goalCardTop: {
+  goalItemHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -382,135 +618,136 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     flex: 1,
-    paddingRight: 10,
+    paddingRight: 8,
   },
-  goalIconBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+  goalIconCircle: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: 'center',
     justifyContent: 'center',
   },
   goalIconEmoji: {
     fontSize: 20,
   },
-  goalName: {
+  goalTitleText: {
     fontFamily: fonts.heading,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
-    color: '#0A0A0A',
   },
-  goalDate: {
+  goalDateText: {
     fontFamily: fonts.bodyLight,
     fontSize: 12,
-    color: '#71717A',
     marginTop: 2,
   },
-  completedBadge: {
+  completedPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    backgroundColor: '#059669',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
   },
-  completedBadgeText: {
+  completedPillText: {
     fontFamily: fonts.bodyBold,
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: 0.5,
   },
-  addFundsBtn: {
+  depositPillBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 10,
-    backgroundColor: '#F4F4F5',
-    borderWidth: 1,
-    borderColor: '#E4E4E7',
+    borderRadius: 14,
   },
-  addFundsBtnText: {
+  depositPillBtnText: {
     fontFamily: fonts.bodyBold,
     fontSize: 12,
     fontWeight: '700',
-    color: '#0A0A0A',
+    color: '#FFFFFF',
   },
   amountsRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
+    justifyContent: 'space-between',
     marginBottom: 8,
   },
-  currentAmountText: {
-    fontFamily: fonts.heading,
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#0A0A0A',
+  amountsLeft: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
   },
-  targetAmountText: {
+  currentSavedText: {
+    fontFamily: fonts.heading,
+    fontSize: 17,
+    fontWeight: '900',
+  },
+  targetSavedText: {
     fontFamily: fonts.bodyMedium,
     fontSize: 13,
-    color: '#71717A',
     marginLeft: 6,
     fontWeight: '500',
-    flex: 1,
   },
-  progressPercentText: {
+  percentText: {
     fontFamily: fonts.heading,
     fontSize: 14,
     fontWeight: '900',
-    color: '#059669',
   },
-  progressBarTrack: {
+  progressTrack: {
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#F4F4F5',
     overflow: 'hidden',
   },
-  progressBarFill: {
+  progressFill: {
     height: '100%',
     borderRadius: 3,
   },
+  remainingHint: {
+    fontFamily: fonts.bodyLight,
+    fontSize: 11,
+    marginTop: 6,
+  },
+
+  // ─── Empty State ───
   emptyContainer: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 32,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E4E4E7',
+  },
+  emptyEmoji: {
+    fontSize: 40,
+    marginBottom: 12,
   },
   emptyTitle: {
     fontFamily: fonts.heading,
     fontSize: 16,
     fontWeight: '700',
-    color: '#0A0A0A',
-    marginBottom: 4,
+    marginBottom: 6,
+    textAlign: 'center',
   },
   emptySubtext: {
     fontFamily: fonts.bodyLight,
     fontSize: 13,
-    color: '#71717A',
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
+    lineHeight: 18,
   },
   emptyAddBtn: {
-    paddingHorizontal: 18,
-    paddingVertical: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
     borderRadius: 14,
-    backgroundColor: '#0A0A0A',
   },
   emptyAddBtnText: {
     fontFamily: fonts.heading,
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
     color: '#FFFFFF',
   },
+
+  // ─── Modal ───
   depositModalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
@@ -518,36 +755,62 @@ const styles = StyleSheet.create({
   depositModalCard: {
     width: '100%',
     maxWidth: 340,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 22,
-    borderWidth: 1,
-    borderColor: '#E4E4E7',
+    borderRadius: 20,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
   depositModalTitle: {
     fontFamily: fonts.heading,
     fontSize: 18,
     fontWeight: '900',
-    color: '#0A0A0A',
   },
   depositModalSub: {
     fontFamily: fonts.bodyMedium,
     fontSize: 13,
-    color: '#71717A',
     marginTop: 2,
     marginBottom: 16,
   },
-  depositInput: {
-    fontFamily: fonts.body,
-    backgroundColor: '#FFFFFF',
+  presetChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  presetChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+  },
+  presetChipText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  depositInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E4E4E7',
     borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: '#0A0A0A',
-    marginBottom: 18,
+    paddingVertical: 10,
+    marginBottom: 20,
+  },
+  depositCurrency: {
+    fontFamily: fonts.heading,
+    fontSize: 20,
+    fontWeight: '700',
+    marginRight: 8,
+  },
+  depositInput: {
+    flex: 1,
+    fontFamily: fonts.heading,
+    fontSize: 20,
+    fontWeight: '700',
+    padding: 0,
   },
   depositModalButtons: {
     flexDirection: 'row',
@@ -557,21 +820,20 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: '#F4F4F5',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   depositCancelText: {
     fontFamily: fonts.bodyMedium,
     fontSize: 14,
     fontWeight: '600',
-    color: '#71717A',
   },
   depositConfirmBtn: {
     flex: 1,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: '#0A0A0A',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   depositConfirmText: {
     fontFamily: fonts.heading,

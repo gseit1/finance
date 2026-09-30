@@ -125,14 +125,14 @@ export const AnalyticsScreen: React.FC<AnalyticsScreenProps> = ({
       amount: number;
     }[] = [];
 
-    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const dayNames = ['Κυρ', 'Δευ', 'Τρι', 'Τετ', 'Πεμ', 'Παρ', 'Σαβ'];
     const now = new Date();
 
     for (let i = 6; i >= 0; i--) {
       const d = new Date(now);
       d.setDate(now.getDate() - i);
       const iso = d.toISOString().split('T')[0];
-      const dayLabel = i === 0 ? 'Today' : dayNames[d.getDay()];
+      const dayLabel = i === 0 ? 'Σήμερα' : dayNames[d.getDay()];
       const displayDate = `${d.getDate()}/${d.getMonth() + 1}`;
 
       // Sum real expenses that match this ISO date string
@@ -160,8 +160,8 @@ export const AnalyticsScreen: React.FC<AnalyticsScreenProps> = ({
     filteredTransactions
       .filter((t) => t.type === 'expense')
       .forEach((t) => {
-        const catName = t.category_name || 'General';
-        const color = t.category_color || '#6355E6';
+        const catName = t.category_name || 'Γενικά';
+        const color = t.category_color || '#E11D74';
         const amt = Number(t.amount) || 0;
 
         if (catMap.has(catName)) {
@@ -221,9 +221,9 @@ export const AnalyticsScreen: React.FC<AnalyticsScreenProps> = ({
     return { total, completed, pending, rate };
   }, [tasks]);
 
-  // Format currency helper
+  // Format currency helper (Greek locale)
   const fmt = (n: number) =>
-    `€${Math.abs(n).toLocaleString('en-US', {
+    `€${Math.abs(n).toLocaleString('el-GR', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}`;
@@ -274,50 +274,45 @@ export const AnalyticsScreen: React.FC<AnalyticsScreenProps> = ({
           })}
         </View>
 
-        {/* 1. Cashflow Summary Hero Card */}
-        <View style={styles.heroCard}>
+        {/* 1. Cashflow Summary Hero Card (Pure Pink Hero Canvas) */}
+        <View style={[styles.heroCard, { backgroundColor: theme.brandPink, borderWidth: 0 }]}>
           <View style={styles.heroTopRow}>
             <View>
-              <Text style={styles.heroLabel}>NET CASHFLOW</Text>
-              <Text
-                style={[
-                  styles.heroAmount,
-                  metrics.netCashflow >= 0 ? styles.incomeGreen : styles.expenseRed,
-                ]}
-              >
+              <Text style={[styles.heroLabel, { color: 'rgba(255, 255, 255, 0.85)' }]}>ΚΑΘΑΡΗ ΤΑΜΕΙΑΚΗ ΡΟΗ</Text>
+              <Text style={[styles.heroAmount, { color: '#FFFFFF' }]}>
                 {metrics.netCashflow < 0 ? '-' : '+'}
                 {fmt(metrics.netCashflow)}
               </Text>
             </View>
 
-            <View style={styles.savingsRateBadge}>
-              <Text style={styles.savingsRateLabel}>Savings Rate</Text>
-              <Text style={styles.savingsRateValue}>{metrics.savingsRate}%</Text>
+            <View style={[styles.savingsRateBadge, { backgroundColor: 'rgba(255, 255, 255, 0.20)', borderColor: 'rgba(255, 255, 255, 0.35)' }]}>
+              <Text style={[styles.savingsRateLabel, { color: 'rgba(255, 255, 255, 0.85)' }]}>Αποταμίευση</Text>
+              <Text style={[styles.savingsRateValue, { color: '#FFFFFF' }]}>{metrics.savingsRate}%</Text>
             </View>
           </View>
 
-          {/* Real Inflow vs Outflow Mini-Cards */}
+          {/* Real Inflow vs Outflow Mini-Cards with clean translucent styling */}
           <View style={styles.flowRow}>
-            <View style={[styles.flowCard, styles.inflowCard]}>
+            <View style={[styles.flowCard, { backgroundColor: 'rgba(255, 255, 255, 0.15)', borderWidth: 0 }]}>
               <View style={styles.flowCardHeader}>
-                <View style={[styles.flowDot, { backgroundColor: '#10B981' }]} />
-                <Text style={styles.flowLabel}>Total Inflow</Text>
+                <View style={[styles.flowDot, { backgroundColor: '#A7F3D0' }]} />
+                <Text style={[styles.flowLabel, { color: 'rgba(255, 255, 255, 0.85)' }]}>Συνολικές Εισροές</Text>
               </View>
-              <Text style={[styles.flowValue, { color: '#059669' }]}>
+              <Text style={[styles.flowValue, { color: '#A7F3D0' }]}>
                 {fmt(metrics.totalIncome)}
               </Text>
-              <Text style={styles.flowSub}>{metrics.incomeTxCount} credits</Text>
+              <Text style={[styles.flowSub, { color: 'rgba(255, 255, 255, 0.70)' }]}>{metrics.incomeTxCount} πιστώσεις</Text>
             </View>
 
-            <View style={[styles.flowCard, styles.outflowCard]}>
+            <View style={[styles.flowCard, { backgroundColor: 'rgba(255, 255, 255, 0.15)', borderWidth: 0 }]}>
               <View style={styles.flowCardHeader}>
-                <View style={[styles.flowDot, { backgroundColor: '#EF4444' }]} />
-                <Text style={styles.flowLabel}>Total Outflow</Text>
+                <View style={[styles.flowDot, { backgroundColor: '#FECDD3' }]} />
+                <Text style={[styles.flowLabel, { color: 'rgba(255, 255, 255, 0.85)' }]}>Συνολικές Εκροές</Text>
               </View>
-              <Text style={[styles.flowValue, { color: '#DC2626' }]}>
+              <Text style={[styles.flowValue, { color: '#FECDD3' }]}>
                 {fmt(metrics.totalExpenses)}
               </Text>
-              <Text style={styles.flowSub}>{metrics.expenseTxCount} debits</Text>
+              <Text style={[styles.flowSub, { color: 'rgba(255, 255, 255, 0.70)' }]}>{metrics.expenseTxCount} χρεώσεις</Text>
             </View>
           </View>
 
@@ -326,31 +321,31 @@ export const AnalyticsScreen: React.FC<AnalyticsScreenProps> = ({
             <View style={styles.distributionBlock}>
               <View style={styles.distributionBar}>
                 <View
-                  style={[styles.distributionSegment, { width: `${incomePercent}%`, backgroundColor: '#10B981' }]}
+                  style={[styles.distributionSegment, { width: `${incomePercent}%`, backgroundColor: '#A7F3D0' }]}
                 />
                 <View
-                  style={[styles.distributionSegment, { width: `${expensePercent}%`, backgroundColor: '#F87171' }]}
+                  style={[styles.distributionSegment, { width: `${expensePercent}%`, backgroundColor: '#FECDD3' }]}
                 />
               </View>
               <View style={styles.distributionLabels}>
-                <Text style={styles.distributionSubText}>Inflow: {incomePercent}%</Text>
-                <Text style={styles.distributionSubText}>Outflow: {expensePercent}%</Text>
+                <Text style={[styles.distributionSubText, { color: 'rgba(255, 255, 255, 0.85)' }]}>Εισροές: {incomePercent}%</Text>
+                <Text style={[styles.distributionSubText, { color: 'rgba(255, 255, 255, 0.85)' }]}>Εκροές: {expensePercent}%</Text>
               </View>
             </View>
           )}
         </View>
 
         {/* 2. 7-Day Real Spending Bar Chart */}
-        <View style={styles.sectionCard}>
+        <View style={[styles.sectionCard, { backgroundColor: theme.surface, borderWidth: 0 }]}>
           <View style={styles.sectionHeaderRow}>
             <View>
-              <Text style={styles.sectionCardTitle}>7-Day Daily Expenses</Text>
-              <Text style={styles.sectionCardSubtitle}>
-                Actual expenses logged by calendar date
+              <Text style={[styles.sectionCardTitle, { color: theme.textPrimary }]}>Ημερήσια Έξοδα 7 Ημερών</Text>
+              <Text style={[styles.sectionCardSubtitle, { color: theme.textMuted }]}>
+                Καταγεγραμμένα έξοδα ανά ημερολογιακή ημέρα
               </Text>
             </View>
-            <View style={styles.chartBadge}>
-              <BarChartIcon size={16} color="#6355E6" />
+            <View style={[styles.chartBadge, { backgroundColor: theme.track, borderColor: theme.hairline }]}>
+              <BarChartIcon size={16} color={theme.brandPink} />
             </View>
           </View>
 
@@ -372,24 +367,24 @@ export const AnalyticsScreen: React.FC<AnalyticsScreenProps> = ({
                 >
                   {/* Tooltip on select */}
                   {isSelected && (
-                    <View style={styles.barTooltip}>
-                      <Text style={styles.barTooltipText}>{fmt(item.amount)}</Text>
+                    <View style={[styles.barTooltip, { backgroundColor: theme.textPrimary }]}>
+                      <Text style={[styles.barTooltipText, { color: theme.textInverse }]}>{fmt(item.amount)}</Text>
                     </View>
                   )}
 
                   {/* Bar Fill */}
-                  <View style={styles.barTrack}>
+                  <View style={[styles.barTrack, { backgroundColor: theme.track }]}>
                     <View
                       style={[
                         styles.barFill,
                         {
                           height: `${barHeightPct}%`,
                           backgroundColor:
-                            isSelected || item.dayLabel === 'Today'
-                              ? '#6355E6'
+                            isSelected || item.dayLabel === 'Σήμερα'
+                              ? theme.brandPink
                               : item.amount > 0
-                              ? '#A78BFA'
-                              : '#E5E7EB',
+                              ? `${theme.brandPink}80`
+                              : theme.hairline,
                         },
                       ]}
                     />
@@ -398,53 +393,54 @@ export const AnalyticsScreen: React.FC<AnalyticsScreenProps> = ({
                   <Text
                     style={[
                       styles.barDayText,
+                      { color: isSelected ? theme.textPrimary : theme.textSecondary },
                       isSelected && styles.barDayTextActive,
                     ]}
                   >
                     {item.dayLabel}
                   </Text>
-                  <Text style={styles.barDateText}>{item.displayDate}</Text>
+                  <Text style={[styles.barDateText, { color: theme.textMuted }]}>{item.displayDate}</Text>
                 </TouchableOpacity>
               );
             })}
           </View>
 
           {selectedDayIndex !== null && (
-            <View style={styles.selectedDayDetail}>
-              <Text style={styles.selectedDayDetailText}>
+            <View style={[styles.selectedDayDetail, { backgroundColor: theme.track, borderColor: theme.hairline }]}>
+              <Text style={[styles.selectedDayDetailText, { color: theme.textSecondary }]}>
                 {last7DaysData.days[selectedDayIndex].dayLabel} (
                 {last7DaysData.days[selectedDayIndex].dateIso}):{' '}
-                <Text style={{ fontWeight: '800', color: '#111827' }}>
+                <Text style={{ fontWeight: '800', color: theme.textPrimary }}>
                   {fmt(last7DaysData.days[selectedDayIndex].amount)}
                 </Text>{' '}
-                spent
+                δαπανήθηκαν
               </Text>
             </View>
           )}
         </View>
 
         {/* 3. Category Spending Breakdown (Real Data) */}
-        <View style={styles.sectionCard}>
+        <View style={[styles.sectionCard, { backgroundColor: theme.surface, borderWidth: 0 }]}>
           <View style={styles.sectionHeaderRow}>
             <View>
-              <Text style={styles.sectionCardTitle}>Spending by Category</Text>
-              <Text style={styles.sectionCardSubtitle}>
-                {categoryBreakdown.length} active expense categories in period
+              <Text style={[styles.sectionCardTitle, { color: theme.textPrimary }]}>Έξοδα ανά Κατηγορία</Text>
+              <Text style={[styles.sectionCardSubtitle, { color: theme.textMuted }]}>
+                {categoryBreakdown.length} ενεργές κατηγορίες εξόδων στην περίοδο
               </Text>
             </View>
             {onOpenTransactions && (
               <TouchableOpacity onPress={onOpenTransactions} activeOpacity={0.7}>
-                <Text style={styles.actionLinkText}>Ledger ›</Text>
+                <Text style={[styles.actionLinkText, { color: theme.brandPink }]}>Συναλλαγές ›</Text>
               </TouchableOpacity>
             )}
           </View>
 
           {categoryBreakdown.length === 0 ? (
             <View style={styles.emptyState}>
-              <ExpensesIcon size={24} color="#9CA3AF" />
-              <Text style={styles.emptyStateTitle}>No Expense Data</Text>
-              <Text style={styles.emptyStateSub}>
-                No expenses found for this time range. Add a transaction to see breakdown.
+              <ExpensesIcon size={24} color={theme.textMuted} />
+              <Text style={[styles.emptyStateTitle, { color: theme.textPrimary }]}>Χωρίς Δεδομένα Εξόδων</Text>
+              <Text style={[styles.emptyStateSub, { color: theme.textSecondary }]}>
+                Δεν βρέθηκαν έξοδα για αυτή την περίοδο. Καταχωρίστε μια συναλλαγή για να δείτε την ανάλυση.
               </Text>
             </View>
           ) : (
@@ -456,20 +452,20 @@ export const AnalyticsScreen: React.FC<AnalyticsScreenProps> = ({
                       <View
                         style={[styles.catColorDot, { backgroundColor: cat.color }]}
                       />
-                      <Text style={styles.catName} numberOfLines={1}>
+                      <Text style={[styles.catName, { color: theme.textPrimary }]} numberOfLines={1}>
                         {cat.name}
                       </Text>
-                      <Text style={styles.catCount}>({cat.count} tx)</Text>
+                      <Text style={[styles.catCount, { color: theme.textMuted }]}>({cat.count} συναλλ.)</Text>
                     </View>
 
                     <View style={styles.catItemRight}>
-                      <Text style={styles.catAmount}>{fmt(cat.amount)}</Text>
-                      <Text style={styles.catPercent}>{cat.percentage}%</Text>
+                      <Text style={[styles.catAmount, { color: theme.textPrimary }]}>{fmt(cat.amount)}</Text>
+                      <Text style={[styles.catPercent, { color: theme.textSecondary }]}>{cat.percentage}%</Text>
                     </View>
                   </View>
 
                   {/* Horizontal Bar */}
-                  <View style={styles.catBarTrack}>
+                  <View style={[styles.catBarTrack, { backgroundColor: theme.track }]}>
                     <View
                       style={[
                         styles.catBarFill,
@@ -487,30 +483,30 @@ export const AnalyticsScreen: React.FC<AnalyticsScreenProps> = ({
         </View>
 
         {/* 4. Real Net Worth & Liquidity Overview */}
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionCardTitle}>Net Liquidity & Assets</Text>
-          <Text style={styles.sectionCardSubtitle}>
-            Aggregated across {accounts.length} linked accounts
+        <View style={[styles.sectionCard, { backgroundColor: theme.surface, borderWidth: 0 }]}>
+          <Text style={[styles.sectionCardTitle, { color: theme.textPrimary }]}>Καθαρή Ρευστότητα & Περιουσία</Text>
+          <Text style={[styles.sectionCardSubtitle, { color: theme.textMuted }]}>
+            Συγκεντρωτικά από {accounts.length} συνδεδεμένους λογαριασμούς
           </Text>
 
           <View style={styles.liquidityGrid}>
-            <View style={[styles.liquidityBox, { backgroundColor: '#F0FDF4' }]}>
-              <Text style={styles.liquidityLabel}>Total Assets</Text>
-              <Text style={[styles.liquidityValue, { color: '#059669' }]}>
+            <View style={[styles.liquidityBox, { backgroundColor: theme.emeraldBg }]}>
+              <Text style={[styles.liquidityLabel, { color: theme.emerald }]}>ΕΝΕΡΓΗΤΙΚΟ</Text>
+              <Text style={[styles.liquidityValue, { color: theme.emerald }]}>
                 {fmt(netWorthSummary.totalAssets)}
               </Text>
             </View>
 
-            <View style={[styles.liquidityBox, { backgroundColor: '#FEF2F2' }]}>
-              <Text style={styles.liquidityLabel}>Liabilities / Debt</Text>
-              <Text style={[styles.liquidityValue, { color: '#E11D48' }]}>
+            <View style={[styles.liquidityBox, { backgroundColor: theme.crimsonBg }]}>
+              <Text style={[styles.liquidityLabel, { color: theme.crimson }]}>ΥΠΟΧΡΕΩΣΕΙΣ</Text>
+              <Text style={[styles.liquidityValue, { color: theme.crimson }]}>
                 {fmt(netWorthSummary.totalLiabilities)}
               </Text>
             </View>
 
-            <View style={[styles.liquidityBox, { backgroundColor: '#F4F4F5', borderWidth: 1, borderColor: '#E4E4E7' }]}>
-              <Text style={styles.liquidityLabel}>Net Worth</Text>
-              <Text style={[styles.liquidityValue, { color: '#0A0A0A' }]}>
+            <View style={[styles.liquidityBox, { backgroundColor: theme.track }]}>
+              <Text style={[styles.liquidityLabel, { color: theme.textSecondary }]}>ΚΑΘΑΡΗ ΘΕΣΗ</Text>
+              <Text style={[styles.liquidityValue, { color: theme.textPrimary }]}>
                 {netWorthSummary.netWorth < 0 ? '-' : ''}
                 {fmt(netWorthSummary.netWorth)}
               </Text>
@@ -520,24 +516,24 @@ export const AnalyticsScreen: React.FC<AnalyticsScreenProps> = ({
 
         {/* 5. Productivity & Focus Velocity */}
         {tasks.length > 0 && (
-          <View style={styles.sectionCard}>
+          <View style={[styles.sectionCard, { backgroundColor: theme.surface, borderWidth: 0 }]}>
             <View style={styles.sectionHeaderRow}>
               <View>
-                <Text style={styles.sectionCardTitle}>Focus & Task Velocity</Text>
-                <Text style={styles.sectionCardSubtitle}>
-                  {taskAnalytics.completed} of {taskAnalytics.total} completed ({taskAnalytics.rate}%)
+                <Text style={[styles.sectionCardTitle, { color: theme.textPrimary }]}>Παραγωγικότητα & Ρυθμός Εργασιών</Text>
+                <Text style={[styles.sectionCardSubtitle, { color: theme.textMuted }]}>
+                  {taskAnalytics.completed} από {taskAnalytics.total} ολοκληρώθηκαν ({taskAnalytics.rate}%)
                 </Text>
               </View>
-              <View style={styles.checkBadge}>
-                <CheckIcon size={14} color="#059669" />
+              <View style={[styles.checkBadge, { backgroundColor: theme.emeraldBg, borderColor: theme.emeraldBorder }]}>
+                <CheckIcon size={14} color={theme.emerald} />
               </View>
             </View>
 
-            <View style={styles.taskProgressBarTrack}>
+            <View style={[styles.taskProgressBarTrack, { backgroundColor: theme.track }]}>
               <View
                 style={[
                   styles.taskProgressBarFill,
-                  { width: `${taskAnalytics.rate}%` },
+                  { width: `${taskAnalytics.rate}%`, backgroundColor: theme.emerald },
                 ]}
               />
             </View>

@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { fonts } from '../theme/typography';
 import { AppTopHeader } from '../components/AppTopHeader';
-import { KineticVaultToken } from '../components/KineticVaultToken';
+import { PiggyBankHero } from '../components/PiggyBankHero';
 import { AddTransactionModal } from '../components/AddTransactionModal';
 import { SetBudgetModal } from '../components/SetBudgetModal';
 import { useTheme } from '../theme/ThemeContext';
@@ -111,10 +111,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
   // Status quote based on balance
   const getRunwayQuote = (balance: number) => {
-    if (balance >= 700) return '«Μπροσκι ρίχτο έξω, σε παίρνει ακόμα»';
-    if (balance >= 400) return '«Μπροσκι ο μήνας έχει μέρες ακόμα..τσιλ.»';
-    if (balance >= 100) return '«Επ δικέ μου, είσαι δυσκολα»';
-    return '«μπροσκι θες 1 ευρω να παρεις τυροπιτα;»';
+    if (balance >= 700) return 'Μπροσκι ρίχτο έξω, σε παίρνει ακόμα';
+    if (balance >= 400) return 'Μπροσκι ο μήνας έχει μέρες ακόμα..τσιλ.';
+    if (balance >= 100) return 'Επ δικέ μου, είσαι δυσκολα';
+    return 'μπροσκι θες 1 ευρω να παρεις τυροπιτα;';
   };
 
   // 3. Category lookup map
@@ -197,7 +197,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <AppTopHeader
-        title="ΘΗΣΑΥΡΟΦΥΛΑΚΙΟ // SEIT"
+        title={`Γεια σου ${cleanUserName}`}
         onMenuPress={onMenuPress}
         onProfilePress={onOpenProfile}
         avatarUrl={avatarUrl}
@@ -220,16 +220,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       >
         {/* ΣΥΝΟΛΙΚΗ ΡΕΥΣΤΟΤΗΤΑ (Fully Pink Background Hero Canvas) */}
         <View style={[styles.heroCanvas, { backgroundColor: theme.brandPink }]}>
-          {/* Top Row: Τίτλος & Badge συγχρονισμού */}
-          <View style={styles.heroTopRow}>
-            <Text style={[styles.heroKicker, { color: 'rgba(255, 255, 255, 0.85)' }]}>ΣΥΝΟΛΙΚΗ ΡΕΥΣΤΟΤΗΤΑ</Text>
-            <View style={[styles.syncBadge, { backgroundColor: 'rgba(255, 255, 255, 0.20)', borderColor: 'rgba(255, 255, 255, 0.35)' }]}>
-              <View style={[styles.syncPulseDot, { backgroundColor: '#A7F3D0' }]} />
-              <Text style={[styles.syncBadgeText, { color: '#FFFFFF' }]}>EUR ΣΥΓΧΡΟΝΙΣΜΟΣ</Text>
-            </View>
-          </View>
-
-          {/* Κύριο υπόλοιπο και 3D Νόμισμα */}
+          {/* Κύριο υπόλοιπο και 3D Piggy Bank */}
           <View style={styles.balanceCoinRow}>
             <View style={styles.balanceTextCol}>
               <Text style={[styles.totalLiquidityText, { color: '#FFFFFF' }]} numberOfLines={1} adjustsFontSizeToFit>
@@ -241,7 +232,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             </View>
 
             <View style={styles.coinStageHolder}>
-              <KineticVaultToken scale={0.70} />
+              <PiggyBankHero width={124} height={74} />
             </View>
           </View>
 
@@ -445,39 +436,6 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 4,
   },
-  heroTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  heroKicker: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1.1,
-    textTransform: 'uppercase',
-  },
-  syncBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 9,
-    paddingVertical: 3.5,
-    borderRadius: 6,
-    borderWidth: 1,
-  },
-  syncPulseDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  syncBadgeText: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.6,
-  },
   balanceCoinRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -498,15 +456,13 @@ const styles = StyleSheet.create({
   },
   tierQuoteText: {
     fontFamily: fonts.bodyMedium,
-    fontSize: 12.5,
-    fontWeight: '500',
-    fontStyle: 'italic',
+    fontSize: 13,
     marginTop: 6,
     lineHeight: 18,
   },
   coinStageHolder: {
-    width: 100,
-    height: 100,
+    width: 126,
+    height: 78,
     alignItems: 'center',
     justifyContent: 'center',
   },

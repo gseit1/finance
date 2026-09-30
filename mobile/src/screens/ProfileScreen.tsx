@@ -97,7 +97,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       if (result.assets && result.assets.length > 0 && result.assets[0].uri) {
         const pickedUri = result.assets[0].uri;
         setAvatarUri(pickedUri);
-        setStatusMessage({ text: 'Image selected from gallery. Tap Save Changes.', type: 'success' });
+        setStatusMessage({ text: 'Η εικόνα επιλέχθηκε. Πατήστε Αποθήκευση Αλλαγών.', type: 'success' });
       }
     } catch (err) {
       console.warn('Native picker notice, opening photo modal:', err);
@@ -110,17 +110,17 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
     if (newPassword) {
       if (newPassword.length < 6) {
-        setStatusMessage({ text: 'Master key must be at least 6 characters.', type: 'error' });
+        setStatusMessage({ text: 'Ο κωδικός πρόσβασης πρέπει να έχει τουλάχιστον 6 χαρακτήρες.', type: 'error' });
         return;
       }
       if (newPassword !== confirmPassword) {
-        setStatusMessage({ text: 'Passwords do not match.', type: 'error' });
+        setStatusMessage({ text: 'Οι κωδικοί δεν ταιριάζουν.', type: 'error' });
         return;
       }
     }
 
     setSaving(true);
-    const nameToSave = displayName.trim() || 'Vault Operator';
+    const nameToSave = displayName.trim() || 'Χρήστης';
 
     const res = await authService.updateProfile({
       displayName: nameToSave,
@@ -131,7 +131,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     setSaving(false);
 
     if (res.success) {
-      setStatusMessage({ text: 'Profile updated successfully.', type: 'success' });
+      setStatusMessage({ text: 'Το προφίλ ενημερώθηκε επιτυχώς.', type: 'success' });
       setNewPassword('');
       setConfirmPassword('');
 
@@ -147,18 +147,18 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
       setTimeout(() => setStatusMessage(null), 3500);
     } else {
-      setStatusMessage({ text: res.error || 'Failed to update profile.', type: 'error' });
+      setStatusMessage({ text: res.error || 'Αποτυχία ενημέρωσης προφίλ.', type: 'error' });
     }
   };
 
   const handleSignOutPress = () => {
     Alert.alert(
-      'Lock Vault',
-      'Are you sure you want to sign out and lock this financial ledger?',
+      'Κλείδωμα & Αποσύνδεση',
+      'Είστε βέβαιοι ότι θέλετε να αποσυνδεθείτε από το σύστημα;',
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: 'Ακύρωση', style: 'cancel' },
         {
-          text: 'Lock & Sign Out',
+          text: 'Αποσύνδεση',
           style: 'destructive',
           onPress: async () => {
             await authService.signOut();
@@ -217,9 +217,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           </View>
         )}
 
-        {/* Hero Card matching Net Balance / Data Card design */}
-        <View style={styles.card}>
-          <Text style={styles.cardEyebrow}>OPERATOR IDENTITY</Text>
+        {/* Pure Pink Hero Identity Card */}
+        <View style={[styles.card, { backgroundColor: theme.brandPink, borderWidth: 0 }]}>
+          <Text style={[styles.cardEyebrow, { color: 'rgba(255, 255, 255, 0.85)' }]}>ΣΤΟΙΧΕΙΑ ΧΡΗΣΤΗ</Text>
 
           <View style={styles.avatarRow}>
             {/* Glowing Avatar Frame */}
@@ -227,7 +227,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               {isImageUri ? (
                 <Image source={{ uri: avatarUri }} style={styles.avatarImg} />
               ) : (
-                <View style={[styles.avatarGlyphBox, { backgroundColor: activeGlyph.color + '22' }]}>
+                <View style={[styles.avatarGlyphBox, { backgroundColor: 'rgba(255, 255, 255, 0.20)' }]}>
                   <Text style={styles.avatarGlyphLarge}>{activeGlyph.glyph}</Text>
                 </View>
               )}
@@ -235,83 +235,83 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
             {/* Identity Info */}
             <View style={styles.avatarInfoCol}>
-              <Text style={styles.avatarNameText} numberOfLines={1}>
-                {displayName || 'Vault Operator'}
+              <Text style={[styles.avatarNameText, { color: '#FFFFFF' }]} numberOfLines={1}>
+                {displayName || 'Χρήστης'}
               </Text>
-              <Text style={styles.avatarEmailText} numberOfLines={1}>
-                {email || 'operator@financial-kernel.com'}
+              <Text style={[styles.avatarEmailText, { color: 'rgba(255, 255, 255, 0.85)' }]} numberOfLines={1}>
+                {email || 'user@finance.app'}
               </Text>
-              <View style={styles.verifiedBadge}>
-                <View style={styles.greenDot} />
-                <Text style={styles.verifiedBadgeText}>VERIFIED ACCESS</Text>
+              <View style={[styles.verifiedBadge, { backgroundColor: 'rgba(255, 255, 255, 0.20)' }]}>
+                <View style={[styles.greenDot, { backgroundColor: '#A7F3D0' }]} />
+                <Text style={[styles.verifiedBadgeText, { color: '#FFFFFF' }]}>ΕΠΑΛΗΘΕΥΜΕΝΗ ΠΡΟΣΒΑΣΗ</Text>
               </View>
             </View>
           </View>
 
-          {/* Action Row for Avatar: [ Upload Photo ] & [ Presets ] */}
+          {/* Action Row for Avatar */}
           <View style={styles.actionRow}>
             <TouchableOpacity
-              style={styles.primaryActionButton}
+              style={[styles.primaryActionButton, { backgroundColor: '#FFFFFF' }]}
               onPress={handlePickFromGallery}
               activeOpacity={0.88}
             >
-              <Text style={styles.primaryActionText}>Upload Photo</Text>
+              <Text style={[styles.primaryActionText, { color: theme.brandPink }]}>Ανέβασμα Εικόνας</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.secondaryActionButton}
+              style={[styles.secondaryActionButton, { backgroundColor: 'rgba(255, 255, 255, 0.20)', borderColor: 'rgba(255, 255, 255, 0.35)' }]}
               onPress={() => setGalleryModalVisible(true)}
               activeOpacity={0.75}
             >
-              <Text style={styles.secondaryActionText}>Presets</Text>
+              <Text style={[styles.secondaryActionText, { color: '#FFFFFF' }]}>Έτοιμα Avatars</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* 3-Column Unified Data Strip Card (Matching Expenses & Goals layout) */}
-        <View style={styles.dataStripCard}>
+        {/* 3-Column Unified Data Strip Card */}
+        <View style={[styles.dataStripCard, { backgroundColor: theme.surface, borderWidth: 0 }]}>
           <View style={styles.dataCol}>
-            <Text style={styles.dataLabel}>ENCRYPTION</Text>
-            <Text style={styles.dataValue}>AES-256</Text>
+            <Text style={[styles.dataLabel, { color: theme.textMuted }]}>ΚΡΥΠΤΟΓΡΑΦΗΣΗ</Text>
+            <Text style={[styles.dataValue, { color: theme.textPrimary }]}>AES-256</Text>
           </View>
 
-          <View style={styles.dataDivider} />
+          <View style={[styles.dataDivider, { backgroundColor: theme.hairline }]} />
 
           <View style={styles.dataCol}>
-            <Text style={styles.dataLabel}>SESSION</Text>
-            <Text style={[styles.dataValue, { color: '#059669' }]}>ACTIVE</Text>
+            <Text style={[styles.dataLabel, { color: theme.textMuted }]}>ΣΥΝΕΔΡΙΑ</Text>
+            <Text style={[styles.dataValue, { color: theme.emerald }]}>ΕΝΕΡΓΗ</Text>
           </View>
 
-          <View style={styles.dataDivider} />
+          <View style={[styles.dataDivider, { backgroundColor: theme.hairline }]} />
 
           <View style={styles.dataCol}>
-            <Text style={styles.dataLabel}>LEDGER</Text>
-            <Text style={styles.dataValue}>POSTGRES</Text>
+            <Text style={[styles.dataLabel, { color: theme.textMuted }]}>ΒΑΣΗ</Text>
+            <Text style={[styles.dataValue, { color: theme.textPrimary }]}>POSTGRES</Text>
           </View>
         </View>
 
         {/* Personal Details Card */}
-        <View style={styles.card}>
-          <Text style={styles.cardEyebrow}>PERSONAL DETAILS</Text>
+        <View style={[styles.card, { backgroundColor: theme.surface, borderWidth: 0 }]}>
+          <Text style={[styles.cardEyebrow, { color: theme.textMuted }]}>ΠΡΟΣΩΠΙΚΑ ΣΤΟΙΧΕΙΑ</Text>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>FULL NAME / ALIAS</Text>
-            <View style={styles.inputBox}>
+            <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>ΟΝΟΜΑΤΕΠΩΝΥΜΟ / ΨΕΥΔΩΝΥΜΟ</Text>
+            <View style={[styles.inputBox, { backgroundColor: theme.inputBg, borderColor: theme.hairline }]}>
               <TextInput
-                style={styles.textInput}
+                style={[styles.textInput, { color: theme.inputText }]}
                 value={displayName}
                 onChangeText={setDisplayName}
-                placeholder="e.g. Alex Mercer"
-                placeholderTextColor="#52525B"
+                placeholder="π.χ. Γιώργος Παπαδόπουλος"
+                placeholderTextColor={theme.inputPlaceholder}
               />
             </View>
           </View>
 
           <View style={[styles.fieldGroup, { marginTop: 12 }]}>
-            <Text style={styles.fieldLabel}>REGISTERED EMAIL (READ-ONLY)</Text>
-            <View style={[styles.inputBox, styles.inputBoxDisabled]}>
+            <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>ΕΓΓΕΓΡΑΜΜΕΝΟ EMAIL (ΜΟΝΟ ΓΙΑ ΑΝΑΓΝΩΣΗ)</Text>
+            <View style={[styles.inputBox, styles.inputBoxDisabled, { backgroundColor: theme.track, borderColor: theme.hairline }]}>
               <TextInput
-                style={[styles.textInput, { color: '#71717A' }]}
+                style={[styles.textInput, { color: theme.textMuted }]}
                 value={email}
                 editable={false}
               />
@@ -320,69 +320,69 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         </View>
 
         {/* Security & Master Key Card */}
-        <View style={styles.card}>
-          <Text style={styles.cardEyebrow}>VAULT SECURITY & KEY</Text>
+        <View style={[styles.card, { backgroundColor: theme.surface, borderWidth: 0 }]}>
+          <Text style={[styles.cardEyebrow, { color: theme.textMuted }]}>ΑΣΦΑΛΕΙΑ & ΚΩΔΙΚΟΣ ΠΡΟΣΒΑΣΗΣ</Text>
 
           <View style={styles.fieldGroup}>
             <View style={styles.fieldLabelRow}>
-              <Text style={styles.fieldLabel}>NEW MASTER KEY</Text>
+              <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>ΝΕΟΣ ΚΩΔΙΚΟΣ ΠΡΟΣΒΑΣΗΣ</Text>
               <TouchableOpacity
                 onPress={() => setShowPassword(!showPassword)}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Text style={styles.revealText}>{showPassword ? 'HIDE' : 'SHOW'}</Text>
+                <Text style={[styles.revealText, { color: theme.brandPink }]}>{showPassword ? 'ΑΠΟΚΡΥΨΗ' : 'ΕΜΦΑΝΙΣΗ'}</Text>
               </TouchableOpacity>
             </View>
-            <View style={styles.inputBox}>
+            <View style={[styles.inputBox, { backgroundColor: theme.inputBg, borderColor: theme.hairline }]}>
               <TextInput
-                style={styles.textInput}
+                style={[styles.textInput, { color: theme.inputText }]}
                 secureTextEntry={!showPassword}
                 value={newPassword}
                 onChangeText={setNewPassword}
-                placeholder="Enter new master key (min 6 chars)"
-                placeholderTextColor="#52525B"
+                placeholder="Εισαγωγή νέου κωδικού (ελάχ. 6 χαρακτήρες)"
+                placeholderTextColor={theme.inputPlaceholder}
               />
             </View>
           </View>
 
           {newPassword.length > 0 && (
             <View style={[styles.fieldGroup, { marginTop: 12 }]}>
-              <Text style={styles.fieldLabel}>CONFIRM NEW MASTER KEY</Text>
-              <View style={styles.inputBox}>
+              <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>ΕΠΙΒΕΒΑΙΩΣΗ ΝΕΟΥ ΚΩΔΙΚΟΥ</Text>
+              <View style={[styles.inputBox, { backgroundColor: theme.inputBg, borderColor: theme.hairline }]}>
                 <TextInput
-                  style={styles.textInput}
+                  style={[styles.textInput, { color: theme.inputText }]}
                   secureTextEntry={!showPassword}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
-                  placeholder="Confirm password"
-                  placeholderTextColor="#52525B"
+                  placeholder="Επιβεβαίωση κωδικού"
+                  placeholderTextColor={theme.inputPlaceholder}
                 />
               </View>
             </View>
           )}
         </View>
 
-        {/* Primary Save Action (Crisp White CTA matching the rest of the app) */}
+        {/* Primary Save Action */}
         <TouchableOpacity
-          style={styles.saveButton}
+          style={[styles.saveButton, { backgroundColor: theme.brandPink }]}
           onPress={handleSave}
           activeOpacity={0.88}
           disabled={saving}
         >
           {saving ? (
-            <ActivityIndicator size="small" color="#09090B" />
+            <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
-            <Text style={styles.saveButtonText}>Save Changes</Text>
+            <Text style={[styles.saveButtonText, { color: '#FFFFFF' }]}>Αποθήκευση Αλλαγών</Text>
           )}
         </TouchableOpacity>
 
         {/* Secondary Sign Out Action */}
         <TouchableOpacity
-          style={styles.signOutButton}
+          style={[styles.signOutButton, { backgroundColor: theme.crimsonBg, borderColor: theme.crimsonBorder }]}
           onPress={handleSignOutPress}
           activeOpacity={0.8}
         >
-          <Text style={styles.signOutButtonText}>LOCK VAULT & SIGN OUT</Text>
+          <Text style={[styles.signOutButtonText, { color: theme.crimson }]}>ΚΛΕΙΔΩΜΑ & ΑΠΟΣΥΝΔΕΣΗ</Text>
         </TouchableOpacity>
       </ScrollView>
 
@@ -394,18 +394,18 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         onRequestClose={() => setGalleryModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
             <View style={styles.modalHeaderRow}>
-              <Text style={styles.modalTitle}>Choose Avatar</Text>
+              <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>Επιλογή Avatar</Text>
               <TouchableOpacity
                 onPress={() => setGalleryModalVisible(false)}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Text style={styles.modalCloseText}>✕</Text>
+                <Text style={[styles.modalCloseText, { color: theme.textSecondary }]}>✕</Text>
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.modalSub}>CURATED OPERATOR PORTRAITS</Text>
+            <Text style={[styles.modalSub, { color: theme.textMuted }]}>ΕΠΙΛΕΓΜΕΝΑ ΠΟΡΤΡΑΙΤΑ</Text>
             <View style={styles.photoGrid}>
               {CURATED_GALLERY_PHOTOS.map((item) => (
                 <TouchableOpacity
@@ -425,13 +425,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               ))}
             </View>
 
-            <Text style={styles.modalSub}>TACTILE FINTECH GLYPHS</Text>
+            <Text style={[styles.modalSub, { color: theme.textMuted }]}>ΣΥΜΒΟΛΑ & GLYPHS</Text>
             <View style={styles.glyphGrid}>
               {GLYPH_PRESETS.map((p) => (
                 <TouchableOpacity
                   key={p.id}
                   style={[
                     styles.glyphGridItem,
+                    { backgroundColor: theme.track },
                     avatarUri === p.id && { borderColor: p.color, backgroundColor: p.color + '20' },
                   ]}
                   onPress={() => {
@@ -441,23 +442,23 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                   activeOpacity={0.8}
                 >
                   <Text style={styles.glyphGridGlyph}>{p.glyph}</Text>
-                  <Text style={styles.glyphGridLabel}>{p.label.split(' ')[1]}</Text>
+                  <Text style={[styles.glyphGridLabel, { color: theme.textSecondary }]}>{p.label.split(' ')[1]}</Text>
                 </TouchableOpacity>
               ))}
             </View>
 
-            <Text style={styles.modalSub}>OR PASTE CUSTOM IMAGE URL</Text>
+            <Text style={[styles.modalSub, { color: theme.textMuted }]}>Η ΕΠΙΚΟΛΛΗΣΗ URL ΕΙΚΟΝΑΣ</Text>
             <View style={styles.urlInputRow}>
               <TextInput
-                style={styles.customUrlInput}
+                style={[styles.customUrlInput, { backgroundColor: theme.inputBg, borderColor: theme.hairline, color: theme.inputText }]}
                 placeholder="https://..."
-                placeholderTextColor="#52525B"
+                placeholderTextColor={theme.inputPlaceholder}
                 value={customUrlInput}
                 onChangeText={setCustomUrlInput}
                 autoCapitalize="none"
               />
               <TouchableOpacity
-                style={styles.applyUrlBtn}
+                style={[styles.applyUrlBtn, { backgroundColor: theme.brandPink }]}
                 onPress={() => {
                   if (customUrlInput.trim()) {
                     setAvatarUri(customUrlInput.trim());
@@ -466,7 +467,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                   }
                 }}
               >
-                <Text style={styles.applyUrlText}>Apply</Text>
+                <Text style={styles.applyUrlText}>Χρήση</Text>
               </TouchableOpacity>
             </View>
           </View>

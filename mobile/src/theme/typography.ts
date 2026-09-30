@@ -18,20 +18,20 @@ export const fonts = {
     default: 'Commissioner, sans-serif',
   }),
 
-  // Body / UI: Jost (--font-ui) for clean geometric English and UI body texts
+  // Body / UI: Jost (--font-ui) with enhanced weight globally
   body: Platform.select({
-    ios: 'Jost',
-    android: 'Jost-Regular',
+    ios: 'Jost-Medium',
+    android: 'Jost-Medium',
     default: 'Jost, sans-serif',
   }),
   bodyLight: Platform.select({
-    ios: 'Jost-Light',
-    android: 'Jost-Light',
+    ios: 'Jost-Regular',
+    android: 'Jost-Regular',
     default: 'Jost, sans-serif',
   }),
   bodyMedium: Platform.select({
-    ios: 'Jost-Medium',
-    android: 'Jost-Medium',
+    ios: 'Jost-SemiBold',
+    android: 'Jost-SemiBold',
     default: 'Jost, sans-serif',
   }),
   bodyBold: Platform.select({

@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Goal } from '../types';
 import { fonts } from '../theme/typography';
+import { useTheme } from '../theme/ThemeContext';
 
 interface AddGoalModalProps {
   visible: boolean;
@@ -17,28 +18,37 @@ interface AddGoalModalProps {
   onSave: (goal: Omit<Goal, 'id'>) => void;
 }
 
+interface GoalPreset {
+  name: string;
+  icon: string;
+  amount: string;
+}
+
 export const AddGoalModal: React.FC<AddGoalModalProps> = ({
   visible,
   onClose,
   onSave,
 }) => {
+  const { theme } = useTheme();
   const [name, setName] = useState('');
+  const [icon, setIcon] = useState('🎯');
   const [targetAmount, setTargetAmount] = useState('');
   const [currentAmount, setCurrentAmount] = useState('');
   const [targetDate, setTargetDate] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
-  const goalTemplates = [
-    { name: 'Emergency Fund', initial: 'E' },
-    { name: 'Vacation Reserve', initial: 'V' },
-    { name: 'Vehicle Down Payment', initial: 'C' },
-    { name: 'Home Equity', initial: 'H' },
-    { name: 'Hardware / Workstation', initial: 'T' },
+  const goalTemplates: GoalPreset[] = [
+    { name: 'Έκτακτο Ταμείο', icon: '🛡️', amount: '3000' },
+    { name: 'Διακοπές', icon: '✈️', amount: '1500' },
+    { name: 'Αγορά Οχήματος', icon: '🚗', amount: '8000' },
+    { name: 'Αποταμίευση Σπιτιού', icon: '🏠', amount: '5000' },
+    { name: 'Τεχνολογικός Εξοπλισμός', icon: '💻', amount: '1200' },
   ];
 
   useEffect(() => {
     if (visible) {
       setName('');
+      setIcon('🎯');
       setTargetAmount('');
       setCurrentAmount('');
       setTargetDate('');
@@ -46,16 +56,25 @@ export const AddGoalModal: React.FC<AddGoalModalProps> = ({
     }
   }, [visible]);
 
+  const handleSelectTemplate = (tpl: GoalPreset) => {
+    setName(tpl.name);
+    setIcon(tpl.icon);
+    if (!targetAmount) {
+      setTargetAmount(tpl.amount);
+    }
+    if (errorMessage) setErrorMessage('');
+  };
+
   const handleSave = () => {
     const target = parseFloat(targetAmount);
     const initialSaved = parseFloat(currentAmount) || 0;
 
     if (!name.trim()) {
-      setErrorMessage('Enter a target name');
+      setErrorMessage('Εισάγετε όνομα στόχου');
       return;
     }
     if (isNaN(target) || target <= 0) {
-      setErrorMessage('Enter a target amount greater than €0');
+      setErrorMessage('Εισάγετε ποσό στόχου μεγαλύτερο από €0');
       return;
     }
 
@@ -64,8 +83,8 @@ export const AddGoalModal: React.FC<AddGoalModalProps> = ({
       target_amount: target,
       current_amount: initialSaved,
       target_date: targetDate.trim() || undefined,
-      color: '#FAFAFA',
-      icon: name.slice(0, 1).toUpperCase(),
+      color: '#3B82F6',
+      icon: icon || '🎯',
       is_completed: initialSaved >= target,
     });
 
@@ -75,39 +94,59 @@ export const AddGoalModal: React.FC<AddGoalModalProps> = ({
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.overlay}>
-        <View style={styles.sheet}>
+        <View style={[styles.sheet, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
           {/* Header */}
           <View style={styles.header}>
             <View>
-              <Text style={styles.eyebrow}>TARGET DEFINITION</Text>
-              <Text style={styles.title}>New Goal</Text>
+              <Text style={[styles.eyebrow, { color: theme.textMuted }]}>ΟΡΙΣΜΟΣ ΣΤΟΧΟΥ</Text>
+              <Text style={[styles.title, { color: theme.textPrimary }]}>Νέος Στόχος</Text>
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <Text style={styles.closeText}>✕</Text>
+            <TouchableOpacity
+              onPress={onClose}
+              style={[styles.closeBtn, { backgroundColor: theme.track }]}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.closeText, { color: theme.textSecondary }]}>✕</Text>
             </TouchableOpacity>
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false}>
-            {/* Quick Inspiration Templates */}
-            <Text style={styles.inputLabel}>QUICK PRESETS</Text>
+            {/* Quick Presets for Rapid Action */}
+            <Text style={[styles.inputLabel, { color: theme.textMuted }]}>ΓΡΗΓΟΡΕΣ ΕΠΙΛΟΓΕΣ</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.templateRow}>
               {goalTemplates.map((tpl) => (
                 <TouchableOpacity
                   key={tpl.name}
-                  style={styles.templateChip}
-                  onPress={() => setName(tpl.name)}
+                  style={[
+                    styles.templateChip,
+                    { backgroundColor: theme.track, borderColor: theme.hairline },
+                    name === tpl.name && { backgroundColor: theme.buttonPrimaryBg },
+                  ]}
+                  onPress={() => handleSelectTemplate(tpl)}
+                  activeOpacity={0.8}
                 >
-                  <Text style={styles.templateText}>{tpl.name}</Text>
+                  <Text style={styles.templateEmoji}>{tpl.icon}</Text>
+                  <Text
+                    style={[
+                      styles.templateText,
+                      { color: name === tpl.name ? theme.buttonPrimaryText : theme.textPrimary },
+                    ]}
+                  >
+                    {tpl.name}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
 
             {/* Goal Name */}
-            <Text style={styles.inputLabel}>GOAL TITLE</Text>
+            <Text style={[styles.inputLabel, { color: theme.textMuted }]}>ΟΝΟΜΑΣΙΑ ΣΤΟΧΟΥ</Text>
             <TextInput
-              style={styles.textInput}
-              placeholder="e.g. 6-Month Emergency Reserve"
-              placeholderTextColor="#71717A"
+              style={[
+                styles.textInput,
+                { backgroundColor: theme.inputBg, borderColor: theme.hairline, color: theme.inputText },
+              ]}
+              placeholder="π.χ. Ταμείο Έκτακτης Ανάγκης"
+              placeholderTextColor={theme.inputPlaceholder}
               value={name}
               onChangeText={(val) => {
                 setName(val);
@@ -116,13 +155,13 @@ export const AddGoalModal: React.FC<AddGoalModalProps> = ({
             />
 
             {/* Target Amount */}
-            <Text style={styles.inputLabel}>TARGET AMOUNT (€)</Text>
-            <View style={styles.amountContainer}>
-              <Text style={styles.currencyPrefix}>€</Text>
+            <Text style={[styles.inputLabel, { color: theme.textMuted }]}>ΠΟΣΟ ΣΤΟΧΟΥ (€)</Text>
+            <View style={[styles.amountContainer, { backgroundColor: theme.inputBg, borderColor: theme.hairline }]}>
+              <Text style={[styles.currencyPrefix, { color: theme.textPrimary }]}>€</Text>
               <TextInput
-                style={styles.amountInput}
-                placeholder="5,000"
-                placeholderTextColor="#71717A"
+                style={[styles.amountInput, { color: theme.inputText }]}
+                placeholder="5.000"
+                placeholderTextColor={theme.inputPlaceholder}
                 keyboardType="decimal-pad"
                 value={targetAmount}
                 onChangeText={(val) => {
@@ -132,36 +171,42 @@ export const AddGoalModal: React.FC<AddGoalModalProps> = ({
               />
             </View>
 
-            {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+            {errorMessage ? <Text style={[styles.errorText, { color: theme.crimson }]}>{errorMessage}</Text> : null}
 
             {/* Initial Amount Saved */}
-            <Text style={styles.inputLabel}>ALREADY FUNDED (OPTIONAL)</Text>
+            <Text style={[styles.inputLabel, { color: theme.textMuted }]}>ΗΔΗ ΑΠΟΤΑΜΙΕΥΜΕΝΑ (ΠΡΟΑΙΡΕΤΙΚΟ)</Text>
             <TextInput
-              style={styles.textInput}
+              style={[
+                styles.textInput,
+                { backgroundColor: theme.inputBg, borderColor: theme.hairline, color: theme.inputText },
+              ]}
               placeholder="€0.00"
-              placeholderTextColor="#71717A"
+              placeholderTextColor={theme.inputPlaceholder}
               keyboardType="decimal-pad"
               value={currentAmount}
               onChangeText={setCurrentAmount}
             />
 
             {/* Target Date */}
-            <Text style={styles.inputLabel}>TARGET DEADLINE (OPTIONAL)</Text>
+            <Text style={[styles.inputLabel, { color: theme.textMuted }]}>ΗΜΕΡΟΜΗΝΙΑ ΣΤΟΧΟΥ (ΠΡΟΑΙΡΕΤΙΚΟ)</Text>
             <TextInput
-              style={styles.textInput}
-              placeholder="e.g. Dec 2026, Q3 2027"
-              placeholderTextColor="#71717A"
+              style={[
+                styles.textInput,
+                { backgroundColor: theme.inputBg, borderColor: theme.hairline, color: theme.inputText },
+              ]}
+              placeholder="π.χ. Δεκ 2026, Καλοκαίρι 2027"
+              placeholderTextColor={theme.inputPlaceholder}
               value={targetDate}
               onChangeText={setTargetDate}
             />
 
-            {/* Solid White Action Button */}
+            {/* Submit Action */}
             <TouchableOpacity
-              style={styles.submitButton}
+              style={[styles.submitButton, { backgroundColor: theme.buttonPrimaryBg }]}
               onPress={handleSave}
               activeOpacity={0.85}
             >
-              <Text style={styles.submitButtonText}>Establish Goal</Text>
+              <Text style={[styles.submitButtonText, { color: theme.buttonPrimaryText }]}>Δημιουργία Στόχου</Text>
             </TouchableOpacity>
           </ScrollView>
         </View>
@@ -173,17 +218,16 @@ export const AddGoalModal: React.FC<AddGoalModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
     maxHeight: '92%',
     borderWidth: 1,
-    borderColor: '#E4E4E7',
+    borderBottomWidth: 0,
   },
   header: {
     flexDirection: 'row',
@@ -195,39 +239,34 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyBold,
     fontSize: 10,
     letterSpacing: 1,
-    color: '#71717A',
     fontWeight: '700',
-    marginBottom: 2,
+    marginBottom: 4,
     textTransform: 'uppercase',
   },
   title: {
     fontFamily: fonts.heading,
     fontSize: 22,
     fontWeight: '900',
-    color: '#0A0A0A',
     letterSpacing: -0.5,
   },
   closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F4F4F5',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
   closeText: {
-    fontSize: 14,
-    color: '#71717A',
+    fontSize: 16,
     fontWeight: '700',
   },
   inputLabel: {
     fontFamily: fonts.bodyBold,
     fontSize: 11,
     letterSpacing: 0.5,
-    color: '#71717A',
     fontWeight: '700',
     marginBottom: 6,
-    marginTop: 10,
+    marginTop: 12,
     textTransform: 'uppercase',
   },
   templateRow: {
@@ -235,78 +274,71 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   templateChip: {
-    backgroundColor: '#F4F4F5',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     borderRadius: 12,
     paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingVertical: 8,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: '#E4E4E7',
+  },
+  templateEmoji: {
+    fontSize: 14,
   },
   templateText: {
     fontFamily: fonts.bodyMedium,
     fontSize: 12,
-    color: '#71717A',
     fontWeight: '600',
   },
   amountContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E4E4E7',
     paddingHorizontal: 16,
     paddingVertical: 10,
     marginBottom: 4,
   },
   currencyPrefix: {
     fontFamily: fonts.heading,
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '900',
-    color: '#0A0A0A',
-    marginRight: 6,
+    marginRight: 8,
   },
   amountInput: {
     fontFamily: fonts.heading,
     flex: 1,
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '900',
-    color: '#0A0A0A',
     padding: 0,
   },
   errorText: {
     fontFamily: fonts.bodyMedium,
-    color: '#E11D48',
     fontSize: 12,
     fontWeight: '600',
     marginTop: 4,
   },
   textInput: {
     fontFamily: fonts.body,
-    backgroundColor: '#F9FAFB',
     borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 14,
-    color: '#0A0A0A',
     borderWidth: 1,
-    borderColor: '#E4E4E7',
     marginBottom: 8,
   },
   submitButton: {
-    backgroundColor: '#0A0A0A',
     paddingVertical: 16,
     borderRadius: 16,
     alignItems: 'center',
-    marginTop: 12,
-    marginBottom: 20,
+    marginTop: 16,
+    marginBottom: 24,
   },
   submitButtonText: {
     fontFamily: fonts.bodyBold,
     fontSize: 15,
     fontWeight: '700',
-    color: '#FFFFFF',
     letterSpacing: -0.2,
   },
 });

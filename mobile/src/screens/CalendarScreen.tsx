@@ -88,7 +88,7 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
   const getReadableSelectedDate = () => {
     try {
       const d = new Date(selectedDate);
-      return d.toLocaleDateString('en-US', {
+      return d.toLocaleDateString('el-GR', {
         weekday: 'long',
         month: 'short',
         day: 'numeric',
@@ -107,7 +107,7 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
         avatarUrl={avatarUrl}
         rightAction={
           <TouchableOpacity
-            style={styles.headerAddBtn}
+            style={[styles.headerAddBtn, { backgroundColor: theme.brandPink }]}
             onPress={() => setAddTaskVisible(true)}
             activeOpacity={0.85}
           >
@@ -117,19 +117,19 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
       />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* Interactive 7-Day Calendar Strip */}
-        <View style={styles.weekStripWrapper}>
+        {/* Interactive 7-Day Calendar Strip (Pure Pink Hero Canvas) */}
+        <View style={[styles.weekStripWrapper, { backgroundColor: theme.brandPink, borderWidth: 0 }]}>
           <View style={styles.monthHeaderRow}>
-            <Text style={styles.monthHeaderText}>
+            <Text style={[styles.monthHeaderText, { color: '#FFFFFF' }]}>
               {new Date().toLocaleDateString('el-GR', { month: 'long', year: 'numeric' })}
             </Text>
             {selectedDate !== todayIso && (
               <TouchableOpacity
                 onPress={() => setSelectedDate(todayIso)}
-                style={styles.todayPillBtn}
+                style={[styles.todayPillBtn, { backgroundColor: 'rgba(255, 255, 255, 0.20)', borderColor: 'rgba(255, 255, 255, 0.35)' }]}
                 activeOpacity={0.7}
               >
-                <Text style={styles.todayPillText}>Σήμερα</Text>
+                <Text style={[styles.todayPillText, { color: '#FFFFFF' }]}>Σήμερα</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -142,7 +142,8 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
                   key={day.iso}
                   style={[
                     styles.dayColumn,
-                    isSelected && styles.dayColumnSelected,
+                    { backgroundColor: 'rgba(255, 255, 255, 0.18)' },
+                    isSelected && { backgroundColor: '#FFFFFF' },
                   ]}
                   onPress={() => setSelectedDate(day.iso)}
                   activeOpacity={0.75}
@@ -150,7 +151,8 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
                   <Text
                     style={[
                       styles.dayNameText,
-                      isSelected && styles.dayNameTextSelected,
+                      { color: isSelected ? theme.brandPink : 'rgba(255, 255, 255, 0.85)' },
+                      isSelected && { fontWeight: '800' },
                     ]}
                   >
                     {day.dayName}
@@ -159,7 +161,7 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
                   <Text
                     style={[
                       styles.dayNumberText,
-                      isSelected && styles.dayNumberTextSelected,
+                      { color: isSelected ? theme.brandPink : '#FFFFFF' },
                     ]}
                   >
                     {day.dateNumber}
@@ -171,7 +173,7 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
                       <View
                         style={[
                           styles.indicatorDot,
-                          { backgroundColor: isSelected ? '#FFFFFF' : '#059669' },
+                          { backgroundColor: isSelected ? theme.brandPink : '#A7F3D0' },
                         ]}
                       />
                     )}
@@ -179,7 +181,7 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
                       <View
                         style={[
                           styles.indicatorDot,
-                          { backgroundColor: isSelected ? '#FFFFFF' : '#E11D48' },
+                          { backgroundColor: isSelected ? theme.crimson : '#FECDD3' },
                         ]}
                       />
                     )}
@@ -193,40 +195,40 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
         {/* Agenda Header for Selected Date */}
         <View style={styles.agendaHeaderRow}>
           <View>
-            <Text style={styles.agendaDateTitle}>{getReadableSelectedDate()}</Text>
-            <Text style={styles.agendaDateSub}>
+            <Text style={[styles.agendaDateTitle, { color: theme.textPrimary }]}>{getReadableSelectedDate()}</Text>
+            <Text style={[styles.agendaDateSub, { color: theme.textMuted }]}>
               {selectedDateTasks.length} {selectedDateTasks.length === 1 ? 'Εργασία' : 'Εργασίες'} • {selectedDateBills.length} {selectedDateBills.length === 1 ? 'Πληρωμή' : 'Πληρωμές'}
             </Text>
           </View>
 
           <TouchableOpacity
-            style={styles.addTaskInlineBtn}
+            style={[styles.addTaskInlineBtn, { backgroundColor: theme.brandPink, borderColor: theme.brandPink }]}
             onPress={() => setAddTaskVisible(true)}
             activeOpacity={0.8}
           >
-            <PlusIcon size={14} color="#0A0A0A" />
-            <Text style={styles.addTaskInlineText}>Add Task</Text>
+            <PlusIcon size={14} color="#FFFFFF" />
+            <Text style={[styles.addTaskInlineText, { color: '#FFFFFF' }]}>Νέα Εργασία</Text>
           </TouchableOpacity>
         </View>
 
         {/* Tasks Scheduled on Selected Date */}
-        <View style={styles.agendaCardContainer}>
-          <Text style={styles.agendaSectionLabel}>SCHEDULED TASKS</Text>
+        <View style={[styles.agendaCardContainer, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
+          <Text style={[styles.agendaSectionLabel, { color: theme.textMuted }]}>ΠΡΟΓΡΑΜΜΑΤΙΣΜΕΝΕΣ ΕΡΓΑΣΙΕΣ</Text>
           {selectedDateTasks.length === 0 ? (
-            <View style={styles.emptyDayContainer}>
-              <Text style={styles.emptyDayTitle}>No tasks for this day</Text>
-              <Text style={styles.emptyDaySub}>Stay ahead of your schedule by creating one.</Text>
+            <View style={[styles.emptyDayContainer, { backgroundColor: theme.surface, borderWidth: 0 }]}>
+              <Text style={[styles.emptyDayTitle, { color: theme.textPrimary }]}>Καμία εργασία για αυτή την ημέρα</Text>
+              <Text style={[styles.emptyDaySub, { color: theme.textSecondary }]}>Οργανώστε το πρόγραμμά σας δημιουργώντας μία.</Text>
               <TouchableOpacity
-                style={styles.emptyAddBtn}
+                style={[styles.emptyAddBtn, { backgroundColor: theme.brandPink }]}
                 onPress={() => setAddTaskVisible(true)}
                 activeOpacity={0.85}
               >
-                <Text style={styles.emptyAddBtnText}>+ Schedule Task</Text>
+                <Text style={styles.emptyAddBtnText}>+ Προσθήκη Εργασίας</Text>
               </TouchableOpacity>
             </View>
           ) : (
             selectedDateTasks.map((t) => (
-              <View key={t.id} style={styles.taskCardItem}>
+              <View key={t.id} style={[styles.taskCardItem, { borderBottomColor: theme.hairline }]}>
                 {/* Checkbox */}
                 <TouchableOpacity
                   style={styles.taskCheckbox}
@@ -234,11 +236,11 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
                   activeOpacity={0.7}
                 >
                   {t.completed ? (
-                    <View style={styles.taskCheckedBox}>
+                    <View style={[styles.taskCheckedBox, { backgroundColor: theme.emerald }]}>
                       <CheckIcon size={12} color="#FFFFFF" />
                     </View>
                   ) : (
-                    <View style={styles.taskUncheckedBox} />
+                    <View style={[styles.taskUncheckedBox, { borderColor: theme.hairline }]} />
                   )}
                 </TouchableOpacity>
 
@@ -247,7 +249,8 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
                   <Text
                     style={[
                       styles.taskItemTitle,
-                      t.completed && styles.taskCompletedTitle,
+                      { color: theme.textPrimary },
+                      t.completed && { textDecorationLine: 'line-through', color: theme.textMuted },
                     ]}
                     numberOfLines={1}
                   >
@@ -255,54 +258,65 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
                   </Text>
 
                   {t.description ? (
-                    <Text style={styles.taskItemDesc} numberOfLines={1}>
+                    <Text style={[styles.taskItemDesc, { color: theme.textSecondary }]} numberOfLines={1}>
                       {t.description}
                     </Text>
                   ) : null}
 
                   {/* Badges: Category & Priority */}
                   <View style={styles.taskBadgeRow}>
-                    <View style={styles.categoryPill}>
-                      <Text style={styles.categoryPillText}>{t.category || 'General'}</Text>
+                    <View style={[styles.categoryPill, { backgroundColor: theme.track }]}>
+                      <Text style={[styles.categoryPillText, { color: theme.textSecondary }]}>{t.category || 'Γενικά'}</Text>
                     </View>
 
                     <View
                       style={[
                         styles.priorityPill,
-                        t.priority === 'high'
-                          ? styles.priorityHigh
-                          : t.priority === 'medium'
-                            ? styles.priorityMedium
-                            : styles.priorityLow,
+                        {
+                          backgroundColor:
+                            t.priority === 'high'
+                              ? theme.crimsonBg
+                              : theme.track,
+                        },
                       ]}
                     >
-                      <Text style={styles.priorityPillText}>
-                        {(t.priority || 'medium').toUpperCase()}
+                      <Text
+                        style={[
+                          styles.priorityPillText,
+                          {
+                            color:
+                              t.priority === 'high'
+                                ? theme.crimson
+                                : theme.textPrimary,
+                          },
+                        ]}
+                      >
+                        {t.priority === 'high' ? 'ΥΨΗΛΗ' : t.priority === 'medium' ? 'ΜΕΣΗ' : 'ΧΑΜΗΛΗ'}
                       </Text>
                     </View>
                   </View>
 
                   {/* Mini Progress Bar */}
                   <View style={styles.taskProgressRow}>
-                    <View style={styles.taskProgressBar}>
+                    <View style={[styles.taskProgressBar, { backgroundColor: theme.track }]}>
                       <View
                         style={[
                           styles.taskProgressFill,
-                          { width: `${t.progress}%` },
+                          { width: `${t.progress}%`, backgroundColor: t.completed ? theme.emerald : theme.brandPink },
                         ]}
                       />
                     </View>
-                    <Text style={styles.taskProgressText}>{t.progress}%</Text>
+                    <Text style={[styles.taskProgressText, { color: theme.textMuted }]}>{t.progress}%</Text>
                   </View>
                 </View>
 
                 {/* Delete Option */}
                 <TouchableOpacity
                   onPress={() => {
-                    Alert.alert('Delete Task', `Remove "${t.title}"?`, [
-                      { text: 'Cancel', style: 'cancel' },
+                    Alert.alert('Διαγραφή Εργασίας', `Θέλετε να διαγράψετε την εργασία "${t.title}";`, [
+                      { text: 'Ακύρωση', style: 'cancel' },
                       {
-                        text: 'Delete',
+                        text: 'Διαγραφή',
                         style: 'destructive',
                         onPress: () => onDeleteTask(t.id),
                       },
@@ -311,7 +325,7 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
                   style={styles.taskDeleteBtn}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
-                  <Text style={styles.taskDeleteText}>✕</Text>
+                  <Text style={[styles.taskDeleteText, { color: theme.textMuted }]}>✕</Text>
                 </TouchableOpacity>
               </View>
             ))
@@ -320,32 +334,34 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
 
         {/* Recurring Financial Obligations for this day */}
         {selectedDateBills.length > 0 && (
-          <View style={[styles.agendaCardContainer, { marginTop: 18 }]}>
-            <Text style={styles.agendaSectionLabel}>FINANCIAL OBLIGATIONS</Text>
+          <View style={[styles.agendaCardContainer, { marginTop: 18, backgroundColor: theme.surface, borderColor: theme.hairline }]}>
+            <Text style={[styles.agendaSectionLabel, { color: theme.textMuted }]}>ΟΙΚΟΝΟΜΙΚΕΣ ΥΠΟΧΡΕΩΣΕΙΣ</Text>
             {selectedDateBills.map((b) => (
-              <View key={b.id} style={styles.billDueCard}>
+              <View key={b.id} style={[styles.billDueCard, { backgroundColor: theme.surface }]}>
                 <View style={styles.billDueLeft}>
-                  <View style={styles.billDueBadge}>
-                    <RepeatIcon size={16} color="#E11D48" />
+                  <View style={[styles.billDueBadge, { backgroundColor: theme.crimsonBg }]}>
+                    <RepeatIcon size={16} color={theme.crimson} />
                   </View>
                   <View>
-                    <Text style={styles.billDueDesc}>{b.description}</Text>
-                    <Text style={styles.billDueMeta}>Due Today • {b.frequency}</Text>
+                    <Text style={[styles.billDueDesc, { color: theme.textPrimary }]}>{b.description}</Text>
+                    <Text style={[styles.billDueMeta, { color: theme.crimson }]}>
+                      Σήμερα • {b.frequency === 'monthly' ? 'Μηνιαία' : b.frequency === 'weekly' ? 'Εβδομαδιαία' : b.frequency === 'yearly' ? 'Ετήσια' : b.frequency}
+                    </Text>
                   </View>
                 </View>
-                <Text style={styles.billDueAmount}>€{b.amount.toFixed(2)}</Text>
+                <Text style={[styles.billDueAmount, { color: theme.textPrimary }]}>€{b.amount.toFixed(2)}</Text>
               </View>
             ))}
           </View>
         )}
 
         {/* All Tasks Summary Strip */}
-        <View style={[styles.agendaCardContainer, { marginTop: 18 }]}>
-          <Text style={styles.agendaSectionLabel}>ALL ACTIVE TASKS ({tasks.length})</Text>
+        <View style={[styles.agendaCardContainer, { marginTop: 18, backgroundColor: theme.surface, borderColor: theme.hairline }]}>
+          <Text style={[styles.agendaSectionLabel, { color: theme.textMuted }]}>ΟΛΕΣ ΟΙ ΕΝΕΡΓΕΣ ΕΡΓΑΣΙΕΣ ({tasks.length})</Text>
           {tasks.slice(0, 6).map((t) => (
             <TouchableOpacity
               key={t.id}
-              style={styles.quickTaskRow}
+              style={[styles.quickTaskRow, { backgroundColor: theme.surface, borderBottomColor: theme.hairline }]}
               onPress={() => onToggleTask(t.id)}
               activeOpacity={0.7}
             >
@@ -353,13 +369,14 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
                 <View
                   style={[
                     styles.quickDot,
-                    { backgroundColor: t.completed ? '#10B981' : '#6355E6' },
+                    { backgroundColor: t.completed ? theme.emerald : theme.brandPink },
                   ]}
                 />
                 <Text
                   style={[
                     styles.quickTaskTitle,
-                    t.completed && styles.taskCompletedTitle,
+                    { color: theme.textPrimary },
+                    t.completed && { textDecorationLine: 'line-through', color: theme.textMuted },
                   ]}
                   numberOfLines={1}
                 >
@@ -367,7 +384,7 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
                 </Text>
               </View>
 
-              <Text style={styles.quickTaskDate}>{t.due_date}</Text>
+              <Text style={[styles.quickTaskDate, { color: theme.textMuted }]}>{t.due_date}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -400,17 +417,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   scrollContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 24,
   },
   weekStripWrapper: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 18,
     padding: 16,
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E4E4E7',
   },
   monthHeaderRow: {
     flexDirection: 'row',
@@ -422,22 +436,18 @@ const styles = StyleSheet.create({
     fontFamily: fonts.heading,
     fontSize: 16,
     fontWeight: '800',
-    color: '#0A0A0A',
     letterSpacing: -0.2,
   },
   todayPillBtn: {
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
-    backgroundColor: '#F4F4F5',
     borderWidth: 1,
-    borderColor: '#E4E4E7',
   },
   todayPillText: {
     fontFamily: fonts.bodyBold,
     fontSize: 11,
     fontWeight: '700',
-    color: '#0A0A0A',
   },
   dayStripRow: {
     flexDirection: 'row',
@@ -448,30 +458,21 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 14,
     alignItems: 'center',
-    backgroundColor: '#F4F4F5',
   },
-  dayColumnSelected: {
-    backgroundColor: '#0A0A0A',
-  },
+  dayColumnSelected: {},
   dayNameText: {
     fontFamily: fonts.bodyMedium,
     fontSize: 11,
     fontWeight: '600',
-    color: '#71717A',
     marginBottom: 4,
   },
-  dayNameTextSelected: {
-    color: 'rgba(255, 255, 255, 0.75)',
-  },
+  dayNameTextSelected: {},
   dayNumberText: {
     fontFamily: fonts.heading,
     fontSize: 16,
     fontWeight: '900',
-    color: '#0A0A0A',
   },
-  dayNumberTextSelected: {
-    color: '#FFFFFF',
-  },
+  dayNumberTextSelected: {},
   dayDotsRow: {
     flexDirection: 'row',
     gap: 3,
@@ -494,13 +495,11 @@ const styles = StyleSheet.create({
     fontFamily: fonts.heading,
     fontSize: 17,
     fontWeight: '800',
-    color: '#0A0A0A',
     letterSpacing: -0.3,
   },
   agendaDateSub: {
     fontFamily: fonts.bodyLight,
     fontSize: 12,
-    color: '#71717A',
     marginTop: 1,
   },
   addTaskInlineBtn: {
@@ -510,22 +509,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
-    backgroundColor: '#F4F4F5',
     borderWidth: 1,
-    borderColor: '#E4E4E7',
   },
   addTaskInlineText: {
     fontFamily: fonts.bodyBold,
     fontSize: 12,
     fontWeight: '700',
-    color: '#0A0A0A',
   },
   agendaCardContainer: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E4E4E7',
   },
   agendaSectionLabel: {
     fontFamily: fonts.bodyBold,
@@ -543,20 +537,17 @@ const styles = StyleSheet.create({
     fontFamily: fonts.heading,
     fontSize: 15,
     fontWeight: '700',
-    color: '#0A0A0A',
     marginBottom: 4,
   },
   emptyDaySub: {
     fontFamily: fonts.bodyLight,
     fontSize: 13,
-    color: '#71717A',
     marginBottom: 14,
   },
   emptyAddBtn: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 12,
-    backgroundColor: '#0A0A0A',
   },
   emptyAddBtnText: {
     fontFamily: fonts.bodyBold,

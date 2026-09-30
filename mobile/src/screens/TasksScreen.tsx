@@ -90,11 +90,11 @@ export const TasksScreen: React.FC<TasksScreenProps> = ({
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.addIconButton, { backgroundColor: theme.buttonPrimaryBg }]}
+              style={[styles.addIconButton, { backgroundColor: theme.brandPink }]}
               onPress={() => setTaskModalVisible(true)}
               activeOpacity={0.85}
             >
-              <PlusIcon size={16} color={theme.buttonPrimaryText} />
+              <PlusIcon size={16} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
         }
@@ -121,89 +121,103 @@ export const TasksScreen: React.FC<TasksScreenProps> = ({
           </View>
         )}
 
+        {/* Pure Pink Status Hero Bar */}
+        <View style={[styles.heroCanvas, { backgroundColor: theme.brandPink, borderWidth: 0 }]}>
+          <View style={styles.heroTopRow}>
+            <Text style={[styles.heroKicker, { color: 'rgba(255, 255, 255, 0.85)' }]}>ΕΠΙΣΚΟΠΗΣΗ ΕΡΓΑΣΙΩΝ</Text>
+            <View style={[styles.heroBadge, { backgroundColor: 'rgba(255, 255, 255, 0.20)' }]}>
+              <Text style={[styles.heroBadgeText, { color: '#FFFFFF' }]}>
+                {completedCount}/{tasks.length} ΟΛΟΚΛΗΡΩΘΗΚΑΝ
+              </Text>
+            </View>
+          </View>
+          <View style={styles.heroMetricsStrip}>
+            <TouchableOpacity
+              style={styles.heroMetricCol}
+              onPress={() => setActiveFilter('todo')}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.heroMetricLabel, { color: 'rgba(255, 255, 255, 0.80)' }]}>ΠΡΟΣ ΕΚΤΕΛΕΣΗ</Text>
+              <Text style={[styles.heroMetricValue, { color: '#FFFFFF' }]}>{todoCount}</Text>
+            </TouchableOpacity>
+
+            <View style={[styles.heroMetricDivider, { backgroundColor: 'rgba(255, 255, 255, 0.22)' }]} />
+
+            <TouchableOpacity
+              style={styles.heroMetricCol}
+              onPress={() => setActiveFilter('inprogress')}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.heroMetricLabel, { color: 'rgba(255, 255, 255, 0.80)' }]}>ΣΕ ΕΞΕΛΙΞΗ</Text>
+              <Text style={[styles.heroMetricValue, { color: '#FFFFFF' }]}>{inProgressCount}</Text>
+            </TouchableOpacity>
+
+            <View style={[styles.heroMetricDivider, { backgroundColor: 'rgba(255, 255, 255, 0.22)' }]} />
+
+            <TouchableOpacity
+              style={styles.heroMetricCol}
+              onPress={() => setActiveFilter('completed')}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.heroMetricLabel, { color: 'rgba(255, 255, 255, 0.80)' }]}>ΟΛΟΚΛΗΡΩΜΕΝΕΣ</Text>
+              <Text style={[styles.heroMetricValue, { color: '#A7F3D0' }]}>{completedCount}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* Filter Pills */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterPillsRow}>
           <TouchableOpacity
-            style={[styles.pill, { backgroundColor: activeFilter === 'all' ? theme.buttonPrimaryBg : theme.pillBg, borderColor: activeFilter === 'all' ? theme.buttonPrimaryBg : theme.hairline }]}
+            style={[styles.pill, { backgroundColor: activeFilter === 'all' ? theme.brandPink : theme.surface, borderColor: activeFilter === 'all' ? theme.brandPink : theme.hairline }]}
             onPress={() => setActiveFilter('all')}
             activeOpacity={0.7}
           >
-            <Text style={[styles.pillText, { color: activeFilter === 'all' ? theme.buttonPrimaryText : theme.pillText }]}>
+            <Text style={[styles.pillText, { color: activeFilter === 'all' ? '#FFFFFF' : theme.textSecondary }]}>
               Όλες ({tasks.length})
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.pill, { backgroundColor: activeFilter === 'todo' ? theme.buttonPrimaryBg : theme.pillBg, borderColor: activeFilter === 'todo' ? theme.buttonPrimaryBg : theme.hairline }]}
+            style={[styles.pill, { backgroundColor: activeFilter === 'todo' ? theme.brandPink : theme.surface, borderColor: activeFilter === 'todo' ? theme.brandPink : theme.hairline }]}
             onPress={() => setActiveFilter('todo')}
             activeOpacity={0.7}
           >
-            <Text style={[styles.pillText, { color: activeFilter === 'todo' ? theme.buttonPrimaryText : theme.pillText }]}>
+            <Text style={[styles.pillText, { color: activeFilter === 'todo' ? '#FFFFFF' : theme.textSecondary }]}>
               Προς Εκτέλεση ({todoCount})
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.pill, { backgroundColor: activeFilter === 'inprogress' ? theme.buttonPrimaryBg : theme.pillBg, borderColor: activeFilter === 'inprogress' ? theme.buttonPrimaryBg : theme.hairline }]}
+            style={[styles.pill, { backgroundColor: activeFilter === 'inprogress' ? theme.brandPink : theme.surface, borderColor: activeFilter === 'inprogress' ? theme.brandPink : theme.hairline }]}
             onPress={() => setActiveFilter('inprogress')}
             activeOpacity={0.7}
           >
-            <Text style={[styles.pillText, { color: activeFilter === 'inprogress' ? theme.buttonPrimaryText : theme.pillText }]}>
+            <Text style={[styles.pillText, { color: activeFilter === 'inprogress' ? '#FFFFFF' : theme.textSecondary }]}>
               Σε Εξέλιξη ({inProgressCount})
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.pill, { backgroundColor: activeFilter === 'completed' ? theme.buttonPrimaryBg : theme.pillBg, borderColor: activeFilter === 'completed' ? theme.buttonPrimaryBg : theme.hairline }]}
+            style={[styles.pill, { backgroundColor: activeFilter === 'completed' ? theme.brandPink : theme.surface, borderColor: activeFilter === 'completed' ? theme.brandPink : theme.hairline }]}
             onPress={() => setActiveFilter('completed')}
             activeOpacity={0.7}
           >
-            <Text style={[styles.pillText, { color: activeFilter === 'completed' ? theme.buttonPrimaryText : theme.pillText }]}>
+            <Text style={[styles.pillText, { color: activeFilter === 'completed' ? '#FFFFFF' : theme.textSecondary }]}>
               Ολοκληρωμένες ({completedCount})
             </Text>
           </TouchableOpacity>
         </ScrollView>
 
-        {/* 3 Status Summary Cards */}
-        <View style={styles.summaryRow}>
-          <TouchableOpacity
-            style={[styles.summaryCard, { backgroundColor: theme.surface, borderColor: theme.hairline }]}
-            onPress={() => setActiveFilter('todo')}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Προς Εκτέλεση</Text>
-            <Text style={[styles.summaryNumber, { color: theme.textPrimary }]}>{todoCount}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.summaryCard, { backgroundColor: theme.surface, borderColor: theme.hairline }]}
-            onPress={() => setActiveFilter('inprogress')}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Σε Εξέλιξη</Text>
-            <Text style={[styles.summaryNumber, { color: theme.textSecondary }]}>{inProgressCount}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.summaryCard, { backgroundColor: theme.surface, borderColor: theme.hairline }]}
-            onPress={() => setActiveFilter('completed')}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Ολοκληρωμένες</Text>
-            <Text style={[styles.summaryNumber, { color: theme.emerald }]}>{completedCount}</Text>
-          </TouchableOpacity>
-        </View>
-
         {/* Task Items List */}
         <View style={styles.taskList}>
           {filteredTasks.length === 0 ? (
-            <View style={[styles.emptyContainer, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
+            <View style={[styles.emptyContainer, { backgroundColor: theme.surface, borderWidth: 0 }]}>
               <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Δεν βρέθηκαν εργασίες</Text>
               <Text style={[styles.emptySubtext, { color: theme.textSecondary }]}>Πατήστε + για να δημιουργήσετε νέα εργασία.</Text>
             </View>
           ) : (
             filteredTasks.map((t) => (
-              <View key={t.id} style={[styles.taskCard, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
+              <View key={t.id} style={[styles.taskCard, { backgroundColor: theme.surface, borderWidth: 0 }]}>
                 {/* Left: Radio / Check Status Icon */}
                 <TouchableOpacity
                   style={styles.radioWrapper}
@@ -211,11 +225,11 @@ export const TasksScreen: React.FC<TasksScreenProps> = ({
                   activeOpacity={0.7}
                 >
                   {t.completed ? (
-                    <View style={styles.checkedCircle}>
+                    <View style={[styles.checkedCircle, { backgroundColor: theme.emerald }]}>
                       <CheckIcon size={12} color="#FFFFFF" />
                     </View>
                   ) : (
-                    <View style={styles.uncheckedCircle} />
+                    <View style={[styles.uncheckedCircle, { borderColor: theme.hairline }]} />
                   )}
                 </TouchableOpacity>
 
@@ -261,7 +275,7 @@ export const TasksScreen: React.FC<TasksScreenProps> = ({
                       <View
                         style={[
                           styles.progressBarFill,
-                          { width: `${t.progress}%` },
+                          { width: `${t.progress}%`, backgroundColor: t.completed ? theme.emerald : theme.brandPink },
                         ]}
                       />
                     </View>
@@ -275,10 +289,10 @@ export const TasksScreen: React.FC<TasksScreenProps> = ({
 
                   <TouchableOpacity
                     onPress={() => {
-                      Alert.alert('Delete Task', `Remove "${t.title}"?`, [
-                        { text: 'Cancel', style: 'cancel' },
+                      Alert.alert('Διαγραφή Εργασίας', `Θέλετε να αφαιρέσετε την εργασία "${t.title}";`, [
+                        { text: 'Ακύρωση', style: 'cancel' },
                         {
-                          text: 'Delete',
+                          text: 'Διαγραφή',
                           style: 'destructive',
                           onPress: () => onDeleteTask(t.id),
                         },
@@ -287,7 +301,7 @@ export const TasksScreen: React.FC<TasksScreenProps> = ({
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     style={{ marginTop: 8 }}
                   >
-                    <Text style={styles.deleteLink}>Delete</Text>
+                    <Text style={[styles.deleteLink, { color: theme.crimson }]}>Διαγραφή</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -383,29 +397,62 @@ const styles = StyleSheet.create({
   activePillText: {
     color: '#FFFFFF',
   },
-  summaryRow: {
-    flexDirection: 'row',
-    gap: 12,
+  // ─── Pure Pink Hero Canvas ───
+  heroCanvas: {
+    borderRadius: 18,
+    padding: 16,
     marginBottom: 16,
   },
-  summaryCard: {
+  heroTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  heroKicker: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10,
+    letterSpacing: 1,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  heroBadge: {
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  heroBadgeText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+  },
+  heroMetricsStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.22)',
+    paddingTop: 10,
+  },
+  heroMetricCol: {
     flex: 1,
-    borderRadius: 16,
-    padding: 14,
-    borderWidth: 1,
+    alignItems: 'center',
   },
-  summaryLabel: {
+  heroMetricDivider: {
+    width: 1,
+    height: 24,
+  },
+  heroMetricLabel: {
     fontFamily: fonts.bodyMedium,
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#71717A',
-    marginBottom: 4,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+    marginBottom: 2,
   },
-  summaryNumber: {
+  heroMetricValue: {
     fontFamily: fonts.heading,
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '900',
-    color: '#0A0A0A',
   },
   taskList: {
     gap: 12,
@@ -413,7 +460,6 @@ const styles = StyleSheet.create({
   taskCard: {
     borderRadius: 16,
     padding: 16,
-    borderWidth: 1,
     flexDirection: 'row',
     alignItems: 'flex-start',
   },
