@@ -10,6 +10,7 @@ import {
 import { fonts } from '../theme/typography';
 import { AppTopHeader } from '../components/AppTopHeader';
 import { PiggyBankHero } from '../components/PiggyBankHero';
+import { KineticProgressBar } from '../components/KineticProgressBar';
 import { AddTransactionModal } from '../components/AddTransactionModal';
 import { SetBudgetModal } from '../components/SetBudgetModal';
 import { useTheme } from '../theme/ThemeContext';
@@ -311,17 +312,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                         <Text style={styles.itemBold}>{item.name}</Text>
                         <Text style={{ color: theme.textSecondary }}>: €{Math.round(item.spent)} / €{Math.round(item.limit)}</Text>
                       </Text>
-                      <View style={[styles.microBarTrack, { backgroundColor: theme.track }]}>
-                        <View
-                          style={[
-                            styles.microBarFill,
-                            {
-                              width: `${percent}%`,
-                              backgroundColor: item.spent > item.limit ? theme.crimson : theme.emerald,
-                            },
-                          ]}
-                        />
-                      </View>
+                      <KineticProgressBar
+                        progress={percent / 100}
+                        height={3.5}
+                        trackColor={theme.track}
+                        fillColor={item.spent > item.limit ? theme.crimson : theme.emerald}
+                        duration={800}
+                        delay={idx * 120}
+                        style={{ marginTop: 3 }}
+                      />
                     </View>
                   );
                 })

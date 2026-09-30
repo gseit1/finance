@@ -15,6 +15,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { authService } from '../services/authService';
 import { fonts } from '../theme/typography';
+import { KineticSpinner } from '../components/KineticSpinner';
 
 interface AuthScreenProps {
   initialMode?: 'signin' | 'signup';
@@ -243,7 +244,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
               disabled={loading}
             >
               {loading ? (
-                <ActivityIndicator size="small" color="#08080A" />
+                <KineticSpinner size="small" color="#08080A" />
               ) : (
                 <Text style={styles.unlockButtonText}>
                   {mode === 'signin' ? 'UNLOCK LEDGER' : 'INITIALIZE VAULT'}

@@ -11,6 +11,7 @@ import { fonts } from '../theme/typography';
 import { useTheme } from '../theme/ThemeContext';
 import { Transaction, Account, Budget, Task, Goal } from '../types';
 import { AppTopHeader } from '../components/AppTopHeader';
+import { KineticProgressBar } from '../components/KineticProgressBar';
 import {
   BarChartIcon,
   ExpensesIcon,
@@ -529,14 +530,14 @@ export const AnalyticsScreen: React.FC<AnalyticsScreenProps> = ({
               </View>
             </View>
 
-            <View style={[styles.taskProgressBarTrack, { backgroundColor: theme.track }]}>
-              <View
-                style={[
-                  styles.taskProgressBarFill,
-                  { width: `${taskAnalytics.rate}%`, backgroundColor: theme.emerald },
-                ]}
-              />
-            </View>
+            <KineticProgressBar
+              progress={taskAnalytics.rate / 100}
+              height={5}
+              trackColor={theme.track}
+              fillColor={theme.emerald}
+              duration={900}
+              delay={200}
+            />
           </View>
         )}
 

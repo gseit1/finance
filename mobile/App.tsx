@@ -18,6 +18,7 @@ import { SideDrawerNav } from './src/components/SideDrawerNav';
 import { AddAccountModal } from './src/components/AddAccountModal';
 import { AddTransactionModal } from './src/components/AddTransactionModal';
 import { AddTaskModal } from './src/components/AddTaskModal';
+import { KineticSpinner } from './src/components/KineticSpinner';
 import {
   Transaction,
   Account,
@@ -1104,8 +1105,13 @@ function App(): React.JSX.Element {
   if (isAuthChecking) {
     return (
       <SafeAreaProvider>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#10B981" />
+        <View style={[styles.loadingContainer, { backgroundColor: '#09090B' }]}>
+          <KineticSpinner
+            size="large"
+            color="#E11D74"
+            secondaryColor="#38BDF8"
+            label="ΦΟΡΤΩΣΗ ΘΗΣΑΥΡΟΦΥΛΑΚΙΟΥ..."
+          />
         </View>
       </SafeAreaProvider>
     );

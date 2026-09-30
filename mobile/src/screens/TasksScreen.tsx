@@ -13,6 +13,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { Task } from '../types';
 import { AddTaskModal } from '../components/AddTaskModal';
 import { AppTopHeader } from '../components/AppTopHeader';
+import { KineticProgressBar } from '../components/KineticProgressBar';
 import {
   SearchIcon,
   PlusIcon,
@@ -269,14 +270,15 @@ export const TasksScreen: React.FC<TasksScreenProps> = ({
                     </View>
                   </View>
 
-                  {/* Progress Bar */}
+                  {/* Kinetic Progress Bar */}
                   <View style={styles.progressRow}>
-                    <View style={[styles.progressBarTrack, { backgroundColor: theme.track }]}>
-                      <View
-                        style={[
-                          styles.progressBarFill,
-                          { width: `${t.progress}%`, backgroundColor: t.completed ? theme.emerald : theme.brandPink },
-                        ]}
+                    <View style={{ flex: 1 }}>
+                      <KineticProgressBar
+                        progress={t.progress / 100}
+                        height={4}
+                        trackColor={theme.track}
+                        fillColor={t.completed ? theme.emerald : theme.brandPink}
+                        duration={800}
                       />
                     </View>
                     <Text style={[styles.progressText, { color: theme.textMuted }]}>{t.progress}%</Text>

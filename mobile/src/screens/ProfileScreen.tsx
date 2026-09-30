@@ -17,6 +17,7 @@ import { authService } from '../services/authService';
 import { AppTopHeader } from '../components/AppTopHeader';
 import { fonts } from '../theme/typography';
 import { useTheme } from '../theme/ThemeContext';
+import { KineticSpinner } from '../components/KineticSpinner';
 
 interface ProfileScreenProps {
   onBack: () => void;
@@ -370,7 +371,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           disabled={saving}
         >
           {saving ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
+            <KineticSpinner size="small" color="#FFFFFF" />
           ) : (
             <Text style={[styles.saveButtonText, { color: '#FFFFFF' }]}>Αποθήκευση Αλλαγών</Text>
           )}

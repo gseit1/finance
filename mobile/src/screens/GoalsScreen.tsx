@@ -13,6 +13,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { Goal } from '../types';
 import { AddGoalModal } from '../components/AddGoalModal';
 import { AppTopHeader } from '../components/AppTopHeader';
+import { KineticProgressBar } from '../components/KineticProgressBar';
 import {
   PlusIcon,
   CheckIcon,
@@ -325,18 +326,15 @@ export const GoalsScreen: React.FC<GoalsScreenProps> = ({
                     </Text>
                   </View>
 
-                  {/* Clean Borderless Progress Bar */}
-                  <View style={[styles.progressTrack, { backgroundColor: theme.track }]}>
-                    <View
-                      style={[
-                        styles.progressFill,
-                        {
-                          width: `${progress}%`,
-                          backgroundColor: isCompleted ? theme.emerald : theme.brandPink,
-                        },
-                      ]}
-                    />
-                  </View>
+                  {/* Kinetic Animated Progress Bar */}
+                  <KineticProgressBar
+                    progress={progress / 100}
+                    height={5}
+                    trackColor={theme.track}
+                    fillColor={isCompleted ? theme.emerald : theme.brandPink}
+                    duration={900}
+                    delay={150}
+                  />
 
                   {/* Subtext info */}
                   {!isCompleted && remaining > 0 && (
