@@ -10,7 +10,8 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
+import { fonts } from '../theme/typography';
 import { Account, Category, RecurringFrequency, RecurringRule } from '../types';
 
 interface AddRecurringModalProps {
@@ -22,21 +23,21 @@ interface AddRecurringModalProps {
 }
 
 const FREQUENCY_OPTIONS: { freq: RecurringFrequency; label: string }[] = [
-  { freq: 'monthly', label: 'Monthly' },
-  { freq: 'weekly', label: 'Weekly' },
-  { freq: 'bi-weekly', label: 'Bi-Weekly' },
-  { freq: 'yearly', label: 'Yearly' },
-  { freq: 'daily', label: 'Daily' },
+  { freq: 'monthly', label: 'Μηνιαία' },
+  { freq: 'weekly', label: 'Εβδομαδιαία' },
+  { freq: 'bi-weekly', label: 'Κάθε 2 εβδ.' },
+  { freq: 'yearly', label: 'Ετήσια' },
+  { freq: 'daily', label: 'Ημερήσια' },
 ];
 
 const PRESETS = [
   'Netflix',
   'Spotify',
-  'Apartment Rent',
-  'Gym Membership',
-  'Internet / Wifi',
-  'Cloud Storage',
-  'Salary Deposit',
+  'Ενοίκιο Σπιτιού',
+  'Γυμναστήριο',
+  'Ίντερνετ / Τηλεφωνία',
+  'iCloud / Drive',
+  'Μισθοδοσία',
 ];
 
 export const AddRecurringModal: React.FC<AddRecurringModalProps> = ({
@@ -46,6 +47,7 @@ export const AddRecurringModal: React.FC<AddRecurringModalProps> = ({
   accounts,
   categories,
 }) => {
+  const { theme } = useTheme();
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [type, setType] = useState<'expense' | 'income'>('expense');
@@ -65,7 +67,7 @@ export const AddRecurringModal: React.FC<AddRecurringModalProps> = ({
       setFrequency('monthly');
       setErrorMessage('');
 
-      // Default next run date: 1st of next month or 7 days from now
+      // Default next run date: 1st of next month or tomorrow
       const today = new Date();
       today.setDate(today.getDate() + 1);
       setNextRunDate(today.toISOString().split('T')[0]);
@@ -81,17 +83,17 @@ export const AddRecurringModal: React.FC<AddRecurringModalProps> = ({
   }, [visible, accounts, categories]);
 
   const handleSave = () => {
-    const numAmount = parseFloat(amount);
+    const numAmount = parseFloat(amount.replace(',', '.'));
     if (isNaN(numAmount) || numAmount <= 0) {
-      setErrorMessage('Please enter a valid amount greater than €0.');
+      setErrorMessage('Παρακαλώ εισάγετε έγκυρο ποσό μεγαλύτερο από €0.');
       return;
     }
     if (!description.trim()) {
-      setErrorMessage('Please enter a subscription or bill description.');
+      setErrorMessage('Παρακαλώ συμπληρώστε περιγραφή της πάγιας εντολής.');
       return;
     }
     if (!selectedAccountId) {
-      setErrorMessage('Please select an account for debit/credit.');
+      setErrorMessage('Παρακαλώ επιλέξτε λογαριασμό χρέωσης ή πίστωσης.');
       return;
     }
 
@@ -115,68 +117,88 @@ export const AddRecurringModal: React.FC<AddRecurringModalProps> = ({
         style={styles.overlay}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <View style={styles.sheet}>
+        <View style={[styles.sheet, { backgroundColor: theme.surface, borderColor: theme.hairline }]}>
           {/* Header */}
           <View style={styles.header}>
             <View>
-              <Text style={styles.eyebrow}>AUTOMATED LEDGER</Text>
-              <Text style={styles.title}>New Recurring Rule</Text>
+              <Text style={[styles.eyebrow, { color: theme.textMuted }]}>ΑΥΤΟΜΑΤΕΣ ΠΛΗΡΩΜΕΣ</Text>
+              <Text style={[styles.title, { color: theme.textPrimary }]}>Νέα Πάγια Εντολή</Text>
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn} activeOpacity={0.7}>
-              <Text style={styles.closeText}>✕</Text>
+            <TouchableOpacity
+              onPress={onClose}
+              style={[styles.closeBtn, { backgroundColor: theme.inputBg }]}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.closeText, { color: theme.textSecondary }]}>✕</Text>
             </TouchableOpacity>
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false}>
             {/* Expense vs Income Toggle */}
-            <View style={styles.tabContainer}>
+            <View style={[styles.tabContainer, { backgroundColor: theme.inputBg, borderColor: theme.hairline }]}>
               <TouchableOpacity
-                style={[styles.tab, type === 'expense' && styles.activeTab]}
+                style={[styles.tab, type === 'expense' && { backgroundColor: theme.brandPink }]}
                 onPress={() => {
                   setType('expense');
                   const expCat = categories.find((c) => c.type === 'expense');
                   if (expCat) setSelectedCategoryId(expCat.id);
                 }}
               >
-                <Text style={[styles.tabText, type === 'expense' && styles.activeTabText]}>
-                  EXPENSE (BILL / SUB)
+                <Text
+                  style={[
+                    styles.tabText,
+                    { color: type === 'expense' ? '#FFFFFF' : theme.textSecondary },
+                  ]}
+                >
+                  ΕΞΟΔΟ (ΣΥΝΔΡΟΜΗ / ΠΑΓΙΟ)
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.tab, type === 'income' && styles.activeTab]}
+                style={[styles.tab, type === 'income' && { backgroundColor: theme.emerald }]}
                 onPress={() => {
                   setType('income');
                   const incCat = categories.find((c) => c.type === 'income');
                   if (incCat) setSelectedCategoryId(incCat.id);
                 }}
               >
-                <Text style={[styles.tabText, type === 'income' && { color: colors.inflow, fontWeight: '800' }]}>
-                  INCOME (PAYCHECK)
+                <Text
+                  style={[
+                    styles.tabText,
+                    { color: type === 'income' ? '#FFFFFF' : theme.textSecondary },
+                  ]}
+                >
+                  ΕΣΟΔΟ (ΜΙΣΘΟΣ / ΕΙΣΡΟΗ)
                 </Text>
               </TouchableOpacity>
             </View>
 
-            {/* Quick Inspiration Presets */}
-            <Text style={styles.inputLabel}>QUICK PRESETS</Text>
+            {/* Quick Presets */}
+            <Text style={[styles.inputLabel, { color: theme.textMuted }]}>ΠΡΟΤΑΣΕΙΣ / PRESETS</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.presetScroll}>
               {PRESETS.map((p) => (
                 <TouchableOpacity
                   key={p}
-                  style={styles.presetChip}
+                  style={[
+                    styles.presetChip,
+                    { backgroundColor: theme.inputBg, borderColor: theme.hairline },
+                  ]}
                   onPress={() => setDescription(p)}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.presetText}>{p}</Text>
+                  <Text style={[styles.presetText, { color: theme.textPrimary }]}>{p}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
 
             {/* Description */}
-            <Text style={styles.inputLabel}>DESCRIPTION</Text>
+            <Text style={[styles.inputLabel, { color: theme.textMuted }]}>ΠΕΡΙΓΡΑΦΗ</Text>
             <TextInput
-              style={styles.textInput}
-              placeholder="e.g. Netflix Premium, Gym, Rent..."
-              placeholderTextColor="#71717A"
+              style={[
+                styles.textInput,
+                { backgroundColor: theme.inputBg, borderColor: theme.hairline, color: theme.inputText },
+              ]}
+              placeholder="π.χ. Netflix Premium, Ενοίκιο..."
+              placeholderTextColor={theme.inputPlaceholder}
               value={description}
               onChangeText={(val) => {
                 setDescription(val);
@@ -185,15 +207,25 @@ export const AddRecurringModal: React.FC<AddRecurringModalProps> = ({
             />
 
             {/* Amount */}
-            <Text style={styles.inputLabel}>AMOUNT (€)</Text>
-            <View style={styles.amountContainer}>
-              <Text style={[styles.currencyPrefix, { color: type === 'income' ? colors.inflow : colors.outflow }]}>
+            <Text style={[styles.inputLabel, { color: theme.textMuted }]}>ΠΟΣΟ (€)</Text>
+            <View
+              style={[
+                styles.amountContainer,
+                { backgroundColor: theme.inputBg, borderColor: theme.hairline },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.currencyPrefix,
+                  { color: type === 'income' ? theme.emerald : theme.brandPink },
+                ]}
+              >
                 {type === 'income' ? '+' : '-'}€
               </Text>
               <TextInput
-                style={styles.amountInput}
+                style={[styles.amountInput, { color: theme.inputText }]}
                 placeholder="0.00"
-                placeholderTextColor="#71717A"
+                placeholderTextColor={theme.inputPlaceholder}
                 keyboardType="decimal-pad"
                 value={amount}
                 onChangeText={(val) => {
@@ -204,18 +236,29 @@ export const AddRecurringModal: React.FC<AddRecurringModalProps> = ({
             </View>
 
             {/* Frequency Selector */}
-            <Text style={styles.inputLabel}>CADENCE / FREQUENCY</Text>
+            <Text style={[styles.inputLabel, { color: theme.textMuted }]}>ΣΥΧΝΟΤΗΤΑ ΕΠΑΝΑΛΗΨΗΣ</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.presetScroll}>
               {FREQUENCY_OPTIONS.map((f) => {
                 const isSelected = frequency === f.freq;
                 return (
                   <TouchableOpacity
                     key={f.freq}
-                    style={[styles.freqPill, isSelected && styles.activeFreqPill]}
+                    style={[
+                      styles.freqPill,
+                      {
+                        backgroundColor: isSelected ? theme.brandPink : theme.inputBg,
+                        borderColor: isSelected ? theme.brandPink : theme.hairline,
+                      },
+                    ]}
                     onPress={() => setFrequency(f.freq)}
                     activeOpacity={0.7}
                   >
-                    <Text style={[styles.freqText, isSelected && styles.activeFreqText]}>
+                    <Text
+                      style={[
+                        styles.freqText,
+                        { color: isSelected ? '#FFFFFF' : theme.textPrimary },
+                      ]}
+                    >
                       {f.label}
                     </Text>
                   </TouchableOpacity>
@@ -224,18 +267,29 @@ export const AddRecurringModal: React.FC<AddRecurringModalProps> = ({
             </ScrollView>
 
             {/* Account Selector */}
-            <Text style={styles.inputLabel}>LINKED ACCOUNT</Text>
+            <Text style={[styles.inputLabel, { color: theme.textMuted }]}>ΛΟΓΑΡΙΑΣΜΟΣ ΧΡΕΩΣΗΣ / ΠΙΣΤΩΣΗΣ</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.presetScroll}>
               {accounts.map((acc) => {
                 const isSelected = selectedAccountId === acc.id;
                 return (
                   <TouchableOpacity
                     key={acc.id}
-                    style={[styles.accPill, isSelected && styles.activeAccPill]}
+                    style={[
+                      styles.accPill,
+                      {
+                        backgroundColor: isSelected ? theme.brandPink : theme.inputBg,
+                        borderColor: isSelected ? theme.brandPink : theme.hairline,
+                      },
+                    ]}
                     onPress={() => setSelectedAccountId(acc.id)}
                     activeOpacity={0.7}
                   >
-                    <Text style={[styles.accText, isSelected && styles.activeAccText]}>
+                    <Text
+                      style={[
+                        styles.accText,
+                        { color: isSelected ? '#FFFFFF' : theme.textPrimary },
+                      ]}
+                    >
                       {acc.name} (€{acc.balance.toFixed(2)})
                     </Text>
                   </TouchableOpacity>
@@ -244,18 +298,29 @@ export const AddRecurringModal: React.FC<AddRecurringModalProps> = ({
             </ScrollView>
 
             {/* Category Selector */}
-            <Text style={styles.inputLabel}>CATEGORY</Text>
+            <Text style={[styles.inputLabel, { color: theme.textMuted }]}>ΚΑΤΗΓΟΡΙΑ</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.presetScroll}>
               {filteredCategories.map((cat) => {
                 const isSelected = selectedCategoryId === cat.id;
                 return (
                   <TouchableOpacity
                     key={cat.id}
-                    style={[styles.accPill, isSelected && styles.activeAccPill]}
+                    style={[
+                      styles.accPill,
+                      {
+                        backgroundColor: isSelected ? theme.brandPink : theme.inputBg,
+                        borderColor: isSelected ? theme.brandPink : theme.hairline,
+                      },
+                    ]}
                     onPress={() => setSelectedCategoryId(cat.id)}
                     activeOpacity={0.7}
                   >
-                    <Text style={[styles.accText, isSelected && styles.activeAccText]}>
+                    <Text
+                      style={[
+                        styles.accText,
+                        { color: isSelected ? '#FFFFFF' : theme.textPrimary },
+                      ]}
+                    >
                       {cat.name}
                     </Text>
                   </TouchableOpacity>
@@ -264,11 +329,16 @@ export const AddRecurringModal: React.FC<AddRecurringModalProps> = ({
             </ScrollView>
 
             {/* Next Due Date */}
-            <Text style={styles.inputLabel}>FIRST / NEXT RUN DATE (YYYY-MM-DD)</Text>
+            <Text style={[styles.inputLabel, { color: theme.textMuted }]}>
+              ΕΠΟΜΕΝΗ ΕΚΤΕΛΕΣΗ (ΕΕΕΕ-ΜΜ-ΗΗ)
+            </Text>
             <TextInput
-              style={styles.textInput}
-              placeholder="e.g. 2026-10-01"
-              placeholderTextColor="#71717A"
+              style={[
+                styles.textInput,
+                { backgroundColor: theme.inputBg, borderColor: theme.hairline, color: theme.inputText },
+              ]}
+              placeholder="π.χ. 2026-10-01"
+              placeholderTextColor={theme.inputPlaceholder}
               value={nextRunDate}
               onChangeText={setNextRunDate}
             />
@@ -276,8 +346,12 @@ export const AddRecurringModal: React.FC<AddRecurringModalProps> = ({
             {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
             {/* Submit */}
-            <TouchableOpacity style={styles.submitButton} onPress={handleSave} activeOpacity={0.85}>
-              <Text style={styles.submitText}>Save Recurring Rule</Text>
+            <TouchableOpacity
+              style={[styles.submitButton, { backgroundColor: theme.brandPink }]}
+              onPress={handleSave}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.submitText}>Αποθήκευση Πάγιας Εντολής</Text>
             </TouchableOpacity>
           </ScrollView>
         </View>
@@ -289,19 +363,17 @@ export const AddRecurringModal: React.FC<AddRecurringModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    backgroundColor: 'rgba(0, 0, 0, 0.70)',
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: Platform.OS === 'ios' ? 44 : 28,
+    paddingHorizontal: 22,
+    paddingTop: 22,
+    paddingBottom: Platform.OS === 'ios' ? 44 : 26,
     maxHeight: '90%',
     borderWidth: 1,
-    borderColor: '#F0F1F5',
   },
   header: {
     flexDirection: 'row',
@@ -310,40 +382,36 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   eyebrow: {
+    fontFamily: fonts.bodyBold,
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 1,
-    color: '#9CA3AF',
     marginBottom: 4,
     textTransform: 'uppercase',
   },
   title: {
+    fontFamily: fonts.heading,
     fontSize: 20,
-    fontWeight: '800',
-    color: '#111827',
+    fontWeight: '900',
     letterSpacing: -0.4,
   },
   closeBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
   },
   closeText: {
-    color: '#6B7280',
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: '#F3F4F6',
     borderRadius: 14,
     padding: 3,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
   },
   tab: {
     flex: 1,
@@ -352,23 +420,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 11,
   },
-  activeTab: {
-    backgroundColor: '#6355E6',
-  },
   tabText: {
-    fontSize: 11,
+    fontFamily: fonts.bodyBold,
+    fontSize: 10.5,
     fontWeight: '700',
-    color: '#6B7280',
     letterSpacing: 0.5,
-  },
-  activeTabText: {
-    color: '#FFFFFF',
   },
   inputLabel: {
-    fontSize: 11,
+    fontFamily: fonts.bodyBold,
+    fontSize: 10.5,
     fontWeight: '700',
     letterSpacing: 0.5,
-    color: '#6B7280',
     marginBottom: 8,
     marginTop: 14,
     textTransform: 'uppercase',
@@ -380,117 +442,88 @@ const styles = StyleSheet.create({
   presetChip: {
     paddingVertical: 7,
     paddingHorizontal: 12,
-    backgroundColor: '#F3F4F6',
     borderRadius: 10,
     marginRight: 6,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
   },
   presetText: {
-    color: '#6B7280',
+    fontFamily: fonts.bodyMedium,
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   freqPill: {
     paddingVertical: 9,
     paddingHorizontal: 14,
-    backgroundColor: '#F3F4F6',
     borderRadius: 12,
     marginRight: 6,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  activeFreqPill: {
-    backgroundColor: '#EDE9FE',
-    borderColor: '#6355E6',
   },
   freqText: {
-    color: '#6B7280',
+    fontFamily: fonts.bodyBold,
     fontSize: 12,
-    fontWeight: '600',
-  },
-  activeFreqText: {
-    color: '#6355E6',
     fontWeight: '700',
   },
   accPill: {
     paddingVertical: 9,
     paddingHorizontal: 14,
-    backgroundColor: '#F3F4F6',
     borderRadius: 12,
     marginRight: 6,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  activeAccPill: {
-    backgroundColor: '#EDE9FE',
-    borderColor: '#6355E6',
   },
   accText: {
-    color: '#6B7280',
+    fontFamily: fonts.bodyBold,
     fontSize: 12,
-    fontWeight: '600',
-  },
-  activeAccText: {
-    color: '#6355E6',
     fontWeight: '700',
   },
   textInput: {
-    backgroundColor: '#F9FAFB',
+    fontFamily: fonts.body,
     borderRadius: 14,
     paddingHorizontal: 16,
     height: 48,
-    color: '#111827',
     fontSize: 14,
     fontWeight: '500',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
   },
   amountContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
     borderRadius: 14,
     paddingHorizontal: 16,
     height: 52,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
   },
   currencyPrefix: {
+    fontFamily: fonts.heading,
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: '900',
     marginRight: 6,
   },
   amountInput: {
     flex: 1,
+    fontFamily: fonts.heading,
     fontSize: 22,
-    fontWeight: '700',
-    color: '#111827',
+    fontWeight: '900',
   },
   errorText: {
+    fontFamily: fonts.bodyBold,
     color: '#EF4444',
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
     marginTop: 12,
   },
   submitButton: {
-    backgroundColor: '#6355E6',
     borderRadius: 14,
     height: 50,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 22,
     marginBottom: 8,
-    shadowColor: '#6355E6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 4,
   },
   submitText: {
+    fontFamily: fonts.bodyBold,
     color: '#FFFFFF',
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '800',
     letterSpacing: -0.2,
   },
 });

@@ -12,6 +12,8 @@ import { AppTopHeader } from '../components/AppTopHeader';
 import { PiggyBankHero } from '../components/PiggyBankHero';
 import { KineticProgressBar } from '../components/KineticProgressBar';
 import { AddTransactionModal } from '../components/AddTransactionModal';
+import { EditTransactionModal } from '../components/EditTransactionModal';
+import { DeleteTransactionModal } from '../components/DeleteTransactionModal';
 import { SetBudgetModal } from '../components/SetBudgetModal';
 import { useTheme } from '../theme/ThemeContext';
 import {
@@ -40,6 +42,8 @@ interface HomeScreenProps {
     categoryId: string;
     accountId: string;
   }) => void;
+  onUpdateTransaction?: (tx: Transaction) => void;
+  onDeleteTransaction?: (txId: string) => void;
   onSaveBudget?: (budget: { categoryId: string; amount: number }) => void;
   onDeleteBudget?: (categoryId: string) => void;
   onOpenAccounts?: () => void;
@@ -50,6 +54,7 @@ interface HomeScreenProps {
   onOpenGoals?: () => void;
   onAddAccount?: () => void;
   onAddRecurring?: () => void;
+  onOpenRecurring?: () => void;
   onRefresh?: () => void;
   refreshing?: boolean;
   onOpenProfile?: () => void;
@@ -65,10 +70,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   transactions,
   recurringRules = [],
   onAddTransaction,
+  onUpdateTransaction,
+  onDeleteTransaction,
   onSaveBudget,
   onDeleteBudget,
   onOpenCalendar,
   onOpenExpenses,
+  onOpenRecurring,
   onRefresh,
   refreshing = false,
   onOpenProfile,
@@ -78,6 +86,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 }) => {
   const { theme } = useTheme();
   const [modalVisible, setModalVisible] = useState(false);
+  const [editingTx, setEditingTx] = useState<Transaction | null>(null);
+  const [deletingTx, setDeletingTx] = useState<Transaction | null>(null);
   const [budgetModalVisible, setBudgetModalVisible] = useState(false);
   const [selectedBudgetCategoryId, setSelectedBudgetCategoryId] = useState<string | undefined>();
 
@@ -267,7 +277,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           {/* Αριστερή Στήλη: Προγραμματισμένα */}
           <TouchableOpacity
             style={styles.moduleColumn}
-            onPress={onOpenCalendar}
+            onPress={onOpenRecurring || onOpenCalendar}
             activeOpacity={0.7}
           >
             <Text style={[styles.moduleTitle, { color: theme.textMuted }]}>ΠΡΟΓΡΑΜΜΑΤΙΣΜΕΝΑ</Text>
@@ -354,13 +364,17 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               const isLast = idx === arr.length - 1;
               const isIncome = tx.type === 'income';
               return (
-                <View
+                <TouchableOpacity
                   key={tx.id}
                   style={[
                     styles.ledgerRow,
                     { borderBottomColor: theme.hairline },
                     !isLast && { borderBottomWidth: 1 },
                   ]}
+                  activeOpacity={0.7}
+                  onPress={() => setEditingTx(tx)}
+                  onLongPress={() => setDeletingTx(tx)}
+                  delayLongPress={350}
                 >
                   <View style={styles.ledgerDescCol}>
                     <Text style={[styles.ledgerDescText, { color: theme.textPrimary }]} numberOfLines={1}>
@@ -380,7 +394,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                       {isIncome ? '+' : '-'}€{tx.amount.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </Text>
                   </View>
-                </View>
+                </TouchableOpacity>
               );
             })
           )}
@@ -395,6 +409,29 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         onSave={onAddTransaction}
         categories={categories}
         accounts={accounts}
+      />
+
+      <EditTransactionModal
+        visible={!!editingTx}
+        transaction={editingTx}
+        categories={categories}
+        accounts={accounts}
+        onClose={() => setEditingTx(null)}
+        onSave={(updated) => {
+          onUpdateTransaction?.(updated);
+        }}
+        onRequestDelete={(tx) => {
+          setDeletingTx(tx);
+        }}
+      />
+
+      <DeleteTransactionModal
+        visible={!!deletingTx}
+        transaction={deletingTx}
+        onClose={() => setDeletingTx(null)}
+        onConfirmDelete={(id) => {
+          onDeleteTransaction?.(id);
+        }}
       />
 
       {onSaveBudget && (

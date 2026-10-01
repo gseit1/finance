@@ -269,27 +269,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           </View>
         </View>
 
-        {/* 3-Column Unified Data Strip Card */}
-        <View style={[styles.dataStripCard, { backgroundColor: theme.surface, borderWidth: 0 }]}>
-          <View style={styles.dataCol}>
-            <Text style={[styles.dataLabel, { color: theme.textMuted }]}>ΚΡΥΠΤΟΓΡΑΦΗΣΗ</Text>
-            <Text style={[styles.dataValue, { color: theme.textPrimary }]}>AES-256</Text>
-          </View>
-
-          <View style={[styles.dataDivider, { backgroundColor: theme.hairline }]} />
-
-          <View style={styles.dataCol}>
-            <Text style={[styles.dataLabel, { color: theme.textMuted }]}>ΣΥΝΕΔΡΙΑ</Text>
-            <Text style={[styles.dataValue, { color: theme.emerald }]}>ΕΝΕΡΓΗ</Text>
-          </View>
-
-          <View style={[styles.dataDivider, { backgroundColor: theme.hairline }]} />
-
-          <View style={styles.dataCol}>
-            <Text style={[styles.dataLabel, { color: theme.textMuted }]}>ΒΑΣΗ</Text>
-            <Text style={[styles.dataValue, { color: theme.textPrimary }]}>POSTGRES</Text>
-          </View>
-        </View>
 
         {/* Personal Details Card */}
         <View style={[styles.card, { backgroundColor: theme.surface, borderWidth: 0 }]}>

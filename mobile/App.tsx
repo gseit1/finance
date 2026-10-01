@@ -13,6 +13,7 @@ import { TransactionsScreen } from './src/screens/TransactionsScreen';
 import { AnalyticsScreen } from './src/screens/AnalyticsScreen';
 import { GoalsScreen } from './src/screens/GoalsScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
+import { RecurringBillsScreen } from './src/screens/RecurringBillsScreen';
 import { BottomIslandNav, NavTab } from './src/components/BottomIslandNav';
 import { SideDrawerNav } from './src/components/SideDrawerNav';
 import { AddAccountModal } from './src/components/AddAccountModal';
@@ -26,6 +27,7 @@ import {
   Budget,
   Goal,
   RecurringRule,
+  RecurringFrequency,
   TransactionType,
   Task,
 } from './src/types';
@@ -33,6 +35,38 @@ import { colors } from './src/theme/colors';
 import { isSupabaseConfigured, supabase } from './src/services/supabase';
 import { authService } from './src/services/authService';
 import { taskService } from './src/services/taskService';
+
+// Calculate next run date based on frequency
+export const computeNextRunDate = (currentDateStr: string, frequency: RecurringFrequency): string => {
+  const date = new Date(currentDateStr);
+  if (isNaN(date.getTime())) {
+    const fallback = new Date();
+    fallback.setMonth(fallback.getMonth() + 1);
+    return fallback.toISOString().split('T')[0];
+  }
+
+  switch (frequency) {
+    case 'daily':
+      date.setDate(date.getDate() + 1);
+      break;
+    case 'weekly':
+      date.setDate(date.getDate() + 7);
+      break;
+    case 'bi-weekly':
+      date.setDate(date.getDate() + 14);
+      break;
+    case 'monthly':
+      date.setMonth(date.getMonth() + 1);
+      break;
+    case 'yearly':
+      date.setFullYear(date.getFullYear() + 1);
+      break;
+    default:
+      date.setMonth(date.getMonth() + 1);
+  }
+
+  return date.toISOString().split('T')[0];
+};
 
 // Default clean user data
 const defaultAccounts: Account[] = [
@@ -296,7 +330,81 @@ function App(): React.JSX.Element {
             next_run_date: r.next_run_date,
             is_active: r.is_active,
           }));
-          setRecurringRules(mappedRules);
+
+          // Process active recurring rules that have reached or passed their due date
+          const todayIso = new Date().toISOString().split('T')[0];
+          let updatedRulesList = [...mappedRules];
+          let generatedTransactions = false;
+
+          for (let i = 0; i < updatedRulesList.length; i++) {
+            const rule = updatedRulesList[i];
+            if (rule.is_active && rule.next_run_date && rule.next_run_date <= todayIso) {
+              const matchedAcc = liveAccounts.find((a) => a.id === rule.account_id) || liveAccounts[0];
+              const matchedCat = liveCategories.find((c) => c.id === rule.category_id);
+
+              if (matchedAcc && isUUID(matchedAcc.id)) {
+                generatedTransactions = true;
+                const nextDate = computeNextRunDate(rule.next_run_date, rule.frequency);
+
+                // Insert ledger transaction into PostgreSQL
+                await supabase.from('transactions').insert({
+                  user_id: userId,
+                  account_id: matchedAcc.id,
+                  category_id: matchedCat?.id || null,
+                  type: rule.type,
+                  amount: rule.amount,
+                  description: `${rule.description} (Πάγια Εντολή)`,
+                  date: rule.next_run_date,
+                });
+
+                // Update account balance
+                const delta = rule.type === 'income' ? rule.amount : -rule.amount;
+                matchedAcc.balance = (matchedAcc.balance || 0) + delta;
+                await supabase.from('accounts').update({ balance: matchedAcc.balance }).eq('id', matchedAcc.id);
+
+                // Advance next_run_date in recurring_rules table
+                if (isUUID(rule.id)) {
+                  await supabase.from('recurring_rules').update({ next_run_date: nextDate }).eq('id', rule.id);
+                }
+
+                updatedRulesList[i] = { ...rule, next_run_date: nextDate };
+              }
+            }
+          }
+
+          setRecurringRules(updatedRulesList);
+
+          if (generatedTransactions) {
+            setAccounts([...liveAccounts]);
+            // Refresh transactions list
+            const { data: refreshedTxs } = await supabase
+              .from('transactions')
+              .select('*')
+              .order('date', { ascending: false });
+
+            if (refreshedTxs) {
+              setTransactions(
+                refreshedTxs.map((t: any) => {
+                  const acc = liveAccounts.find((a) => a.id === t.account_id);
+                  const cat = liveCategories.find((c) => c.id === t.category_id);
+                  return {
+                    id: t.id,
+                    user_id: t.user_id,
+                    account_id: t.account_id,
+                    category_id: t.category_id,
+                    type: t.type,
+                    amount: Number(t.amount),
+                    description: t.description || '',
+                    notes: t.notes,
+                    date: t.date,
+                    account_name: acc?.name || 'Account',
+                    category_name: cat?.name || 'General',
+                    category_color: cat?.color || colors.primary,
+                  };
+                })
+              );
+            }
+          }
         } else {
           setRecurringRules([]);
         }
@@ -682,6 +790,64 @@ function App(): React.JSX.Element {
     }
   };
 
+  const handleUpdateTransaction = async (updatedTx: Transaction) => {
+    const oldTx = transactions.find((t) => t.id === updatedTx.id);
+    if (!oldTx) return;
+
+    // 1. Update state
+    setTransactions((prev) =>
+      prev.map((t) => (t.id === updatedTx.id ? updatedTx : t))
+    );
+
+    // 2. Adjust account balances
+    setAccounts((prev) =>
+      prev.map((acc) => {
+        let bal = acc.balance;
+        if (acc.id === oldTx.account_id) {
+          bal += oldTx.type === 'income' ? -oldTx.amount : oldTx.amount;
+        }
+        if (acc.id === updatedTx.account_id) {
+          bal += updatedTx.type === 'income' ? updatedTx.amount : -updatedTx.amount;
+        }
+        return { ...acc, balance: bal };
+      })
+    );
+
+    // 3. Adjust budgets if expense
+    setBudgets((prev) =>
+      prev.map((b) => {
+        let spent = b.spent;
+        if (oldTx.type === 'expense' && b.category_id === oldTx.category_id) {
+          spent = Math.max(0, spent - oldTx.amount);
+        }
+        if (updatedTx.type === 'expense' && b.category_id === updatedTx.category_id) {
+          spent += updatedTx.amount;
+        }
+        return { ...b, spent };
+      })
+    );
+
+    // 4. Update in Supabase
+    if (supabaseActive && currentUser?.id && isUUID(updatedTx.id)) {
+      try {
+        await supabase
+          .from('transactions')
+          .update({
+            account_id: updatedTx.account_id,
+            category_id: updatedTx.category_id,
+            type: updatedTx.type,
+            amount: updatedTx.amount,
+            description: updatedTx.description,
+            date: updatedTx.date,
+          })
+          .eq('id', updatedTx.id)
+          .eq('user_id', currentUser.id);
+      } catch (e) {
+        console.warn('Supabase transaction update notice:', e);
+      }
+    }
+  };
+
   const handleSaveBudget = async (b: { categoryId: string; amount: number }) => {
     await authService.ensureSupabaseSession();
 
@@ -1049,6 +1215,45 @@ function App(): React.JSX.Element {
     }
   };
 
+  const handleExecuteRecurringRule = async (rule: RecurringRule) => {
+    await authService.ensureSupabaseSession();
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const targetAccount = accounts.find((a) => a.id === rule.account_id) || accounts[0];
+    const targetCategory = categories.find((c) => c.id === rule.category_id);
+
+    // 1. Post transaction locally & in Supabase
+    handleSaveTransaction({
+      type: rule.type,
+      amount: rule.amount,
+      description: `${rule.description} (Πάγια Εντολή)`,
+      categoryId: targetCategory?.id || '',
+      accountId: targetAccount?.id || '',
+      date: todayStr,
+    });
+
+    // 2. Advance next_run_date
+    const nextDate = computeNextRunDate(rule.next_run_date || todayStr, rule.frequency);
+
+    // 3. Update state
+    setRecurringRules((prev) =>
+      prev.map((r) => (r.id === rule.id ? { ...r, next_run_date: nextDate } : r))
+    );
+
+    // 4. Update in Supabase
+    if (supabaseActive && currentUser?.id && isUUID(rule.id)) {
+      try {
+        await supabase
+          .from('recurring_rules')
+          .update({ next_run_date: nextDate })
+          .eq('id', rule.id)
+          .eq('user_id', currentUser.id);
+      } catch (err) {
+        console.warn('Advance next run date notice:', err);
+      }
+    }
+  };
+
   const handleAddTask = async (newTaskData: Omit<Task, 'id'>) => {
     try {
       const created = await taskService.createTask(currentUser?.id, newTaskData);
@@ -1167,6 +1372,8 @@ function App(): React.JSX.Element {
                 tasks={tasks}
                 goals={goals}
                 onAddTransaction={handleSaveTransaction}
+                onUpdateTransaction={handleUpdateTransaction}
+                onDeleteTransaction={handleDeleteTransaction}
                 onSaveBudget={handleSaveBudget}
                 onDeleteBudget={handleDeleteBudget}
                 onOpenAccounts={() => setCurrentTab('accounts')}
@@ -1176,12 +1383,28 @@ function App(): React.JSX.Element {
                 onOpenAnalytics={() => setCurrentTab('analytics')}
                 onOpenGoals={() => setCurrentTab('goals')}
                 onAddAccount={() => setAddAccountModalVisible(true)}
-                onAddRecurring={() => setCurrentTab('calendar')}
+                onAddRecurring={() => setCurrentTab('recurring')}
+                onOpenRecurring={() => setCurrentTab('recurring')}
                 onRefresh={handleRefresh}
                 refreshing={refreshing}
                 onOpenProfile={() => setCurrentTab('profile')}
                 onMenuPress={() => setDrawerVisible(true)}
                 userName={userDisplayName}
+                avatarUrl={userAvatarUrl}
+              />
+            )}
+
+            {currentTab === 'recurring' && (
+              <RecurringBillsScreen
+                recurringRules={recurringRules}
+                categories={categories}
+                accounts={accounts}
+                onAddRecurringRule={handleAddRecurringRule}
+                onToggleRecurringRule={handleToggleRecurringRule}
+                onDeleteRecurringRule={handleDeleteRecurringRule}
+                onExecuteRecurringRule={handleExecuteRecurringRule}
+                onOpenProfile={() => setCurrentTab('profile')}
+                onMenuPress={() => setDrawerVisible(true)}
                 avatarUrl={userAvatarUrl}
               />
             )}
@@ -1228,6 +1451,7 @@ function App(): React.JSX.Element {
                 categories={categories}
                 accounts={accounts}
                 onAddTransaction={handleSaveTransaction}
+                onUpdateTransaction={handleUpdateTransaction}
                 onDeleteTransaction={handleDeleteTransaction}
                 onOpenProfile={() => setCurrentTab('profile')}
                 onMenuPress={() => setDrawerVisible(true)}
@@ -1314,6 +1538,7 @@ function App(): React.JSX.Element {
               tasksCount={tasks.filter((t) => !t.completed).length}
               accountsCount={accounts.length}
               transactionsCount={transactions.length}
+              recurringCount={recurringRules.filter((r) => r.is_active).length}
               goalsCount={goals.length}
               onSignOut={handleSignOut}
               onQuickAddTransaction={() => setIsGlobalTxModalOpen(true)}

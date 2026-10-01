@@ -19,6 +19,7 @@ import {
   BarChartIcon,
   GoalsIcon,
   UserIcon,
+  RepeatIcon,
 } from './VectorIcons';
 import { fonts } from '../theme/typography';
 import { useTheme } from '../theme/ThemeContext';
@@ -29,6 +30,7 @@ export type ScreenRoute =
   | 'calendar'
   | 'accounts'
   | 'transactions'
+  | 'recurring'
   | 'analytics'
   | 'goals'
   | 'profile';
@@ -44,6 +46,7 @@ interface SideDrawerNavProps {
   tasksCount?: number;
   accountsCount?: number;
   transactionsCount?: number;
+  recurringCount?: number;
   goalsCount?: number;
   onSignOut?: () => void;
   onQuickAddTransaction?: () => void;
@@ -64,6 +67,7 @@ export const SideDrawerNav: React.FC<SideDrawerNavProps> = ({
   tasksCount = 0,
   accountsCount = 0,
   transactionsCount = 0,
+  recurringCount = 0,
   goalsCount = 0,
   onSignOut,
 }) => {
@@ -112,6 +116,12 @@ export const SideDrawerNav: React.FC<SideDrawerNavProps> = ({
       route: 'transactions',
       label: 'Συναλλαγές',
       icon: (active) => <ExpensesIcon size={22} color={active ? theme.textPrimary : theme.textSecondary} />,
+    },
+    {
+      route: 'recurring',
+      label: 'Πάγιες Εντολές & Συνδρομές',
+      icon: (active) => <RepeatIcon size={22} color={active ? theme.textPrimary : theme.textSecondary} />,
+      badge: recurringCount > 0 ? recurringCount : undefined,
     },
     {
       route: 'goals',

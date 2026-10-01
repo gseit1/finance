@@ -13,6 +13,7 @@ import { AppTopHeader } from '../components/AppTopHeader';
 import { AddAccountModal } from '../components/AddAccountModal';
 import { useTheme } from '../theme/ThemeContext';
 import { PlusIcon } from '../components/VectorIcons';
+import { KineticProgressBar } from '../components/KineticProgressBar';
 
 interface AccountsScreenProps {
   accounts: Account[];
@@ -67,6 +68,17 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({
     return { assets, debt, net: assets - debt };
   }, [accounts]);
 
+  const solvencyRatio = useMemo(() => {
+    const total = accountMetrics.assets + accountMetrics.debt;
+    return total > 0 ? accountMetrics.assets / total : 1;
+  }, [accountMetrics]);
+
+  const liquidCash = useMemo(() => {
+    return accounts
+      .filter((a) => a.type === 'bank' || a.type === 'cash')
+      .reduce((sum, a) => sum + (a.balance > 0 ? a.balance : 0), 0);
+  }, [accounts]);
+
   const filteredAccounts = useMemo(() => {
     if (activeFilter === 'all') return accounts;
     return accounts.filter((a) => a.type === activeFilter);
@@ -94,27 +106,59 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({
       />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* Fully Pink Background Net Worth Bar */}
-        <View style={[styles.netWorthCard, { backgroundColor: theme.brandPink, borderWidth: 0 }]}>
-          <View style={styles.netWorthRow}>
-            <View style={styles.netWorthCol}>
-              <Text style={[styles.netWorthLabel, { color: 'rgba(255, 255, 255, 0.82)' }]}>ΚΑΘΑΡΗ ΑΞΙΑ</Text>
-              <Text style={[styles.netWorthValue, { color: '#FFFFFF' }]}>
-                {accountMetrics.net < 0 ? '-' : ''}{fmt(accountMetrics.net)}
+        {/* Pure Pink Hero Card with Solvency Kinetic Progress */}
+        <View style={[styles.heroCard, { backgroundColor: theme.brandPink, borderWidth: 0 }]}>
+          <View style={styles.heroTopRow}>
+            <Text style={[styles.heroEyebrow, { color: 'rgba(255, 255, 255, 0.85)' }]}>
+              ΣΥΝΟΛΙΚΗ ΚΑΘΑΡΗ ΘΕΣΗ
+            </Text>
+            <View style={styles.heroPill}>
+              <Text style={styles.heroPillText}>
+                {accounts.length} {accounts.length === 1 ? 'ΛΟΓΑΡΙΑΣΜΟΣ' : 'ΛΟΓΑΡΙΑΣΜΟΙ'}
               </Text>
             </View>
-            <View style={[styles.dividerV, { backgroundColor: 'rgba(255, 255, 255, 0.22)' }]} />
-            <View style={styles.netWorthCol}>
-              <Text style={[styles.netWorthLabel, { color: 'rgba(255, 255, 255, 0.82)' }]}>ΕΝΕΡΓΗΤΙΚΟ</Text>
-              <Text style={[styles.netWorthValue, { color: '#A7F3D0' }]}>
+          </View>
+
+          <Text style={styles.heroAmount}>
+            {accountMetrics.net < 0 ? '−' : ''}{fmt(accountMetrics.net)}
+            <Text style={styles.heroAmountPeriod}> καθαρή αξία</Text>
+          </Text>
+
+          {/* Kinetic Progress Bar of Solvency & Coverage */}
+          <View style={styles.progressSection}>
+            <View style={styles.progressLabelRow}>
+              <Text style={styles.progressLabel}>ΔΕΙΚΤΗΣ ΡΕΥΣΤΟΤΗΤΑΣ & ΚΑΛΥΨΗΣ</Text>
+              <Text style={styles.progressPercent}>{Math.round(solvencyRatio * 100)}%</Text>
+            </View>
+            <KineticProgressBar
+              progress={solvencyRatio}
+              height={4}
+              trackColor="rgba(255, 255, 255, 0.25)"
+              fillColor="#FFFFFF"
+              duration={900}
+            />
+          </View>
+
+          {/* Metric Sub-strip */}
+          <View style={styles.heroMetricsStrip}>
+            <View style={styles.heroMetricCol}>
+              <Text style={styles.heroMetricLabel}>ΕΝΕΡΓΗΤΙΚΟ</Text>
+              <Text style={[styles.heroMetricValue, { color: '#A7F3D0' }]}>
                 +{fmt(accountMetrics.assets)}
               </Text>
             </View>
-            <View style={[styles.dividerV, { backgroundColor: 'rgba(255, 255, 255, 0.22)' }]} />
-            <View style={styles.netWorthCol}>
-              <Text style={[styles.netWorthLabel, { color: 'rgba(255, 255, 255, 0.82)' }]}>ΠΑΘΗΤΙΚΟ</Text>
-              <Text style={[styles.netWorthValue, { color: accountMetrics.debt > 0 ? '#FECDD3' : '#FFFFFF' }]}>
-                {accountMetrics.debt > 0 ? '-' : ''}{fmt(accountMetrics.debt)}
+            <View style={styles.heroMetricDivider} />
+            <View style={styles.heroMetricCol}>
+              <Text style={styles.heroMetricLabel}>ΠΑΘΗΤΙΚΟ / ΧΡΕΗ</Text>
+              <Text style={[styles.heroMetricValue, { color: accountMetrics.debt > 0 ? '#FECDD3' : '#FFFFFF' }]}>
+                {accountMetrics.debt > 0 ? '−' : ''}{fmt(accountMetrics.debt)}
+              </Text>
+            </View>
+            <View style={styles.heroMetricDivider} />
+            <View style={styles.heroMetricCol}>
+              <Text style={styles.heroMetricLabel}>ΡΕΥΣΤΑ ΔΙΑΘΕΣΙΜΑ</Text>
+              <Text style={styles.heroMetricValue}>
+                {fmt(liquidCash)}
               </Text>
             </View>
           </View>
@@ -242,40 +286,103 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
 
-  // ─── Net Worth Brand Pink Card ──────────────────────────────────────
-  netWorthCard: {
-    borderRadius: 16,
-    borderWidth: 1,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+  // ─── Hero Brand Pink Card ──────────────────────────────────────────
+  heroCard: {
+    borderRadius: 20,
+    padding: 20,
     marginBottom: 16,
   },
-  netWorthRow: {
+  heroTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
   },
-  netWorthCol: {
+  heroEyebrow: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  heroPill: {
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  heroPillText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+  heroAmount: {
+    fontFamily: fonts.heading,
+    fontSize: 32,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: -0.6,
+    marginBottom: 12,
+  },
+  heroAmountPeriod: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 15,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.80)',
+  },
+  progressSection: {
+    marginBottom: 16,
+  },
+  progressLabelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  progressLabel: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 9.5,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    color: 'rgba(255, 255, 255, 0.80)',
+  },
+  progressPercent: {
+    fontFamily: fonts.heading,
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  heroMetricsStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.18)',
+  },
+  heroMetricCol: {
     flex: 1,
     alignItems: 'center',
   },
-  dividerV: {
-    width: 1,
-    height: 30,
-    marginHorizontal: 4,
-  },
-  netWorthLabel: {
+  heroMetricLabel: {
     fontFamily: fonts.bodyBold,
-    fontSize: 10,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    color: 'rgba(255, 255, 255, 0.75)',
     marginBottom: 3,
   },
-  netWorthValue: {
+  heroMetricValue: {
     fontFamily: fonts.heading,
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '900',
-    letterSpacing: -0.3,
+    color: '#FFFFFF',
+  },
+  heroMetricDivider: {
+    width: 1,
+    height: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.20)',
   },
 
   // ─── Filter row ──────────────────────────────────────────────────────

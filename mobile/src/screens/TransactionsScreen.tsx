@@ -11,12 +11,15 @@ import {
 import { fonts } from '../theme/typography';
 import { Transaction, Category, Account, TransactionType } from '../types';
 import { AddTransactionModal } from '../components/AddTransactionModal';
+import { EditTransactionModal } from '../components/EditTransactionModal';
+import { DeleteTransactionModal } from '../components/DeleteTransactionModal';
 import { AppTopHeader } from '../components/AppTopHeader';
 import { useTheme } from '../theme/ThemeContext';
 import {
   SearchIcon,
   PlusIcon,
 } from '../components/VectorIcons';
+import { KineticProgressBar } from '../components/KineticProgressBar';
 
 interface TransactionsScreenProps {
   transactions: Transaction[];
@@ -30,6 +33,7 @@ interface TransactionsScreenProps {
     accountId: string;
     date?: string;
   }) => void;
+  onUpdateTransaction?: (tx: Transaction) => void;
   onDeleteTransaction?: (txId: string) => void;
   onOpenProfile?: () => void;
   onMenuPress?: () => void;
@@ -43,6 +47,7 @@ export const TransactionsScreen: React.FC<TransactionsScreenProps> = ({
   categories,
   accounts,
   onAddTransaction,
+  onUpdateTransaction,
   onDeleteTransaction,
   onOpenProfile,
   onMenuPress,
@@ -51,6 +56,8 @@ export const TransactionsScreen: React.FC<TransactionsScreenProps> = ({
   const { theme } = useTheme();
   const [activeFilter, setActiveFilter] = useState<TxFilter>('all');
   const [modalVisible, setModalVisible] = useState(false);
+  const [editingTx, setEditingTx] = useState<Transaction | null>(null);
+  const [deletingTx, setDeletingTx] = useState<Transaction | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
 
@@ -61,6 +68,8 @@ export const TransactionsScreen: React.FC<TransactionsScreenProps> = ({
     if (tx.type === 'expense') totalExpense += tx.amount;
   });
   const netCashflow = totalIncome - totalExpense;
+  const flowTotal = totalIncome + totalExpense;
+  const flowRatio = flowTotal > 0 ? Math.min(1, Math.max(0, totalIncome / flowTotal)) : 0.5;
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter((tx) => {
@@ -94,20 +103,7 @@ export const TransactionsScreen: React.FC<TransactionsScreenProps> = ({
   };
 
   const handleRowLongPress = (tx: Transaction) => {
-    if (!onDeleteTransaction) return;
-
-    Alert.alert(
-      'Διαγραφή Συναλλαγής',
-      `Είστε βέβαιοι ότι θέλετε να διαγράψετε τη συναλλαγή "${tx.description || 'Χωρίς περιγραφή'}" ποσού €${tx.amount.toFixed(2)};`,
-      [
-        { text: 'Ακύρωση', style: 'cancel' },
-        {
-          text: 'Διαγραφή',
-          style: 'destructive',
-          onPress: () => onDeleteTransaction(tx.id),
-        },
-      ]
-    );
+    setDeletingTx(tx);
   };
 
   return (
@@ -159,27 +155,63 @@ export const TransactionsScreen: React.FC<TransactionsScreenProps> = ({
           </View>
         )}
 
-        {/* High-Contrast Cashflow Status Strip */}
-        <View style={[styles.cashflowBar, { backgroundColor: theme.brandPink, borderWidth: 0 }]}>
-          <View style={styles.cashflowCol}>
-            <Text style={[styles.cashflowLabel, { color: 'rgba(255, 255, 255, 0.82)' }]}>ΕΙΣΡΟΕΣ</Text>
-            <Text style={[styles.cashflowValue, { color: '#A7F3D0' }]}>
-              +€{totalIncome.toLocaleString('el-GR', { minimumFractionDigits: 0 })}
+        {/* Pure Pink Hero Card with Kinetic Cashflow Progress */}
+        <View style={[styles.heroCard, { backgroundColor: theme.brandPink, borderWidth: 0 }]}>
+          <View style={styles.heroTopRow}>
+            <Text style={[styles.heroEyebrow, { color: 'rgba(255, 255, 255, 0.85)' }]}>
+              ΤΑΜΕΙΑΚΟ ΙΣΟΖΥΓΙΟ
             </Text>
+            <View style={styles.heroPill}>
+              <Text style={styles.heroPillText}>
+                {transactions.length} ΣΥΝΑΛΛΑΓΕΣ
+              </Text>
+            </View>
           </View>
-          <View style={[styles.cashflowDivider, { backgroundColor: 'rgba(255, 255, 255, 0.22)' }]} />
-          <View style={styles.cashflowCol}>
-            <Text style={[styles.cashflowLabel, { color: 'rgba(255, 255, 255, 0.82)' }]}>ΕΚΡΟΕΣ</Text>
-            <Text style={[styles.cashflowValue, { color: '#FECDD3' }]}>
-              −€{totalExpense.toLocaleString('el-GR', { minimumFractionDigits: 0 })}
+
+          <Text style={styles.heroAmount}>
+            {netCashflow >= 0 ? '+' : '−'}€{Math.abs(netCashflow).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            <Text style={styles.heroAmountPeriod}>
+              {' '}{netCashflow >= 0 ? 'πλεόνασμα' : 'έλλειμμα'}
             </Text>
+          </Text>
+
+          {/* Kinetic Progress Bar of Cashflow Balance */}
+          <View style={styles.progressSection}>
+            <View style={styles.progressLabelRow}>
+              <Text style={styles.progressLabel}>ΙΣΟΖΥΓΙΟ ΕΙΣΡΟΩΝ / ΕΚΡΟΩΝ</Text>
+              <Text style={styles.progressPercent}>{Math.round(flowRatio * 100)}% εισροές</Text>
+            </View>
+            <KineticProgressBar
+              progress={flowRatio}
+              height={4}
+              trackColor="rgba(255, 255, 255, 0.25)"
+              fillColor="#FFFFFF"
+              duration={900}
+            />
           </View>
-          <View style={[styles.cashflowDivider, { backgroundColor: 'rgba(255, 255, 255, 0.22)' }]} />
-          <View style={styles.cashflowCol}>
-            <Text style={[styles.cashflowLabel, { color: 'rgba(255, 255, 255, 0.82)' }]}>ΚΑΘΑΡΟ</Text>
-            <Text style={[styles.cashflowValue, { color: '#FFFFFF' }]}>
-              {netCashflow >= 0 ? '+' : ''}€{netCashflow.toLocaleString('el-GR', { minimumFractionDigits: 0 })}
-            </Text>
+
+          {/* Metric Sub-strip */}
+          <View style={styles.heroMetricsStrip}>
+            <View style={styles.heroMetricCol}>
+              <Text style={styles.heroMetricLabel}>ΣΥΝΟΛΟ ΕΙΣΡΟΩΝ</Text>
+              <Text style={[styles.heroMetricValue, { color: '#A7F3D0' }]}>
+                +€{totalIncome.toLocaleString('el-GR', { minimumFractionDigits: 0 })}
+              </Text>
+            </View>
+            <View style={styles.heroMetricDivider} />
+            <View style={styles.heroMetricCol}>
+              <Text style={styles.heroMetricLabel}>ΣΥΝΟΛΟ ΕΚΡΟΩΝ</Text>
+              <Text style={[styles.heroMetricValue, { color: '#FECDD3' }]}>
+                −€{totalExpense.toLocaleString('el-GR', { minimumFractionDigits: 0 })}
+              </Text>
+            </View>
+            <View style={styles.heroMetricDivider} />
+            <View style={styles.heroMetricCol}>
+              <Text style={styles.heroMetricLabel}>ΜΕΣΗ ΣΥΝΑΛΛΑΓΗ</Text>
+              <Text style={styles.heroMetricValue}>
+                €{transactions.length > 0 ? Math.round((totalIncome + totalExpense) / transactions.length) : 0}
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -235,6 +267,7 @@ export const TransactionsScreen: React.FC<TransactionsScreenProps> = ({
                 <TouchableOpacity
                   key={tx.id}
                   activeOpacity={0.65}
+                  onPress={() => setEditingTx(tx)}
                   onLongPress={() => handleRowLongPress(tx)}
                   delayLongPress={350}
                   style={[
@@ -297,6 +330,29 @@ export const TransactionsScreen: React.FC<TransactionsScreenProps> = ({
         categories={categories}
         accounts={accounts}
       />
+
+      <EditTransactionModal
+        visible={!!editingTx}
+        transaction={editingTx}
+        categories={categories}
+        accounts={accounts}
+        onClose={() => setEditingTx(null)}
+        onSave={(updated) => {
+          onUpdateTransaction?.(updated);
+        }}
+        onRequestDelete={(tx) => {
+          setDeletingTx(tx);
+        }}
+      />
+
+      <DeleteTransactionModal
+        visible={!!deletingTx}
+        transaction={deletingTx}
+        onClose={() => setDeletingTx(null)}
+        onConfirmDelete={(id) => {
+          onDeleteTransaction?.(id);
+        }}
+      />
     </View>
   );
 };
@@ -344,34 +400,102 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
   },
-  cashflowBar: {
-    flexDirection: 'row',
-    borderRadius: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+  heroCard: {
+    borderRadius: 20,
+    padding: 20,
     marginBottom: 16,
   },
-  cashflowCol: {
+  heroTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  heroEyebrow: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  heroPill: {
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  heroPillText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+  heroAmount: {
+    fontFamily: fonts.heading,
+    fontSize: 32,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: -0.6,
+    marginBottom: 12,
+  },
+  heroAmountPeriod: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 15,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.80)',
+  },
+  progressSection: {
+    marginBottom: 16,
+  },
+  progressLabelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  progressLabel: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 9.5,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    color: 'rgba(255, 255, 255, 0.80)',
+  },
+  progressPercent: {
+    fontFamily: fonts.heading,
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  heroMetricsStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.18)',
+  },
+  heroMetricCol: {
     flex: 1,
     alignItems: 'center',
   },
-  cashflowDivider: {
-    width: 1,
-    marginVertical: 2,
-  },
-  cashflowLabel: {
+  heroMetricLabel: {
     fontFamily: fonts.bodyBold,
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    color: 'rgba(255, 255, 255, 0.75)',
     marginBottom: 3,
   },
-  cashflowValue: {
+  heroMetricValue: {
     fontFamily: fonts.heading,
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '900',
-    letterSpacing: -0.3,
+    color: '#FFFFFF',
+  },
+  heroMetricDivider: {
+    width: 1,
+    height: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.20)',
   },
   filterPillsRow: {
     gap: 8,

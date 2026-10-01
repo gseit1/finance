@@ -23,6 +23,7 @@ export type NavTab =
   | 'calendar'
   | 'accounts'
   | 'transactions'
+  | 'recurring'
   | 'analytics'
   | 'goals'
   | 'profile';

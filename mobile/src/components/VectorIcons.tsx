@@ -912,6 +912,37 @@ export const ArrowLeftIcon: React.FC<IconProps> = ({ color = '#18181B', size = 1
   );
 };
 
+// Trash / Delete Icon
+export const TrashIcon: React.FC<IconProps> = ({ color = '#EF4444', size = 18 }) => {
+  const width = size * 0.75;
+  const height = size * 0.85;
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      {/* Lid */}
+      <View style={{ width: width * 1.15, height: 2, backgroundColor: color, borderRadius: 1, marginBottom: 2 }} />
+      <View style={{ width: width * 0.45, height: 2, backgroundColor: color, borderTopLeftRadius: 1.5, borderTopRightRadius: 1.5, position: 'absolute', top: size * 0.1 }} />
+      {/* Bin Body */}
+      <View
+        style={{
+          width,
+          height: height * 0.75,
+          borderWidth: 1.6,
+          borderColor: color,
+          borderTopWidth: 0,
+          borderBottomLeftRadius: 4,
+          borderBottomRightRadius: 4,
+          flexDirection: 'row',
+          justifyContent: 'space-evenly',
+          paddingVertical: 2,
+        }}
+      >
+        <View style={{ width: 1.4, height: '70%', backgroundColor: color, borderRadius: 0.7 }} />
+        <View style={{ width: 1.4, height: '70%', backgroundColor: color, borderRadius: 0.7 }} />
+      </View>
+    </View>
+  );
+};
+
 const styles = StyleSheet.create({
   center: {
     alignItems: 'center',
