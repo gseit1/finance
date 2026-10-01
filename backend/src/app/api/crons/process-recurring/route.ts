@@ -57,6 +57,18 @@ export async function GET(request: NextRequest) {
 
     // 2. Process each due rule
     for (const rule of dueRules) {
+      // Advance to next schedule date FIRST to avoid race conditions with realtime subscribers
+      const nextDate = calculateNextDate(rule.next_run_date, rule.frequency);
+      const { error: updateError } = await supabaseAdmin
+        .from('recurring_rules')
+        .update({ next_run_date: nextDate })
+        .eq('id', rule.id);
+
+      if (updateError) {
+        console.error(`Failed to advance next_run_date for rule ${rule.id}:`, updateError.message);
+        continue;
+      }
+
       // Insert the actual transaction
       const { data: newTx, error: txError } = await supabaseAdmin
         .from('transactions')
@@ -75,13 +87,8 @@ export async function GET(request: NextRequest) {
 
       if (!txError && newTx) {
         createdTransactions.push(newTx);
-
-        // Advance to next schedule date
-        const nextDate = calculateNextDate(rule.next_run_date, rule.frequency);
-        await supabaseAdmin
-          .from('recurring_rules')
-          .update({ next_run_date: nextDate })
-          .eq('id', rule.id);
+      } else if (txError) {
+        console.error(`Failed to insert transaction for rule ${rule.id}:`, txError.message);
       }
     }
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { StyleSheet, View, ActivityIndicator, AppState, AppStateStatus } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -36,33 +36,33 @@ import { isSupabaseConfigured, supabase } from './src/services/supabase';
 import { authService } from './src/services/authService';
 import { taskService } from './src/services/taskService';
 
-// Calculate next run date based on frequency
+// Calculate next run date based on frequency using UTC methods to prevent timezone shifts
 export const computeNextRunDate = (currentDateStr: string, frequency: RecurringFrequency): string => {
   const date = new Date(currentDateStr);
   if (isNaN(date.getTime())) {
     const fallback = new Date();
-    fallback.setMonth(fallback.getMonth() + 1);
+    fallback.setUTCMonth(fallback.getUTCMonth() + 1);
     return fallback.toISOString().split('T')[0];
   }
 
   switch (frequency) {
     case 'daily':
-      date.setDate(date.getDate() + 1);
+      date.setUTCDate(date.getUTCDate() + 1);
       break;
     case 'weekly':
-      date.setDate(date.getDate() + 7);
+      date.setUTCDate(date.getUTCDate() + 7);
       break;
     case 'bi-weekly':
-      date.setDate(date.getDate() + 14);
+      date.setUTCDate(date.getUTCDate() + 14);
       break;
     case 'monthly':
-      date.setMonth(date.getMonth() + 1);
+      date.setUTCMonth(date.getUTCMonth() + 1);
       break;
     case 'yearly':
-      date.setFullYear(date.getFullYear() + 1);
+      date.setUTCFullYear(date.getUTCFullYear() + 1);
       break;
     default:
-      date.setMonth(date.getMonth() + 1);
+      date.setUTCMonth(date.getUTCMonth() + 1);
   }
 
   return date.toISOString().split('T')[0];
@@ -121,15 +121,40 @@ function App(): React.JSX.Element {
   const [drawerVisible, setDrawerVisible] = useState<boolean>(false);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Synchronization and execution guards to prevent duplicate triggers
+  const isSyncingRef = useRef(false);
+  const syncPendingRef = useRef(false);
+  const isProcessingRecurringRef = useRef(false);
+  const processingRuleIdsRef = useRef(new Set<string>());
+  const lastRecurringCheckRef = useRef<number>(0);
+  const syncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const supabaseActive = isSupabaseConfigured();
 
   const isUUID = (str?: string): boolean => {
     return Boolean(str && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str));
   };
 
-  // Unified data synchronization with Supabase PostgreSQL
+  // Debounced sync to coalesce multiple rapid PostgreSQL realtime events into a single sync call
+  const debouncedSyncUserData = useCallback((userId: string) => {
+    if (syncTimeoutRef.current) {
+      clearTimeout(syncTimeoutRef.current);
+    }
+    syncTimeoutRef.current = setTimeout(() => {
+      syncUserData(userId);
+    }, 300);
+  }, []);
+
+  // Unified data synchronization with Supabase PostgreSQL (read-only state sync)
   const syncUserData = async (userId: string) => {
     if (!supabaseActive || !userId) return;
+
+    // Concurrency guard: avoid overlapping sync calls
+    if (isSyncingRef.current) {
+      syncPendingRef.current = true;
+      return;
+    }
+    isSyncingRef.current = true;
 
     try {
       await authService.ensureSupabaseSession();
@@ -310,7 +335,7 @@ function App(): React.JSX.Element {
         if (cachedGoals) setGoals(JSON.parse(cachedGoals));
       }
 
-      // 6. Fetch Recurring Rules from Supabase
+      // 6. Fetch Recurring Rules from Supabase (read-only state sync)
       try {
         const { data: dbRules, error: rulesErr } = await supabase
           .from('recurring_rules')
@@ -330,81 +355,7 @@ function App(): React.JSX.Element {
             next_run_date: r.next_run_date,
             is_active: r.is_active,
           }));
-
-          // Process active recurring rules that have reached or passed their due date
-          const todayIso = new Date().toISOString().split('T')[0];
-          let updatedRulesList = [...mappedRules];
-          let generatedTransactions = false;
-
-          for (let i = 0; i < updatedRulesList.length; i++) {
-            const rule = updatedRulesList[i];
-            if (rule.is_active && rule.next_run_date && rule.next_run_date <= todayIso) {
-              const matchedAcc = liveAccounts.find((a) => a.id === rule.account_id) || liveAccounts[0];
-              const matchedCat = liveCategories.find((c) => c.id === rule.category_id);
-
-              if (matchedAcc && isUUID(matchedAcc.id)) {
-                generatedTransactions = true;
-                const nextDate = computeNextRunDate(rule.next_run_date, rule.frequency);
-
-                // Insert ledger transaction into PostgreSQL
-                await supabase.from('transactions').insert({
-                  user_id: userId,
-                  account_id: matchedAcc.id,
-                  category_id: matchedCat?.id || null,
-                  type: rule.type,
-                  amount: rule.amount,
-                  description: `${rule.description} (Πάγια Εντολή)`,
-                  date: rule.next_run_date,
-                });
-
-                // Update account balance
-                const delta = rule.type === 'income' ? rule.amount : -rule.amount;
-                matchedAcc.balance = (matchedAcc.balance || 0) + delta;
-                await supabase.from('accounts').update({ balance: matchedAcc.balance }).eq('id', matchedAcc.id);
-
-                // Advance next_run_date in recurring_rules table
-                if (isUUID(rule.id)) {
-                  await supabase.from('recurring_rules').update({ next_run_date: nextDate }).eq('id', rule.id);
-                }
-
-                updatedRulesList[i] = { ...rule, next_run_date: nextDate };
-              }
-            }
-          }
-
-          setRecurringRules(updatedRulesList);
-
-          if (generatedTransactions) {
-            setAccounts([...liveAccounts]);
-            // Refresh transactions list
-            const { data: refreshedTxs } = await supabase
-              .from('transactions')
-              .select('*')
-              .order('date', { ascending: false });
-
-            if (refreshedTxs) {
-              setTransactions(
-                refreshedTxs.map((t: any) => {
-                  const acc = liveAccounts.find((a) => a.id === t.account_id);
-                  const cat = liveCategories.find((c) => c.id === t.category_id);
-                  return {
-                    id: t.id,
-                    user_id: t.user_id,
-                    account_id: t.account_id,
-                    category_id: t.category_id,
-                    type: t.type,
-                    amount: Number(t.amount),
-                    description: t.description || '',
-                    notes: t.notes,
-                    date: t.date,
-                    account_name: acc?.name || 'Account',
-                    category_name: cat?.name || 'General',
-                    category_color: cat?.color || colors.primary,
-                  };
-                })
-              );
-            }
-          }
+          setRecurringRules(mappedRules);
         } else {
           setRecurringRules([]);
         }
@@ -421,6 +372,93 @@ function App(): React.JSX.Element {
       }
     } catch (err) {
       console.warn('Sync user data failed:', err);
+    } finally {
+      isSyncingRef.current = false;
+      if (syncPendingRef.current) {
+        syncPendingRef.current = false;
+        syncUserData(userId);
+      }
+    }
+  };
+
+  // Dedicated, thread-safe recurring rules processor
+  const processDueRecurringRules = async (userId: string) => {
+    if (!supabaseActive || !userId) return;
+
+    // Mutex lock to guarantee only 1 execution runs at a time
+    if (isProcessingRecurringRef.current) return;
+    isProcessingRecurringRef.current = true;
+
+    try {
+      await authService.ensureSupabaseSession();
+      const todayIso = new Date().toISOString().split('T')[0];
+
+      // Query database directly for active rules due on or before today
+      const { data: dueRules, error } = await supabase
+        .from('recurring_rules')
+        .select('*')
+        .eq('is_active', true)
+        .lte('next_run_date', todayIso);
+
+      if (error || !dueRules || dueRules.length === 0) {
+        return;
+      }
+
+      let generatedCount = 0;
+
+      for (const rule of dueRules) {
+        // Prevent concurrent processing of the same rule
+        if (processingRuleIdsRef.current.has(rule.id)) continue;
+        processingRuleIdsRef.current.add(rule.id);
+
+        try {
+          const nextDate = computeNextRunDate(rule.next_run_date || todayIso, rule.frequency);
+
+          // 1. Advance next_run_date FIRST in the database.
+          // This immediately prevents this rule from being picked up again by any concurrent check or realtime event.
+          const { error: updateErr } = await supabase
+            .from('recurring_rules')
+            .update({ next_run_date: nextDate })
+            .eq('id', rule.id)
+            .eq('user_id', userId);
+
+          if (updateErr) {
+            console.warn('Failed to advance next_run_date for rule:', rule.id, updateErr);
+            continue;
+          }
+
+          // 2. Insert transaction ledger entry
+          if (rule.account_id && isUUID(rule.account_id)) {
+            const { error: insertErr } = await supabase.from('transactions').insert({
+              user_id: userId,
+              account_id: rule.account_id,
+              category_id: isUUID(rule.category_id) ? rule.category_id : null,
+              type: rule.type,
+              amount: Number(rule.amount),
+              description: `${rule.description} (Πάγια Εντολή)`,
+              date: rule.next_run_date || todayIso,
+              is_recurring: true,
+            });
+
+            if (!insertErr) {
+              generatedCount++;
+            } else {
+              console.error('Failed to insert recurring transaction:', insertErr);
+            }
+          }
+        } finally {
+          processingRuleIdsRef.current.delete(rule.id);
+        }
+      }
+
+      // If transactions were created, refresh user state cleanly
+      if (generatedCount > 0) {
+        await syncUserData(userId);
+      }
+    } catch (err) {
+      console.warn('Process recurring rules error:', err);
+    } finally {
+      isProcessingRecurringRef.current = false;
     }
   };
 
@@ -440,6 +478,7 @@ function App(): React.JSX.Element {
               setIsAuthChecking(false);
             }
             await syncUserData(data.session.user.id);
+            await processDueRecurringRules(data.session.user.id);
             return;
           }
 
@@ -454,6 +493,7 @@ function App(): React.JSX.Element {
                 setIsAuthChecking(false);
               }
               await syncUserData(restoredData.session.user.id);
+              await processDueRecurringRules(restoredData.session.user.id);
               return;
             }
           }
@@ -468,6 +508,7 @@ function App(): React.JSX.Element {
             await authService.ensureSupabaseSession();
           }
           await syncUserData(cachedUser.id);
+          await processDueRecurringRules(cachedUser.id);
         }
       } catch (err) {
         console.warn('Session restoration failed:', err);
@@ -487,7 +528,7 @@ function App(): React.JSX.Element {
             setCurrentUser(session.user);
             setFlow('app');
           }
-          await syncUserData(session.user.id);
+          debouncedSyncUserData(session.user.id);
         } else if (event === 'SIGNED_OUT') {
           if (isMounted) {
             setCurrentUser(null);
@@ -505,7 +546,7 @@ function App(): React.JSX.Element {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [debouncedSyncUserData]);
 
   // Multi-device real-time sync: listens to Supabase PostgreSQL changes & app foreground events
   useEffect(() => {
@@ -514,11 +555,16 @@ function App(): React.JSX.Element {
     // 1. Sync immediately whenever the app is brought to the foreground / unlocked
     const appStateSub = AppState.addEventListener('change', (nextState: AppStateStatus) => {
       if (nextState === 'active' && currentUser?.id) {
-        syncUserData(currentUser.id);
+        debouncedSyncUserData(currentUser.id);
+        const now = Date.now();
+        if (now - lastRecurringCheckRef.current > 60000) {
+          lastRecurringCheckRef.current = now;
+          processDueRecurringRules(currentUser.id);
+        }
       }
     });
 
-    // 2. Real-time WebSocket channel for instant cross-device updates
+    // 2. Real-time WebSocket channel for instant cross-device updates (all debounced to avoid event storms)
     let realtimeChannel: any = null;
     if (supabaseActive && currentUser?.id) {
       realtimeChannel = supabase
@@ -527,42 +573,42 @@ function App(): React.JSX.Element {
           'postgres_changes',
           { event: '*', schema: 'public', table: 'transactions' },
           () => {
-            syncUserData(currentUser.id);
+            debouncedSyncUserData(currentUser.id);
           }
         )
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'budgets' },
           () => {
-            syncUserData(currentUser.id);
+            debouncedSyncUserData(currentUser.id);
           }
         )
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'accounts' },
           () => {
-            syncUserData(currentUser.id);
+            debouncedSyncUserData(currentUser.id);
           }
         )
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'goals' },
           () => {
-            syncUserData(currentUser.id);
+            debouncedSyncUserData(currentUser.id);
           }
         )
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'recurring_rules' },
           () => {
-            syncUserData(currentUser.id);
+            debouncedSyncUserData(currentUser.id);
           }
         )
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'tasks' },
           () => {
-            syncUserData(currentUser.id);
+            debouncedSyncUserData(currentUser.id);
           }
         )
         .subscribe();
@@ -570,11 +616,14 @@ function App(): React.JSX.Element {
 
     return () => {
       appStateSub.remove();
+      if (syncTimeoutRef.current) {
+        clearTimeout(syncTimeoutRef.current);
+      }
       if (realtimeChannel) {
         supabase.removeChannel(realtimeChannel);
       }
     };
-  }, [currentUser?.id, supabaseActive]);
+  }, [currentUser?.id, supabaseActive, debouncedSyncUserData]);
 
   // Initial load of tasks
   useEffect(() => {
@@ -585,6 +634,7 @@ function App(): React.JSX.Element {
     setRefreshing(true);
     if (currentUser?.id) {
       await syncUserData(currentUser.id);
+      await processDueRecurringRules(currentUser.id);
     } else {
       const liveTasks = await taskService.getTasks();
       setTasks(liveTasks);
@@ -599,6 +649,7 @@ function App(): React.JSX.Element {
     categoryId: string;
     accountId: string;
     date?: string;
+    is_recurring?: boolean;
   }) => {
     await authService.ensureSupabaseSession();
 
@@ -729,6 +780,7 @@ function App(): React.JSX.Element {
             amount: newTx.amount,
             description: newTx.description,
             date: txDate,
+            is_recurring: newTx.is_recurring ?? false,
           })
           .select()
           .single();
@@ -1216,41 +1268,52 @@ function App(): React.JSX.Element {
   };
 
   const handleExecuteRecurringRule = async (rule: RecurringRule) => {
-    await authService.ensureSupabaseSession();
+    if (!rule?.id) return;
 
-    const todayStr = new Date().toISOString().split('T')[0];
-    const targetAccount = accounts.find((a) => a.id === rule.account_id) || accounts[0];
-    const targetCategory = categories.find((c) => c.id === rule.category_id);
+    // Prevent double clicking / parallel execution of the same rule
+    if (processingRuleIdsRef.current.has(rule.id)) return;
+    processingRuleIdsRef.current.add(rule.id);
 
-    // 1. Post transaction locally & in Supabase
-    handleSaveTransaction({
-      type: rule.type,
-      amount: rule.amount,
-      description: `${rule.description} (Πάγια Εντολή)`,
-      categoryId: targetCategory?.id || '',
-      accountId: targetAccount?.id || '',
-      date: todayStr,
-    });
+    try {
+      await authService.ensureSupabaseSession();
 
-    // 2. Advance next_run_date
-    const nextDate = computeNextRunDate(rule.next_run_date || todayStr, rule.frequency);
+      const todayStr = new Date().toISOString().split('T')[0];
+      const targetAccount = accounts.find((a) => a.id === rule.account_id) || accounts[0];
+      const targetCategory = categories.find((c) => c.id === rule.category_id);
 
-    // 3. Update state
-    setRecurringRules((prev) =>
-      prev.map((r) => (r.id === rule.id ? { ...r, next_run_date: nextDate } : r))
-    );
+      // 1. Advance next_run_date
+      const nextDate = computeNextRunDate(rule.next_run_date || todayStr, rule.frequency);
 
-    // 4. Update in Supabase
-    if (supabaseActive && currentUser?.id && isUUID(rule.id)) {
-      try {
-        await supabase
-          .from('recurring_rules')
-          .update({ next_run_date: nextDate })
-          .eq('id', rule.id)
-          .eq('user_id', currentUser.id);
-      } catch (err) {
-        console.warn('Advance next run date notice:', err);
+      // 2. Update state locally immediately
+      setRecurringRules((prev) =>
+        prev.map((r) => (r.id === rule.id ? { ...r, next_run_date: nextDate } : r))
+      );
+
+      // 3. Advance next_run_date in Supabase FIRST so no concurrent check can see it as due
+      if (supabaseActive && currentUser?.id && isUUID(rule.id)) {
+        try {
+          await supabase
+            .from('recurring_rules')
+            .update({ next_run_date: nextDate })
+            .eq('id', rule.id)
+            .eq('user_id', currentUser.id);
+        } catch (err) {
+          console.warn('Advance next run date notice:', err);
+        }
       }
+
+      // 4. Post transaction locally & in Supabase
+      await handleSaveTransaction({
+        type: rule.type,
+        amount: rule.amount,
+        description: `${rule.description} (Πάγια Εντολή)`,
+        categoryId: targetCategory?.id || '',
+        accountId: targetAccount?.id || '',
+        date: todayStr,
+        is_recurring: true,
+      });
+    } finally {
+      processingRuleIdsRef.current.delete(rule.id);
     }
   };
 
@@ -1352,6 +1415,7 @@ function App(): React.JSX.Element {
               if (user) {
                 setCurrentUser(user);
                 await syncUserData(user.id);
+                await processDueRecurringRules(user.id);
               }
               setFlow('app');
             }}

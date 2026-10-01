@@ -55,6 +55,7 @@ export const RecurringBillsScreen: React.FC<RecurringBillsScreenProps> = ({
   const [modalVisible, setModalVisible] = useState(false);
   const [deletingRule, setDeletingRule] = useState<RecurringRule | null>(null);
   const [executingRule, setExecutingRule] = useState<RecurringRule | null>(null);
+  const [isExecuting, setIsExecuting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
 
@@ -516,16 +517,30 @@ export const RecurringBillsScreen: React.FC<RecurringBillsScreenProps> = ({
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.deleteConfirmBtn, { backgroundColor: executingRule?.type === 'income' ? theme.emerald : theme.brandPink }]}
-                onPress={() => {
-                  if (executingRule && onExecuteRecurringRule) {
-                    onExecuteRecurringRule(executingRule);
-                    setExecutingRule(null);
+                disabled={isExecuting}
+                style={[
+                  styles.deleteConfirmBtn,
+                  {
+                    backgroundColor: executingRule?.type === 'income' ? theme.emerald : theme.brandPink,
+                    opacity: isExecuting ? 0.6 : 1,
+                  },
+                ]}
+                onPress={async () => {
+                  if (executingRule && onExecuteRecurringRule && !isExecuting) {
+                    setIsExecuting(true);
+                    try {
+                      await onExecuteRecurringRule(executingRule);
+                    } finally {
+                      setIsExecuting(false);
+                      setExecutingRule(null);
+                    }
                   }
                 }}
                 activeOpacity={0.85}
               >
-                <Text style={styles.deleteConfirmText}>Καταχώρηση</Text>
+                <Text style={styles.deleteConfirmText}>
+                  {isExecuting ? 'Καταχώρηση...' : 'Καταχώρηση'}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
