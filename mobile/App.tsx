@@ -267,6 +267,53 @@ function App(): React.JSX.Element {
       });
       setTransactions(mappedTxs);
 
+      // 3b. Reconcile Account balances directly from the transaction ledger
+      // This heals any account balance corruption caused by duplicate runs, manual edits, or desynced database triggers.
+      let balancesChanged = false;
+      const reconciledAccounts = liveAccounts.map((acc) => {
+        let ledgerBalance = 0;
+        mappedTxs.forEach((t: any) => {
+          if (t.account_id === acc.id) {
+            if (t.type === 'income') ledgerBalance += t.amount;
+            else if (t.type === 'expense') ledgerBalance -= t.amount;
+            else if (t.type === 'transfer') ledgerBalance -= t.amount;
+          }
+          if (t.to_account_id === acc.id && t.type === 'transfer') {
+            ledgerBalance += t.amount;
+          }
+        });
+
+        ledgerBalance = Math.round(ledgerBalance * 100) / 100;
+
+        if (Math.abs(acc.balance - ledgerBalance) > 0.001) {
+          balancesChanged = true;
+          return { ...acc, balance: ledgerBalance };
+        }
+        return acc;
+      });
+
+      if (balancesChanged) {
+        liveAccounts = reconciledAccounts;
+        setAccounts(reconciledAccounts);
+
+        // Heal and sync PostgreSQL accounts table so DB remains clean and permanently consistent
+        if (supabaseActive && userId) {
+          for (const acc of reconciledAccounts) {
+            if (isUUID(acc.id)) {
+              supabase
+                .from('accounts')
+                .update({ balance: acc.balance })
+                .eq('id', acc.id)
+                .eq('user_id', userId)
+                .then(
+                  () => {},
+                  (err: any) => console.warn('Account balance healing notice:', err)
+                );
+            }
+          }
+        }
+      }
+
       // 4. Fetch Budgets from Supabase
       const { data: dbBudgets } = await supabase.from('budgets').select('*');
       const now = new Date();

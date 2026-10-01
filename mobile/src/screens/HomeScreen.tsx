@@ -99,9 +99,18 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
 
+  const parseTxDate = (dateStr?: string): Date => {
+    if (!dateStr) return new Date();
+    if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      return new Date(y, m - 1, d);
+    }
+    return new Date(dateStr);
+  };
+
   const monthTransactions = transactions.filter((tx) => {
     try {
-      const d = new Date(tx.date);
+      const d = parseTxDate(tx.date);
       return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
     } catch {
       return false;
@@ -235,7 +244,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <View style={styles.balanceCoinRow}>
             <View style={styles.balanceTextCol}>
               <Text style={[styles.totalLiquidityText, { color: '#FFFFFF' }]} numberOfLines={1} adjustsFontSizeToFit>
-                €{totalBalance.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {totalBalance < 0 ? '−€' : '€'}{Math.abs(totalBalance).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </Text>
               <Text style={[styles.tierQuoteText, { color: 'rgba(255, 255, 255, 0.92)' }]}>
                 {getRunwayQuote(totalBalance)}
